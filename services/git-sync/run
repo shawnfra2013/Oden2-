@@ -1,0 +1,10 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -u
+
+ROOT="${HOME}/odin-workspace"
+SYNC="${ROOT}/scripts/git-sync.sh"
+
+while true; do
+    "$SYNC" || true
+    sleep 300
+done
