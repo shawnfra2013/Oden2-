@@ -1,0 +1,113 @@
+name: Odin Checks
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Odin Project
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Verify required project files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required=(
+            ".gitignore"
+            "README.md"
+            "docs/architecture.md"
+            "docs/controller-map.md"
+          )
+
+          for file in "${required[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "::error::Required file missing: $file"
+              exit 1
+            fi
+          done
+
+      - name: Install Python linter
+        run: python -m pip install ruff
+
+      - name: Lint Python
+        run: ruff check .
+
+      - name: Check Python syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t files < <(
+            find . -type f -name '*.py' -not -path './.git/*' | sort
+          )
+
+          if ((${#files[@]} == 0)); then
+            echo "No Python files yet."
+            exit 0
+          fi
+
+          printf '%s\n' "${files[@]}"
+          python -m py_compile "${files[@]}"
+
+      - name: Check shell syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t files < <(
+            find . -type f -name '*.sh' -not -path './.git/*' | sort
+          )
+
+          if ((${#files[@]} == 0)); then
+            echo "No shell scripts yet."
+            exit 0
+          fi
+
+          printf '%s\n' "${files[@]}"
+
+          for file in "${files[@]}"; do
+            bash -n "$file"
+          done
+
+      - name: Reject obvious committed secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git grep -nEI \
+            '(gsk_[A-Za-z0-9_-]{20,}|csk-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|github_pat_[A-Za-z0-9_]+|ghp_[A-Za-z0-9]+|BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY)' \
+            -- . ':!*.md'
+          then
+            echo "::error::Possible secret detected in repository."
+            exit 1
+          fi
+
+          echo "No obvious committed secrets detected."
+
+      - name: Repository sanity check
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test ! -e .groq-key
+          test ! -e .cerebras-key
+          test ! -e .ai-keys.sh
+          test ! -e .env
+
+          echo "Repository sanity check passed."
