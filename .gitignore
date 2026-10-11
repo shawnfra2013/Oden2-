@@ -1,0 +1,62 @@
+# =====================================================
+# ODIN 2 — NEVER COMMIT SECRETS
+# =====================================================
+
+*.key
+*.pem
+*.p12
+*.pfx
+*.keystore
+
+.groq-key
+.cerebras-key
+.ai-keys.sh
+.env
+.env.*
+*credentials*
+*credential*
+*secret*
+*token*
+
+# SSH private/public material stays outside repository
+.ssh/
+id_rsa*
+id_ed25519*
+
+# =====================================================
+# RUNTIME STATE
+# =====================================================
+
+logs/
+state/
+*.log
+*.pid
+*.sock
+
+# =====================================================
+# PYTHON
+# =====================================================
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# =====================================================
+# TEMP / BACKUPS
+# =====================================================
+
+*.tmp
+*.swp
+*.bak
+*.backup
+*.backup.*
+*~
+
+# =====================================================
+# GENERATED DEVICE DATA
+# Keep raw audits local until explicitly sanitized.
+# =====================================================
+
+audits/*
+!audits/.gitkeep
