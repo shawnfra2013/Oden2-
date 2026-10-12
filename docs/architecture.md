@@ -1,34 +1,33 @@
-# Odin 2 Architecture
+# Odin 2 Architecture
 
-## Design rule
+## Design Principle
 
-Odin 2 is maintained as a modular system.
+Odin 2 is built as a **modular system** – there is no monolithic controller or bootstrap application.
+Each component has a single, well‑defined responsibility and interacts with other parts only through **documented configuration** and **explicit interfaces**.
 
-No monolithic controller/bootstrap application.
+## Core Subsystems
 
-Components have isolated responsibilities and communicate through documented configuration and interfaces.
+| Subsystem | Purpose |
+|-----------|---------|
+| **config** | Centralised, shared configuration data |
+| **controller** | Core event‑processing engine |
+| **controller/actions** | Pluggable Android actions that can be swapped out |
+| **services** | Definitions for supervising background services |
+| **boot** | Integration logic that runs at startup |
+| **ai** | Components for AI inference and related processing |
+| **scripts** | Administrative and audit scripts |
+| **tests** | Automated verification and regression tests |
+| **docs** | Architecture, hardware specifications, and other documentation |
 
-## Major subsystems
+> **Note:** Runtime logs, state files, credentials, API keys and SSH keys are **never** committed to the repository.
 
-- config — shared configuration
-- controller — controller event processing
-- controller/actions — replaceable Android actions
-- services — supervision definitions
-- boot — startup integration
-- ai — AI/inference components
-- scripts — administration and auditing
-- tests — verification
-- docs — architecture and hardware documentation
+## Change Management Policy
 
-Runtime logs, state, credentials, API keys and SSH keys are not committed.
+When a change to a device is required, follow these steps:
 
-## Change policy
-
-Before changing the device:
-
-1. Measure current state.
-2. Record the intended change.
-3. Modify the smallest responsible component.
-4. Test the change.
-5. Record the result.
-6. Preserve a rollback path.
+1. **Measure** – Capture the current state of the system.
+2. **Record** – Document the intended modification and its rationale.
+3. **Isolate** – Apply the change to the smallest possible component that owns the behaviour.
+4. **Test** – Verify the change with the appropriate test suite.
+5. **Log** – Record the observed results and any side effects.
+6. **Rollback** – Ensure a clear path to revert the change if needed.
