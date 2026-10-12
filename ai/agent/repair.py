@@ -15,7 +15,7 @@ API = "https://api.groq.com/openai/v1/chat/completions"
 def run(*args):
     return subprocess.run(
         args, cwd=ROOT, text=True, capture_output=True
-    )
+    , check=False)
 
 
 def main():
@@ -107,7 +107,7 @@ def main():
             input=config,
             text=True,
             capture_output=True
-        )
+        , check=False)
 
     if result.returncode:
         print("ERROR: Groq request failed.")
@@ -203,12 +203,12 @@ def main():
                  "import ast,sys; ast.parse(open(sys.argv[1]).read())",
                  str(path)],
                 capture_output=True, text=True
-            )
+            , check=False)
         elif name.endswith(".sh"):
             test = subprocess.run(
                 ["bash", "-n", str(path)],
                 capture_output=True, text=True
-            )
+            , check=False)
         else:
             continue
 

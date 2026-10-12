@@ -13,7 +13,7 @@ def git(*args):
     return subprocess.run(
         ["git", *args], cwd=ROOT,
         capture_output=True, text=True
-    )
+    , check=False)
 
 def main():
     key = os.environ.get("GROQ_API_KEY", "").strip()
@@ -68,7 +68,7 @@ def main():
             "--data-binary", "@-"
         ],
         input=payload, text=True, capture_output=True
-    )
+    , check=False)
 
     if result.returncode:
         print("ERROR: Groq request failed")

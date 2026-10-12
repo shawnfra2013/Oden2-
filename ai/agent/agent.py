@@ -1,7 +1,7 @@
-import os
-import sys
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path.home() / "odin-workspace"
@@ -23,11 +23,14 @@ def ask(question):
     context = []
     for name in files:
         path = ROOT / name
-        if path.is_file() and path.stat().st_size < 30000:
-            if path.suffix in (".py", ".sh", ".md", ".yml", ".yaml"):
-                context.append(
-                    f"FILE: {name}\n{path.read_text(errors='replace')}"
-                )
+        if (
+            path.is_file()
+            and path.stat().st_size < 30000
+            and path.suffix in (".py", ".sh", ".md", ".yml", ".yaml")
+        ):
+            context.append(
+                f"FILE: {name}\n{path.read_text(errors='replace')}"
+            )
 
     messages = [
         {
@@ -69,7 +72,7 @@ def ask(question):
         input=payload,
         text=True,
         capture_output=True
-    )
+    , check=False)
 
     if result.returncode:
         raise RuntimeError(
