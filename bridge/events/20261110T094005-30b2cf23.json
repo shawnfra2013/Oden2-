@@ -1,0 +1,7 @@
+{
+  "event": "task-failed",
+  "timestamp": "2026-11-10T09:40:05.082561+00:00",
+  "source": "odin-agent",
+  "git_status_exit": 0,
+  "git_status": ""
+}
