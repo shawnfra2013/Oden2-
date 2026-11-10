@@ -45,6 +45,9 @@ jobs:
       - name: Install Python linter
         run: python -m pip install ruff
 
+      - name: Stage 4 offline regression
+        run: python -B -m unittest discover -s tests -p test_stage4.py -v
+
       - name: Lint Python
         run: ruff check .
 
