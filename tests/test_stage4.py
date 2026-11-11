@@ -139,6 +139,39 @@ class Stage4Tests(unittest.TestCase):
         self.assertEqual(done.read_bytes(), original)
         self.assertTrue(running.exists())
 
+
+    def test_recovery_dangling_symlink_preserved(self):
+        ident = "000000000001"
+        running = self.record(ident, folder=worker.RUNNING)
+        destination = worker.DONE / (ident + ".json")
+        destination.symlink_to(self.root / "missing-target")
+        worker.recover()
+        self.assertTrue(destination.is_symlink())
+        self.assertTrue(running.exists())
+        self.assertFalse((self.root / "missing-target").exists())
+
+    def test_recovery_source_change_preserved(self):
+        ident = "000000000001"
+        running = self.record(ident, folder=worker.RUNNING)
+        original_read = pipeline.read
+        calls = 0
+
+        def changing_read(root, parts, limit):
+            nonlocal calls
+            result = original_read(root, parts, limit)
+            if tuple(parts) == running.relative_to(self.root).parts:
+                calls += 1
+                if calls == 2:
+                    running.write_text('{"changed":true}')
+                    return original_read(root, parts, limit)
+            return result
+
+        with patch.object(pipeline, "read", side_effect=changing_read):
+            worker.recover()
+
+        self.assertTrue(running.exists())
+        self.assertEqual(running.read_text(), '{"changed":true}')
+
     def test_success_collision_preserved_and_next_job_runs(self):
         ident = "000000000001"
         previous = self.record(ident, folder=worker.DONE, value={"original": True})
@@ -344,6 +377,206 @@ class Stage4Tests(unittest.TestCase):
         self.run.side_effect = None
         self.run.return_value = subprocess.CompletedProcess([], 0, b"down: odin-task-worker: 1s", b"")
         self.assertIs(healthcheck.check_worker(healthcheck.HealthCheckConfig())["ok"], False)
+
+
+    def test_negated_write_request_classification(self):
+        cases = {
+            "Do not modify files.": False,
+            "Modify project files.": True,
+            "Do not modify files, but delete logs.": True,
+            "Reply with exactly ODIN_STAGE4_LIVE_OK.": False,
+            "Never delete files.": False,
+            "Never delete files; commit changes.": True,
+        }
+
+        warning = "Conversational tools cannot apply project changes"
+
+        for index, (request, expected) in enumerate(cases.items()):
+            with self.subTest(request=request):
+                self.ask.side_effect = None
+                self.ask.return_value = json.dumps({
+                    "action": "finish",
+                    "answer": "ODIN_STAGE4_LIVE_OK",
+                })
+
+                task_id = f"{index + 1:012x}"
+                output = io.StringIO()
+
+                with contextlib.redirect_stdout(output):
+                    orchestrator.respond(request, task_id=task_id)
+
+                self.assertEqual(warning in output.getvalue(), expected)
+
+                checkpoint = json.loads(
+                    orchestrator.task_session_path(task_id).read_text()
+                )
+                self.assertEqual(checkpoint["status"], "unverified")
+
+    def test_unverified_answer_does_not_emit_failure(self):
+        self.ask.side_effect = None
+        self.ask.return_value = json.dumps({
+            "action": "finish",
+            "answer": "323"
+        })
+        with patch.object(orchestrator, "bridge_event") as events:
+            orchestrator.respond(
+                "What is 19 multiplied by 17?",
+                task_id="012345abcdef"
+            )
+        sent = [c.args[0] for c in events.call_args_list]
+        self.assertEqual(sent, ["task-started"])
+        checkpoint = json.loads(
+            orchestrator.task_session_path(
+                "012345abcdef"
+            ).read_text()
+        )
+        self.assertEqual(checkpoint["status"], "unverified")
+
+
+    def test_legacy_cli_key_not_in_process_argv(self):
+        import agent as legacy_agent
+
+        fixture_key = "fixture-key-not-a-real-credential"
+
+        def runner(argv, **kwargs):
+            if argv[:2] == ["git", "-C"]:
+                return subprocess.CompletedProcess(
+                    argv, 0, "", ""
+                )
+
+            if argv[0] == "curl":
+                self.assertEqual(
+                    argv, ["curl", "--config", "-"]
+                )
+                self.assertNotIn(
+                    fixture_key, " ".join(argv)
+                )
+
+                config = kwargs.get("input", "")
+                self.assertIn(
+                    "Authorization: Bearer " + fixture_key,
+                    config
+                )
+
+                line = next(
+                    (
+                        item for item in config.splitlines()
+                        if item.startswith("data-binary = ")
+                    ),
+                    None
+                )
+                self.assertIsNotNone(line)
+
+                argument = json.loads(
+                    line.split(" = ", 1)[1]
+                )
+                self.assertTrue(argument.startswith("@"))
+
+                payload_path = Path(argument[1:])
+                self.assertTrue(payload_path.is_file())
+                self.assertEqual(
+                    payload_path.stat().st_mode & 0o777,
+                    0o600
+                )
+
+                payload = json.loads(
+                    payload_path.read_text()
+                )
+                self.assertIn(
+                    "safe fixture",
+                    payload["messages"][-1]["content"]
+                )
+
+                response = {
+                    "choices": [
+                        {"message": {"content": "fixture answer"}}
+                    ]
+                }
+                return subprocess.CompletedProcess(
+                    argv, 0, json.dumps(response), ""
+                )
+
+            raise AssertionError("Unexpected subprocess")
+
+        self.run.side_effect = runner
+
+        with patch.object(
+            legacy_agent, "ROOT", self.root
+        ), patch.dict(
+            os.environ, {"GROQ_API_KEY": fixture_key}
+        ):
+            legacy_agent.ask("safe fixture")
+
+
+    def test_legacy_propose_key_not_in_process_argv(self):
+        import propose as legacy_propose
+
+        fixture_key = "fixture-propose-key"
+        document = self.root / "docs/architecture.md"
+        document.parent.mkdir(parents=True, exist_ok=True)
+        original = "# Fixture architecture\n" + "Safe test content.\n" * 8
+        document.write_text(original)
+        observed = []
+
+        def runner(argv, **kwargs):
+            if argv[:2] == ["git", "status"]:
+                return subprocess.CompletedProcess(argv, 0, "", "")
+
+            if argv[0] == "curl":
+                observed.append(True)
+                self.assertEqual(argv, ["curl", "--config", "-"])
+                self.assertNotIn(fixture_key, repr(argv))
+
+                config = kwargs["input"]
+                self.assertIn(
+                    "Authorization: Bearer " + fixture_key,
+                    config
+                )
+
+                arg = json.loads(next(
+                    line.split(" = ", 1)[1]
+                    for line in config.splitlines()
+                    if line.startswith("data-binary = ")
+                ))
+
+                self.assertTrue(arg.startswith("@"))
+                payload_path = Path(arg[1:])
+                self.assertEqual(
+                    payload_path.stat().st_mode & 0o777,
+                    0o600
+                )
+
+                payload = json.loads(payload_path.read_text())
+                self.assertEqual(
+                    payload["model"], "openai/gpt-oss-120b"
+                )
+                self.assertIn(
+                    "Improve clarity.",
+                    payload["messages"][-1]["content"]
+                )
+
+                reply = {
+                    "choices": [{
+                        "message": {"content": original}
+                    }]
+                }
+                return subprocess.CompletedProcess(
+                    argv, 0, json.dumps(reply), ""
+                )
+
+            raise AssertionError("Unexpected subprocess")
+
+        self.run.side_effect = runner
+
+        with patch.object(
+            legacy_propose, "ROOT", self.root
+        ), patch.dict(
+            os.environ, {"GROQ_API_KEY": fixture_key}
+        ), patch.object(sys, "argv", ["propose.py"]):
+            self.assertEqual(legacy_propose.main(), 0)
+
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(document.read_text(), original)
 
     def test_api_nonobject_is_bounded_error(self):
         self.run.side_effect = None

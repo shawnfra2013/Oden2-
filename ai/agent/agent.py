@@ -60,19 +60,36 @@ def ask(question):
         "stream": False
     })
 
-    result = subprocess.run(
-        [
-            "curl", "-fsS",
-            "--max-time", "90",
-            API,
-            "-H", f"Authorization: Bearer {key}",
-            "-H", "Content-Type: application/json",
-            "--data-binary", "@-"
-        ],
-        input=payload,
-        text=True,
-        capture_output=True
-    , check=False)
+    if any(ch in key for ch in '\r\n"\\'):
+        raise RuntimeError("GROQ_API_KEY contains unsupported characters")
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="odin-cli-") as directory:
+        body = Path(directory) / "request.json"
+        body.touch(mode=0o600, exist_ok=False)
+        body.write_text(payload, encoding="utf-8")
+
+        config = "\n".join([
+            "silent",
+            "show-error",
+            "fail",
+            "max-time = 90",
+            'request = "POST"',
+            f'url = "{API}"',
+            f'header = "Authorization: Bearer {key}"',
+            'header = "Content-Type: application/json"',
+            f'data-binary = "@{body}"',
+        ]) + "\n"
+
+        result = subprocess.run(
+            ["curl", "--config", "-"],
+            input=config,
+            text=True,
+            capture_output=True,
+            timeout=100,
+            check=False,
+        )
 
     if result.returncode:
         raise RuntimeError(

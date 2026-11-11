@@ -399,7 +399,18 @@ def respond(question, task_id=None):
             checkpoint(messages, number, "unverified", task_id, evidence)
             failed = any(e.get("error") is not None or e.get("returncode") != 0 for e in evidence)
             request = next((str(m.get("content", "")) for m in messages if m.get("role") == "user"), question)
-            write_requested = re.search(r"\b(propose|create|write|modify|edit|install|apply|delete|commit|push|generate|implement|save|repair|fix)\b", request, re.IGNORECASE)
+            write_verbs = r"propose|create|write|modify|edit|install|apply|delete|commit|push|generate|implement|save|repair|fix"
+            negated = re.sub(
+                rf"\b(?:do not|don't|never)\s+(?:{write_verbs})\b",
+                "",
+                request,
+                flags=re.IGNORECASE,
+            )
+            write_requested = re.search(
+                rf"\b(?:{write_verbs})\b",
+                negated,
+                re.IGNORECASE,
+            )
             if write_requested:
                 print("UNVERIFIED: Conversational tools cannot apply project changes. Use the proposal queue.")
             elif failed:
@@ -407,7 +418,8 @@ def respond(question, task_id=None):
             else:
                 print("MODEL ANSWER (task outcome unverified):")
                 print(answer)
-            bridge_event("task-failed")
+            # Outcome is unverified, not a confirmed failure.
+            # Do not emit a terminal success/failure event.
             return
         arg = instruction.get("arg", "")
         if not isinstance(arg, str) or len(arg) > 4000:

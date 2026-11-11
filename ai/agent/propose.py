@@ -59,16 +59,37 @@ def main():
         "max_completion_tokens": 4096
     })
 
-    result = subprocess.run(
-        [
-            "curl", "-fsS", "--max-time", "90",
-            "https://api.groq.com/openai/v1/chat/completions",
-            "-H", "Authorization: Bearer " + key,
-            "-H", "Content-Type: application/json",
-            "--data-binary", "@-"
-        ],
-        input=payload, text=True, capture_output=True
-    , check=False)
+    if any(c in key for c in '\r\n"\\'):
+        print("ERROR: Invalid Groq API key format")
+        return 1
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="odin-propose-") as directory:
+        request = Path(directory) / "request.json"
+        request.touch(mode=0o600, exist_ok=False)
+        request.write_text(payload, encoding="utf-8")
+
+        config = "\n".join([
+            "silent",
+            "show-error",
+            "fail",
+            "max-time = 90",
+            'request = "POST"',
+            'url = "https://api.groq.com/openai/v1/chat/completions"',
+            f'header = "Authorization: Bearer {key}"',
+            'header = "Content-Type: application/json"',
+            f'data-binary = "@{request}"',
+        ]) + "\n"
+
+        result = subprocess.run(
+            ["curl", "--config", "-"],
+            input=config,
+            text=True,
+            capture_output=True,
+            timeout=100,
+            check=False,
+        )
 
     if result.returncode:
         print("ERROR: Groq request failed")

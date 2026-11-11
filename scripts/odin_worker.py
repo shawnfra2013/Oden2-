@@ -127,7 +127,10 @@ def recover():
     """Quarantine interrupted work. Never blindly replay it."""
     for path in sorted(RUNNING.glob("*.json")):
         try:
-            data = json.loads(path.read_text())
+            raw = pipeline.read(
+                ROOT, path.relative_to(ROOT).parts, 262144
+            )
+            data = json.loads(raw)
 
             if not isinstance(data, dict):
                 raise TypeError(
@@ -174,7 +177,7 @@ def recover():
 
             destination = DONE / path.name
 
-            if destination.exists():
+            if os.path.lexists(destination):
                 raise RuntimeError(
                     "Done record already exists; "
                     "refusing recovery overwrite"
@@ -185,7 +188,16 @@ def recover():
                 data,
             )
 
-            path.unlink()
+            if pipeline.read(
+                ROOT, path.relative_to(ROOT).parts, 262144
+            ) != raw:
+                raise RuntimeError(
+                    "Running record changed during recovery"
+                )
+
+            pipeline.unlink(
+                ROOT, path.relative_to(ROOT).parts
+            )
 
             print(
                 f"TASK {path.stem}: "
