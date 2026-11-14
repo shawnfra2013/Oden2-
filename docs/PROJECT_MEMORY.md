@@ -140,3 +140,24 @@ Stage 4 is not complete until those gates pass.
 - Provider metadata is provider-reported, not independently verified.
 - Next gates: controlled source review, approved publication, GitHub Actions verification and live revision verification.
 - No bootloader work, boot changes, queue mutation or separate execution bridge.
+
+<!-- ODIN_STAGE4_LIVE_VERIFIED_2026_11_14 -->
+
+## Stage 4 live verification — 2026-11-14
+
+- Published commit: `777c3ec65690167bd7d5075ea427e91f72b1f39c`.
+- GitHub Actions: Odin Checks run `43640303358` completed successfully.
+- Local validation: 43/43 regression tests passed.
+- Runtime activation: `odin-task-worker` restarted successfully,
+  PID `13622` to `15603`.
+- Git sync remained running under PID `13625`.
+- Live verification task: `ed1619c049ea`.
+- Task outcome: `unverified`, as required for conversational
+  tasks without deterministic acceptance contracts.
+- Checkpoint contains an inference receipt for Groq
+  `openai/gpt-oss-120b`, including provider-reported response
+  ID and token usage (262 prompt, 62 completion, 324 total).
+- `provider_request_traceable` is true;
+  `independently_verified` remains false.
+- Queue after the test: zero pending and zero running tasks.
+- No bootloader changes or new feature activation.
