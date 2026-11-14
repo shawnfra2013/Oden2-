@@ -6,8 +6,9 @@ import tempfile
 from pathlib import Path
 
 if __package__:
-    from . import pipeline
+    from . import inference_receipt, pipeline
 else:
+    import inference_receipt
     import pipeline
 
 ROOT = Path.home() / "odin-workspace"
@@ -117,6 +118,7 @@ def ask(messages, tokens=1400):
             "unavailable",
         )
         raise RuntimeError("Groq returned empty content")
+    inference_receipt.record(data, MODEL)
     return content
 
 
@@ -326,7 +328,8 @@ def task_session_path(task_id=None):
 def checkpoint(messages, step, status, task_id=None, evidence=None):
     target = task_session_path(task_id)
     data = {"schema": 1, "task_id": task_id, "step": step, "status": status,
-            "messages": messages, "execution": evidence or []}
+            "messages": messages, "execution": evidence or [],
+            "inference": inference_receipt.receipts()}
     pipeline.publish(ROOT, target.relative_to(ROOT).parts, pipeline.json_bytes(data), replace=True)
 
 
@@ -356,7 +359,7 @@ def bridge_event(event):
 
 
 
-def respond(question, task_id=None):
+def _respond_impl(question, task_id=None):
     state = task_session_path(task_id)
     if not isinstance(question, str) or not question.strip():
         raise ValueError("Invalid question")
@@ -371,6 +374,7 @@ def respond(question, task_id=None):
             return
         messages, start = saved["messages"], saved["step"]
         evidence = saved.get("execution", [])
+        inference_receipt.restore(saved.get("inference", []))
         if not isinstance(messages, list) or not isinstance(evidence, list) or type(start) is not int:
             raise ValueError("Invalid checkpoint fields")
     else:
@@ -477,6 +481,15 @@ def main():
                     f"ERROR: {type(exc).__name__}: "
                     f"{str(exc)[:200]}"
                 )
+
+
+def respond(question, task_id=None):
+    """Run a task with isolated inference provenance."""
+    token = inference_receipt.begin()
+    try:
+        return _respond_impl(question, task_id=task_id)
+    finally:
+        inference_receipt.finish(token)
 
 
 if __name__ == "__main__":

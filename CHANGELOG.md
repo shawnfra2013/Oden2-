@@ -61,3 +61,14 @@ Verification: `python -B -m unittest discover -s tests -p test_stage4.py -v`.
 - Confirmed worker.lock is part of the worker locking implementation.
 - Preserved previous verification checkpoints for historical traceability.
 - Remaining: independently verify unattended reboot startup and AI provider-request provenance.
+
+<!-- ODIN_STAGE4_PROVENANCE_2026_11_14 -->
+## 2026-11-14 — Stage 4 inference provenance (isolated, unpublished)
+
+- Added ai/agent/inference_receipt.py for task-scoped provider-response metadata.
+- Integrated receipt capture, checkpoint persistence and interactive resume.
+- Added five provenance and startup-order regression tests.
+- Expanded CI discovery from test_stage4.py to test*.py.
+- Verified 43/43 offline tests, Ruff and compilation.
+- No live worker deployment, service restart, queue change or GitHub publication.
+- Provider-request authenticity remains independently unverified.

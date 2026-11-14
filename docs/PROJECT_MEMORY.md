@@ -123,3 +123,20 @@ Stage 4 is not complete until those gates pass.
 - Priority: finish documentation and CI verification, then continue hardening native Odin capabilities.
 - Preserve historical records, credentials, services, and recovery evidence.
 - Use read-only inspection, isolated tests, and verified results before changes.
+
+<!-- ODIN_STAGE4_PROVENANCE_2026_11_14 -->
+## 2026-11-14 — Stage 4 provenance development checkpoint
+
+- Development location: ~/odin-stage4-lab, isolated from the live workspace.
+- Latest observed live HEAD: df8bb37; historical checkpoint 6d3423d retained.
+- Live Git status contained untracked file e; preserve it.
+- Implemented inference receipt collection and checkpoint persistence.
+- Interactive resume retains prior receipts; task outcome remains unverified.
+- Added five regression tests; complete suite passed 43/43.
+- Ruff and compilation passed in isolation.
+- CI workflow locally updated to discover test*.py.
+- Direct CLI startup ordering corrected; --help launches the interactive CLI rather than displaying help.
+- Changes have not been published to GitHub or loaded by the running worker.
+- Provider metadata is provider-reported, not independently verified.
+- Next gates: controlled source review, approved publication, GitHub Actions verification and live revision verification.
+- No bootloader work, boot changes, queue mutation or separate execution bridge.

@@ -76,3 +76,17 @@ Remaining limitations:
 - Unattended startup after reboot is not conclusively verified.
 
 Stage 4 remains under stabilization; no new features are authorized.
+
+<!-- ODIN_STAGE4_PROVENANCE_2026_11_14 -->
+## Stage 4 inference provenance — isolated verification (2026-11-14)
+
+- Implemented per-task inference receipt collection using ContextVar isolation.
+- Checkpoints now persist provider-reported model, response ID and available token usage.
+- Interactive resume restores saved inference receipts.
+- Existing task outcome semantics remain unchanged; unverified is not promoted to complete.
+- Offline acceptance: 43/43 regression tests passed; Ruff and Python compilation passed.
+- GitHub Actions test discovery updated to include all test*.py files.
+- Direct CLI startup ordering corrected and protected by a regression test.
+- These changes remain in the isolated odin-stage4-lab; not yet published or activated.
+- Provider-reported identifiers are not independently authenticated request provenance.
+- Live worker behavior with this revision and GitHub CI on this revision remain unverified.
