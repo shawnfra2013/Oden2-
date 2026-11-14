@@ -109,3 +109,17 @@ Stage 4 is not complete until those gates pass.
 - Assessment: live AI-worker behavior observed; individual provider-request provenance not independently established.
 - No automatic deployment or code modification was authorized by this task.
 - Release and GitHub Actions verification remain pending.
+
+## 2026-11-14 — Canonical Odin checkpoint
+- GitHub and local main verified at 6d3423d.
+- Both Odin services verified running on November 14.
+- Earlier Stage 4 checks: 38/38 tests and CI run 43112942632 passed.
+- Live Groq inference and a harmless worker task were previously verified.
+- Historical queue: 23 JSON records classified, including 8 failures.
+- AI provider-request provenance remains unverified.
+- Current queue, recovery state, and loaded worker revision still require verification.
+- User explicitly deferred bootloader and automatic startup work; these are not development blockers.
+- Separate ChatGPT-to-Odin bridge removed from the roadmap by user decision.
+- Priority: finish documentation and CI verification, then continue hardening native Odin capabilities.
+- Preserve historical records, credentials, services, and recovery evidence.
+- Use read-only inspection, isolated tests, and verified results before changes.

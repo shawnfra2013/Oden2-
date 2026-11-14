@@ -56,3 +56,23 @@ See docs/PROJECT_MEMORY.md for historical discrepancies and safe continuation ru
 - Assessment: live AI-worker behavior observed; individual provider-request provenance not independently established.
 - No automatic deployment or code modification was authorized by this task.
 - Release and GitHub Actions verification remain pending.
+
+<!-- ODIN_STAGE4_VERIFIED_2026_11_11 -->
+## Stage 4 stabilization — verified update (2026-11-11)
+
+- GitHub: stabilization commit 6d3423d pushed to main.
+- CI: Odin Checks run 43112942632 passed.
+- Validation: 38/38 Stage 4 regression tests passed; Ruff and compilation checks passed.
+- Hosted inference: live Groq 120B request succeeded.
+- Worker: harmless live task completed with verified receipt.
+- Historical queue: 23 JSON records classified (5 complete, 8 failed, 5 proposal_ready, 5 unverified).
+- Historical failures: all 8 accounted for; causes include Groq requests, credentials, lint validation, and proposal validation.
+- Queue artifacts: worker.lock confirmed as an intentional worker locking mechanism.
+- Security: Groq credentials removed from curl command arguments; worker recovery and source checks hardened.
+
+Remaining limitations:
+- Historical failure classification does not establish that every failure mode is resolved.
+- Individual AI provider-request provenance is not independently established.
+- Unattended startup after reboot is not conclusively verified.
+
+Stage 4 remains under stabilization; no new features are authorized.
