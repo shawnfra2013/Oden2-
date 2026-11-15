@@ -151,3 +151,8 @@ Remaining limitations:
 - Generic AI task acceptance, independent provider-request
   authentication, and persistent browser conversations
   are not established.
+
+## Unreleased
+
+- Add browser menu links to existing Odin sections and document the
+  fast-forward update and browser verification steps.

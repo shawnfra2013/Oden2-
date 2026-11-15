@@ -176,3 +176,17 @@ Remaining limitations:
 - Generic AI task acceptance, independent provider-request
   authentication, and persistent browser conversations
   are not established.
+
+## Updating Odin from GitHub
+
+After the reviewed changes merge into `main` and CI passes, open the
+existing `~/odin-workspace` checkout on Odin and check its status with
+`git status --short --branch`. If it is on `main` with no local changes
+or local-only commits, run `git pull --ff-only origin main` and confirm
+`git rev-parse --short HEAD` matches the intended release. If the checkout
+is dirty or has diverged, review the differences before updating.
+
+Keep configuration, credentials, and runtime data on the device. Restart
+the Stage 5 server if it was already running, then open its localhost
+page and use the menu to reach AI Chat, Tasks, System, and Session.
+Verify that System reports backend readiness and Tasks shows queue counts.
