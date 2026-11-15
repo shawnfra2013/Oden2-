@@ -98,3 +98,53 @@ Next: validate the live worker, review the existing CI changes, then publish app
 - Assessment: live AI-worker behavior observed; individual provider-request provenance not independently established.
 - No automatic deployment or code modification was authorized by this task.
 - Release and GitHub Actions verification remain pending.
+
+<!-- ODIN_CANONICAL_2026_11_15 -->
+## Current verified baseline — 2026-11-15
+
+- Device: AYN Odin_M2, Android 10, Termux.
+- Repository: shawnfra2013/Oden2-, branch main.
+- Audited commit: 07cf2b6d7190ce488adf4066cccfdc301ef1099b.
+- Local HEAD, origin/main and GitHub main matched.
+- GitHub Actions Odin Checks: run 43663313265 passed.
+- Stage 4 regression tests: 43/43 passed.
+- Stage 5 regression tests: 25/25 passed.
+- Ruff: passed.
+- Git sync and task worker were running at the service check.
+- Worker PID 7531 was running scripts/odin_worker.py
+  from the expected workspace.
+- Exact source revision loaded in worker memory was not
+  independently established.
+- Queue: zero pending and zero running JSON tasks.
+- Historical done-directory JSON records: 25 total;
+  6 complete, 8 failed, 5 proposal_ready, 6 unverified.
+- Historical statuses do not establish that all task
+  outcomes were independently verified.
+- Stage 5.5 browser interface and backend passed offline
+  tests and a previous live browser verification.
+- Stage 5 HTTP server was offline at the latest check;
+  it is not established as a persistent service.
+- Stage 5 browser responses are not persisted and
+  provider-request provenance is not independently verified.
+- Four identical untracked files of 17,499 bytes remain
+  unidentified and preserved. A fifth untracked file,
+  main, is empty.
+- state/bridge-reporter is a separate nested Git repository
+  excluded by the parent repository's state/ ignore rule.
+- Automate launcher work is deferred.
+- Termux:Boot installation and unattended reboot
+  verification are deferred.
+- Bootloader work is deferred.
+- No production code changes or service restarts were
+  performed for this audit.
+- Earlier dated checkpoints remain historical records;
+  this section supersedes their pending-status claims
+  for the checks explicitly verified above.
+
+Remaining limitations:
+- Identify and safely handle the untracked files.
+- Loaded worker revision has not been independently proven.
+- Persistent Stage 5 startup is not configured or verified.
+- Generic AI task acceptance, independent provider-request
+  authentication, and persistent browser conversations
+  are not established.
