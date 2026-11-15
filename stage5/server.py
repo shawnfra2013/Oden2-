@@ -209,7 +209,7 @@ def main():
     server.daemon_threads = True
     server.chat_lock = threading.BoundedSemaphore(1)
     server.session_token = secrets.token_urlsafe(32)
-    print(f"ODIN STAGE 5.2: http://{HOST}:{PORT}", flush=True)
+    print(f"ODIN STAGE 5.5: http://{HOST}:{PORT}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

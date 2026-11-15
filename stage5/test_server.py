@@ -7,7 +7,7 @@ from http.server import HTTPServer
 import server
 
 
-class Stage52Tests(unittest.TestCase):
+class Stage55Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.http = HTTPServer(("127.0.0.1", 0), server.Handler)
@@ -46,7 +46,7 @@ class Stage52Tests(unittest.TestCase):
 
     def test_interface_updated(self):
         html = (server.ROOT / "index.html").read_text()
-        self.assertIn("Stage 5.2", html)
+        self.assertIn("Stage 5.5", html)
         self.assertIn('id="message"', html)
         self.assertIn('id="tasks"', html)
 
