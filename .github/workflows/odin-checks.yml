@@ -48,6 +48,9 @@ jobs:
       - name: Stage 4 offline regression
         run: python -B -m unittest discover -s tests -p 'test*.py' -v
 
+      - name: Stage 5 offline regression
+        run: python -B -m unittest discover -s stage5 -p 'test_*.py' -v
+
       - name: Lint Python
         run: ruff check .
 

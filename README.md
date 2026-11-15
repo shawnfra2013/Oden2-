@@ -111,3 +111,18 @@ Stage 4 remains under stabilization; no new features are authorized.
   `independently_verified` remains false.
 - Queue after the test: zero pending and zero running tasks.
 - No bootloader changes or new feature activation.
+
+## Stage 5.5 — Browser AI checkpoint (2026-11-14)
+
+- Isolated browser interface promoted to `stage5/`.
+- Local-only HTTP server at `127.0.0.1:8765`.
+- Groq inference disabled by default.
+- Existing Stage 4 orchestrator reused without modification.
+- Child-process inference adapter enforces a 45-second overall deadline.
+- One concurrent model request permitted.
+- Browser test returned `ODIN_STAGE55_LIVE_OK`.
+- Stage 5 offline regression: 25/25 passed.
+- Stage 4 offline regression: 43/43 passed.
+- Responses remain unverified and are not persisted.
+- Production worker and Git sync remain independent.
+- Provider-request provenance not independently established.

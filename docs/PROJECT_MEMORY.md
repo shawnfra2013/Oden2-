@@ -161,3 +161,18 @@ Stage 4 is not complete until those gates pass.
   `independently_verified` remains false.
 - Queue after the test: zero pending and zero running tasks.
 - No bootloader changes or new feature activation.
+
+## Stage 5.5 verified checkpoint — 2026-11-14
+
+- Stage 5 source location: `stage5/`.
+- Previous isolated development: `~/odin-stage5-lab/stage55`.
+- Browser backend: Python standard-library HTTP server.
+- Security scope: localhost prototype, not remote authentication.
+- Groq model: `openai/gpt-oss-120b` through Stage 4 orchestrator.
+- AI disabled unless `ODIN_STAGE5_ENABLE_AI=1`.
+- Child-process deadline: 45 seconds.
+- Live browser marker: `ODIN_STAGE55_LIVE_OK`.
+- Offline tests: Stage 5 25/25; Stage 4 43/43.
+- Provider receipt not independently verified for browser request.
+- No task persistence, remote bridge, or bootloader changes.
+- Next release gates: complete CI, review scoped diff, commit, push, verify GitHub Actions.
