@@ -18,7 +18,8 @@ import sys
 
 sys.path.insert(0, sys.argv[1])
 
-question = json.loads(sys.stdin.read())["question"]
+request = json.loads(sys.stdin.read())
+question = request["question"]
 
 with contextlib.redirect_stdout(io.StringIO()):
     import orchestrator
@@ -30,6 +31,7 @@ with contextlib.redirect_stdout(io.StringIO()):
             "Never claim to have executed actions without evidence."
         ),
     },
+    *request.get("history", []),
     {"role": "user", "content": question},
 ], tokens=700)
 
@@ -81,7 +83,33 @@ def run_bounded(command, payload, deadline=DEADLINE_SECONDS):
     return answer
 
 
-def ask_bounded(question):
+def bounded_history(history):
+    """Keep the newest complete turns inside the inference budget."""
+    if history is None:
+        return []
+    if not isinstance(history, list):
+        raise TypeError("Invalid history")
+    selected = []
+    remaining = 12000
+    for message in reversed(history[-12:]):
+        if not isinstance(message, dict):
+            raise TypeError("Invalid history message")
+        if set(message) != {"role", "content"}:
+            raise ValueError("Invalid history fields")
+        role, content = message["role"], message["content"]
+        if role not in ("user", "assistant") or not isinstance(content, str):
+            raise ValueError("Invalid history role or content")
+        content = content[:4000]
+        if len(content) > remaining:
+            break
+        selected.append({"role": role, "content": content})
+        remaining -= len(content)
+    if selected and selected[-1]["role"] == "assistant":
+        selected.pop()
+    return list(reversed(selected))
+
+
+def ask_bounded(question, history=None):
     if os.environ.get("ODIN_STAGE5_ENABLE_AI") != "1":
         raise RuntimeError("AI disabled")
     if not os.environ.get("GROQ_API_KEY"):
@@ -95,5 +123,5 @@ def ask_bounded(question):
 
     return run_bounded(
         [sys.executable, "-c", CHILD_CODE, str(agent_dir)],
-        {"question": question},
+        {"question": question, "history": bounded_history(history)},
     )
