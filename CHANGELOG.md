@@ -217,3 +217,19 @@ Remaining limitations:
   existing iPhone interface. No secret contents appear in replies.
 - Add Python and Node regression tests; a live reply from an AI model,
   unlike the already proven Git task, still requires separate verification.
+
+## 2026-11-19 — On-demand verified private Odin service restart
+
+- Added confirmation-gated System Restart all services button and
+  exact typed /restart-services command using the same authenticated relay.
+- Added detached, fixed-allowlist helper to restart existing
+  Odin runit services, the private relay last; no device reboot,
+  arbitrary shell, new package, or OS changes.
+- Durable private result after services are checked as running.
+  Interrupted operations fail explicitly; duplicate requests and
+  rapid restart loops are blocked by local state and cooldown.
+- Added offline tests for permission boundaries, message routing,
+  idempotency, throttle, service order, failures and reconnect.
+- Existing keys, private messages, Git history, user files and
+  CI-gated source update policy are preserved. A one-time relay
+  reload is required for the initial version activation.

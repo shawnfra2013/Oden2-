@@ -131,3 +131,36 @@ nonsecret explanation. Credentials remain on the device. The
 separate **Cloud AI** section still needs a server-side key and is
 not automatically enabled by Odin's device provider. This release
 does not configure API credentials or verify a live provider call.
+
+## Restart all supervised Odin services from iPhone
+
+Once the updated physical Odin private relay is running, unlock
+Odin Control and open System → Service controls → Restart all services.
+A confirmation dialog warns that active work may be interrupted.
+The Chat → Messages & responses composer accepts the exact
+/restart-services command (also "restart all services" and
+"restart odin services"). The shortcut pre-fills this command;
+the owner still sends it and confirms.
+
+This uses the authenticated private message API, not public GitHub
+diagnostics. The action cannot execute arbitrary shell commands,
+change credentials, reset Git, install packages, or reboot Android.
+
+The detached on-device helper restarts only configured runit
+services: odin-git-sync, odin-task-worker, odin-github-bridge (if
+configured), then odin-private-relay last. The standalone Stage 5
+HTTP server, sshd, ssh-agent and unrelated services are excluded.
+Requests are rate-limited to once every 10 minutes.
+
+The phone first shows delivery/read confirmation, not success.
+The helper checks post-restart running status. Only after the
+relay reconnects does it deliver a private
+ODIN_SERVICES_RESTART_RESULT verified=true|false response.
+An interrupted helper yields verified=false after five minutes.
+
+First installation limitation: the auto-updater may pull new
+source without reloading the old running Python relay. Until
+the new odin-private-relay process is activated once, this
+new command cannot work. After a CI-passing fast-forward,
+one initial Termux service restart is needed; subsequent
+restarts can be initiated from the authenticated UI.

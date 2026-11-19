@@ -204,3 +204,32 @@ an actual on-device model response before declaring this milestone done.
 
 No device credential is automatically inferred from the hosted
 Vercel cloud AI capability flag; those are independent providers.
+
+## 2026-11-19 — On-demand verified supervised service restart
+
+The user requested both a System UI Restart all services button and
+a typed message command. Both use the private authenticated relay,
+not the public GitHub diagnostic branch. The UI requires a confirmed
+private session, device pairing and human confirmation; it never
+passes arbitrary shell input or processes to the device.
+
+The fixed service allowlist: odin-git-sync, odin-task-worker,
+odin-github-bridge if installed, and odin-private-relay LAST.
+The independent Stage 5 localhost server isn't a runit service and
+is excluded. This does not reboot Android or affect SSH or bootloader.
+
+A detached subprocess starts after the private message was marked
+read. It records durable private request and result data under
+state/odin-relay/restarts. Bounded sv restart calls and sv status
+checks determine success/failure. The relay itself restarts last;
+its next poll sends the actual outcome to the originating message.
+An interrupted operation yields an explicit failure after five minutes.
+Requests are deduplicated and locally rate-limited to 10 minutes.
+
+GitHub CI tests input allowlisting, idempotency, throttle, ordering,
+missing/failing services, detached execution and timeout recovery.
+CI alone does not verify physical runit or actual iPhone receipt.
+One initial relay restart after the new code is installed is required
+because the already-running old Python process cannot reload itself
+using an action it does not yet know. Later authorized requests
+require no manual Termux input while the relay remains alive.
