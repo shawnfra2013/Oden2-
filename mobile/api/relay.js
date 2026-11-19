@@ -33,6 +33,16 @@ module.exports=async function handler(req,res){
       });
       return res.status(202).json({id:entry.id,status:"queued",at:entry.at});
     }
+    if(owner&&!device&&relay.validReceipt(body) &&
+       ["delivered","read"].includes(body.state)){
+      const all=await relay.loadEvents();
+      if(!all.some(x=>x.kind==="message"&&x.id===body.for&&x.to==="iphone"))
+        return res.status(404).json({error:"Original message unavailable"});
+      const entry=await relay.recordEvent({
+        kind:"receipt",sender:"iphone",for:body.for,state:body.state
+      });
+      return res.status(201).json({id:entry.id,status:body.state,at:entry.at});
+    }
     if(device&&relay.validReceipt(body)){
       const all=await relay.loadEvents();
       if(!all.some(x=>x.kind==="message"&&x.id===body.for&&x.to==="odin"))
