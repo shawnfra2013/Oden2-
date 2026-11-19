@@ -101,11 +101,11 @@ class PreflightSafetyTests(unittest.TestCase):
             bridge.validate_request(json.dumps(data), self.ID, now=now)
 
     def test_process_lock_file_lives_under_ignored_state(self):
-        with tempfile.TemporaryDirectory() as name:
-            with patch.object(bridge, "STATE", Path(name)):
-                with patch.object(bridge, "process_locked", return_value=0):
-                    self.assertEqual(bridge.process_once(), 0)
-                self.assertTrue((Path(name) / "agent.lock").exists())
+        with tempfile.TemporaryDirectory() as name, \
+                patch.object(bridge, "STATE", Path(name)), \
+                patch.object(bridge, "process_locked", return_value=0):
+            self.assertEqual(bridge.process_once(), 0)
+            self.assertTrue((Path(name) / "agent.lock").exists())
 
 
 if __name__ == "__main__":
