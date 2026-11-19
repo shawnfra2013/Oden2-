@@ -1,4 +1,7 @@
 # Oden2-
+
+For the November 19 device receipts, production AI and relay blockers, and remaining acceptance work, see the [current device checkpoint](docs/PROJECT_MEMORY.md). Earlier dated sections describe the state at their capture time.
+
 Oden ADB OS edits/build
 
 

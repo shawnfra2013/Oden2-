@@ -1,3 +1,6 @@
+## November 19, 2026 · Device verification and service status
+
+Recorded the on-device release and rollout receipts for `46e528c`, plus two production blockers. See the [current device checkpoint](docs/PROJECT_MEMORY.md#current-device-checkpoint--november-19-2026-221-pm-central).
 
 
 <!-- odin-stage4-20261017 -->
