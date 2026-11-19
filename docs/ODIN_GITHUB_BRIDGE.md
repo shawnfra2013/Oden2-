@@ -1,5 +1,8 @@
 # Browser-free GitHub ↔ Odin background bridge
 
+For the November 19 device receipts, production AI and relay blockers, and remaining acceptance work, see the [current device checkpoint](PROJECT_MEMORY.md). Earlier dated sections describe the state at their capture time.
+
+
 ## Overview
 
 This bridge uses GitHub repository branches as a mailbox. It does NOT need
@@ -10,7 +13,7 @@ inbound port, a cloud SSH host, or elevated Android privileges.
   JSON request on the `odin-bridge-inbox` branch.
 - Odin's Python agent polls inbox using its existing Git remote authentication.
 - Only the fixed actions `ping`, `repo_status`, `services`,
-  `stage5_health`, `checks`, and `verify_release` are recognized. Request JSON cannot supply
+  `stage5_health`, `checks`, `verify_release`, `preflight_release`, `odin_health`, and `worker_probe` are recognized. Request JSON cannot supply
   a shell command, executable, filename to read, argument list, or URL.
 - Odin pushes a small JSON receipt to `odin-bridge-outbox`.
 - ChatGPT can read that receipt through the GitHub connection.
