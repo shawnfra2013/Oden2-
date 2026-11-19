@@ -54,6 +54,17 @@ class UpdateSafetyTests(unittest.TestCase):
         self.assertFalse(updater.ci_has_passed(self.TARGET, {"workflow_runs": []}))
         self.assertFalse(updater.ci_has_passed("untrusted", self.ci()))
 
+    def test_workflow_query_filters_exact_head_and_bounds_page(self):
+        with patch.object(updater, "urlopen") as open_url:
+            response = open_url.return_value.__enter__.return_value
+            response.read.return_value = json.dumps(self.ci()).encode()
+            self.assertTrue(updater.ci_has_passed(self.TARGET, updater.read_ci_payload(self.TARGET)))
+            url = open_url.call_args.args[0].full_url
+            self.assertIn("&head_sha=" + self.TARGET, url)
+            self.assertIn("per_page=3&", url)
+            with self.assertRaises(ValueError):
+                updater.read_ci_payload("invalid")
+
     def test_good_release_uses_exact_sha_and_safe_pull(self):
         def run(cmd, **kwargs):
             self.assertEqual(cmd[0], "bash")
@@ -117,7 +128,7 @@ class UpdateSafetyTests(unittest.TestCase):
 
     def test_ci_pending_keeps_source_unchanged(self):
         result = updater.update_once(
-            git_cmd=self.make_git(), fetch_ci=lambda: self.ci(conclusion="failure")
+            git_cmd=self.make_git(), fetch_ci=lambda sha: self.ci(sha, conclusion="failure")
         )
         self.assertEqual(result["status"], "waiting")
         self.assertEqual(result["reason"], "ci_not_passed")
