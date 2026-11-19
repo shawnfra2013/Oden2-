@@ -11,7 +11,6 @@ import os
 import re
 import subprocess
 import sys
-import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.error import URLError
@@ -463,12 +462,16 @@ def main():
     group.add_argument("--serve", action="store_true", help="Poll every 60 seconds")
     args = parser.parse_args()
     if args.serve:
+        try:
+            from .odin_wake import wait_for_work
+        except ImportError:
+            from odin_wake import wait_for_work
         while True:
             try:
                 process_once()
             except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
                 log("Poll error: " + type(exc).__name__)
-            time.sleep(POLL_SECONDS)
+            wait_for_work("bridge", POLL_SECONDS)
     else:
         print("Processed requests:", process_once())
 

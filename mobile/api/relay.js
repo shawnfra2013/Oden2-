@@ -1,4 +1,5 @@
 "use strict";
+const {notify}=require("../lib/wake");
 const {authorized,validOrigin,validBody,configureResponse}=require("../lib/access");
 const relay=require("../lib/relay");
 
@@ -35,6 +36,7 @@ module.exports=async function handler(req,res){
       const entry=await relay.recordEvent({
         kind:"message",sender:"iphone",to:"odin",text:body.text.trim()
       });
+      await notify("relay");
       return res.status(202).json({id:entry.id,status:"queued",at:entry.at});
     }
     if(owner&&!device&&relay.validReceipt(body) &&

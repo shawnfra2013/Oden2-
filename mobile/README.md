@@ -169,3 +169,24 @@ To restart only one service, send `/restart-service odin-task-worker` in
 the authenticated inbox and confirm the named target. The target must be
 one of the four supervised Odin services listed above. Single-service and
 all-service requests share the existing cooldown and durable result path.
+
+### Request-driven device wake-up
+
+Set a private TLS Redis connection in the Vercel environment as
+`ODIN_WAKE_REDIS_URL`. The Redis account needs LPUSH, LTRIM, EXPIRE, MULTI,
+EXEC and BLPOP on `odin:wake:v1:*`. Both the publisher and waiting endpoint
+use the same database. For requests written directly to the GitHub mailbox
+and completed release checks, configure the repository webhook for Push and
+Workflow runs, JSON delivery to `https://odin-control.vercel.app/api/wake`,
+and a matching random secret (32 characters or more) in
+`ODIN_WAKE_WEBHOOK_SECRET`. Redeploy after setting environment variables.
+The updated Git sync run script must also be active for release wake-ups.
+
+The signal contains only a lane name and a constant marker. The bridge still
+validates each queued request and sends its usual matching device receipt.
+One connected listener per lane uses a blocking Redis connection for up to
+20 seconds per HTTP request. Check the hosting and Redis usage allowance
+before enabling. If the transport or network is unavailable the ordinary
+relay, diagnostic and sync checks continue. Android must allow Termux to run.
+To accept the rollout, send one private ping and one GitHub mailbox ping,
+compare each new ID and device receipt timestamp, then repeat after reconnect.
