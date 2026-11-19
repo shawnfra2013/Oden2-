@@ -8,24 +8,31 @@
 </head>
 <body>
 <header><h1>ODIN</h1>
-<small>AI Workstation · Stage 5.2</small></header>
+<small>AI Workstation · Stage 5.5</small>
+<nav aria-label="Odin menu">
+<a href="#chat">AI Chat</a>
+<a href="#tasks-panel">Tasks</a>
+<a href="#system">System</a>
+<a href="#session">Session</a>
+</nav>
+</header>
 <main>
-<section class="card">
+<section class="card" id="system">
 <h2>System</h2><p id="health">Checking backend...</p>
 </section>
-<section class="card">
+<section class="card" id="chat">
 <h2>AI Chat</h2>
 <textarea id="message" maxlength="4000" placeholder="Ask Odin..."></textarea>
 <button id="send" disabled>Send</button>
 <p id="chatStatus" class="muted">Checking AI availability...</p>
 <pre id="answer"></pre>
 </section>
-<section class="card">
+<section class="card" id="tasks-panel">
 <h2>Task Dashboard</h2>
 <pre id="tasks">Loading task counts...</pre>
 <p class="muted">Read-only historical and current queue counts.</p>
 </section>
-<section class="card">
+<section class="card" id="session">
 <h2>Session Status</h2>
 <p class="muted">Conversation persistence is not enabled yet.
 Do not use this prototype for important information.</p>

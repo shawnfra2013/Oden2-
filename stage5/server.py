@@ -2,6 +2,7 @@ import hmac
 import json
 import os
 import secrets
+import sqlite3
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -45,9 +46,9 @@ def task_counts():
                 counts["other"] += 1
     return counts
 
-def ask_ai(question):
+def ask_ai(question, history=None):
     from inference_adapter import ask_bounded
-    return ask_bounded(question)
+    return ask_bounded(question) if history is None else ask_bounded(question, history)
 
 
 
@@ -160,6 +161,14 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, UnicodeDecodeError):
             self.json_body(400, {"error": "Invalid JSON or message"})
             return
+        conversation_id = data.get("conversation_id")
+        if conversation_id is not None and (
+            not isinstance(conversation_id, str)
+            or len(conversation_id) != 32
+            or any(char not in "0123456789abcdef" for char in conversation_id)
+        ):
+            self.json_body(400, {"error": "Invalid conversation ID"})
+            return
         if os.environ.get("ODIN_STAGE5_ENABLE_AI") != "1":
             self.json_body(503, {"error": "AI not enabled yet"})
             return
@@ -172,10 +181,19 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             try:
-                answer = ask_ai(question)
+                store = getattr(self.server, "conversations", None)
+                if conversation_id is not None and (store is None or not store.exists(conversation_id)):
+                    self.json_body(404, {"error": "Conversation not found"})
+                    return
+                history = store.get_messages(conversation_id, limit=12) if conversation_id else None
+                answer = ask_ai(question) if history is None else ask_ai(question, history)
                 if not isinstance(answer, str) or not answer.strip():
                     raise ValueError("Empty or invalid model response")
+                if store is not None:
+                    conversation_id = conversation_id or store.create()
+                    store.append_turn(conversation_id, question, answer)
             except (
+                sqlite3.Error,
                 OSError,
                 RuntimeError,
                 ValueError,
@@ -196,7 +214,8 @@ class Handler(BaseHTTPRequestHandler):
             self.json_body(200, {
                 "answer": answer,
                 "verification": "unverified",
-                "persisted": False
+                "persisted": store is not None,
+                **({"conversation_id": conversation_id} if store is not None else {})
             })
         finally:
             lock.release()
@@ -205,11 +224,16 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 def main():
+    from conversation_store import ConversationStore
+
+    db_path = Path(os.environ.get("ODIN_STAGE5_DB", Path(__file__).resolve().parent.parent / "state" / "conversations.db"))
+    store = ConversationStore(db_path)
     server = ThreadingHTTPServer((HOST, PORT), Handler)
+    server.conversations = store
     server.daemon_threads = True
     server.chat_lock = threading.BoundedSemaphore(1)
     server.session_token = secrets.token_urlsafe(32)
-    print(f"ODIN STAGE 5.2: http://{HOST}:{PORT}", flush=True)
+    print(f"ODIN STAGE 5.5: http://{HOST}:{PORT}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -226,3 +226,27 @@ Remaining limitations:
 - Generic AI task acceptance, independent provider-request
   authentication, and persistent browser conversations
   are not established.
+
+## Stage 5.6 and 5.7 lab recovery — 2026-11-15
+
+- GitHub's published browser implementation is Stage 5.5. Stage 5.6 and
+  5.7 were exercised in the separate Android 10 / Termux lab
+  (`~/odin-stage56-lab`). Their implementation is pending recovery or
+  reconstruction on GitHub.
+- Stage 5.6 added a SQLite conversation store and API. Recovered references
+  identify `conversation_store.py`, `conversation_api.py`, the
+  `conversations` and `messages` tables, and `/api/conversations` and
+  `/api/conversations/<id>`. The lab notes record SQLite readback of a
+  user message and its reply.
+- Stage 5.7 fed saved history from the selected conversation into the
+  inference adapter. Recovered limits were 12 messages, 4,000 characters
+  per message, and 12,000 characters total. History excluded system roles.
+- Reviewed screenshots `Screenshot_20261115-052603.png` and
+  `Screenshot_20261115-052649.png` show recall of test value 47 in the
+  original conversation and no disclosure when a different conversation
+  asked for it. Earlier lab notes report 53 Stage 5 and 43 Stage 4 tests
+  passing. These results apply to the lab.
+- The full schema, route handlers, and original regression files are
+  still missing. Before publishing the functionality, review those
+  boundaries and verify persistence, bounded history, and per-conversation
+  isolation against the exact GitHub revision being reviewed.
