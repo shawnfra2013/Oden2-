@@ -190,3 +190,15 @@ Remaining limitations:
 - Added offline encryption, password rejection, tamper and browser-wiring
   tests. Does not change the physical Odin's device token, background
   services, or AI-provider configuration.
+
+## 2026-11-19 — Crash-safe kernel Git-sync locking
+
+- Replaced the existing Git-sync's abandoned-directory locking mechanism
+  with an OS-managed, nonblocking Python `fcntl.flock`. It automatically
+  releases after process termination and reuses the existing supervisor.
+- Added offline coverage for overlapping sync attempts, crash recovery,
+  unsafe symlink, original legacy-directory preservation and nonzero exit.
+- No user data, service definitions, stored credentials, auto-update flag,
+  source Git history or ignored untracked files are modified.
+- Installing the updated source and independently observing a later
+  scheduled sync on physical Odin are separate live acceptance checks.
