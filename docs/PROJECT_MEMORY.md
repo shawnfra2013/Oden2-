@@ -293,3 +293,63 @@ Remaining limitations:
   persistence remain separate work, deferred to avoid unsafe hot updates.
 - Current architecture source-of-truth: `docs/architecture.md`;
   private pairing and test instructions: `docs/ODIN_PRIVATE_RELAY.md`.
+
+## Odin 10-point stabilization and safe update release — 2026-11-19
+
+**Canonical reviewed code release:** `b6fedfc70b027ca66afe48853b668fdd3f2d9121`
+(merged PR #17). GitHub Actions `Odin Checks` main push run
+`44486431089` concluded **success**; checks included 94 Stage 4/bridge
+Python tests, 32 Stage 5 Python tests, 29 Node tests, Ruff, Python
+compilation, Bash syntax, secret scanning, and repository sanity.
+
+**Existing iPhone deployment:** `odin-control` production deployment
+`dpl_AgEhBdNf9DpYHv59agr3N91sLvba` was **READY** at
+`https://odin-control.vercel.app/`.
+Live unauthenticated checks:
+- `/` HTTP 200; device task shortcuts and private message view present.
+- `/api/status` HTTP 200 and reported reviewed GitHub commit
+  `b6fedfc70b027ca66afe48853b668fdd3f2d9121` and CI success.
+- `/api/capabilities` HTTP 200; access/pairing/private relay configured,
+  hosted cloud API model **not** configured.
+- Unauthenticated `/api/relay` HTTP 403 (expected protection).
+- Latest sampled Vercel `/api/relay` runtime error query returned no
+  errors in the selected 15-minute window. This does **not** establish
+  authenticated message acceptance or device-origin replies.
+
+**Device execution state:** The last user-provided Termux update proved
+the Odin checkout had fast-forwarded to `523f7769ea15d311dbf0b9320a5d28e64b428b40`
+and preserved five untracked files. A previous live GitHub status receipt
+also showed the older `12e861d` revision, prior to that manual update.
+No direct remote terminal has been connected. The source release
+`b6fedfc` has **not** been proven installed on the physical device.
+A new local fast-forward and one-time explicit safe-updater enablement
+are required. Running `odin-private-relay` Python code does not reload
+itself merely because files change. The local device's safe update flag
+and background services have not been confirmed after this release.
+
+**Diagnostics:** Four recent read-only GitHub bridge requests were
+submitted for `ping`, `repo_status`, `services`, and `checks`.
+At the latest check no matching new outbox receipts had appeared.
+Do not treat these as passed until an actual receipt exists.
+A fresh authenticated iPhone-to-Odin `/ping`, two independent messages,
+and one verified device task are also **not independently proven live**.
+The 3-message/1-task success in CI used mocked transport and was
+an offline regression test, not a production result.
+
+**Change scope:** `scripts/odin_auto_update.py` is an opt-in,
+CI-gated source updater called by the existing `git-sync.sh` service.
+It approves only a successful GitHub push workflow for the exact
+current `main` SHA and uses the existing pinned fast-forward-only safe
+pull. No data deletion, force reset, new daemon, package installs,
+boot automation, or unsupervised service restart was added. Default
+auto-update state is **disabled** until explicitly enabled on Odin.
+The relay client now uses an exclusive poll lock, per-message failure
+isolation, bounded receipt/status persistence, and fixed read-only
+`/status`, `/task git-status`, `/task queue-status` actions.
+The iPhone composer provides shortcuts, status labels, and separated
+cloud API/device sources.
+
+**Authoritative instructions and five-feature plan:**
+`docs/ODIN_SAFE_UPDATES_AND_ROADMAP.md`. Earlier checkpoints remain
+historical; the release above supersedes earlier source-head claims only
+for checks explicitly verified here.
