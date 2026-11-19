@@ -56,7 +56,7 @@ function view(events,viewer) {
     isText(e.text));
   const receipts=events.filter(e=>e.kind==="receipt"&&ID.test(e.for)
     && ["delivered","read","failed"].includes(e.state));
-  return messages.filter(m=>viewer==="iphone"||m.to==="odin").map(m=>{
+  return messages.filter(m=>viewer==="iphone"||m.to==="odin"||m.sender==="odin").map(m=>{
     const related=receipts.filter(r=>r.for===m.id && r.sender===m.to);
     const reply=messages.find(x=>x.sender===m.to && x.reply_to===m.id);
     const states=["delivered","read","failed"];
