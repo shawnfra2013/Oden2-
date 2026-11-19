@@ -691,6 +691,13 @@ $("relaySendForm").addEventListener("submit",async e=>{
     relayLocal.notice=null;
   }finally{renderRelay();}
 });
+for(const button of document.querySelectorAll("[data-relay-quick]")){
+  button.addEventListener("click",()=>{
+    if(!privateState.connected || !privateState.relay)return;
+    $("relayMessage").value=button.dataset.relayQuick;
+    $("relayMessage").focus();
+  });
+}
 $("relayRefresh").addEventListener("click",refreshRelay);
 setInterval(()=>{
   if(document.visibilityState==="visible")refreshRelay();
