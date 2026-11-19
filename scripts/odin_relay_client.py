@@ -157,6 +157,14 @@ def write_poll_status(handled, failed, count):
     temp.replace(STATUS_FILE)
 
 
+def restart_target(text):
+    command = " ".join(text.strip().lower().split())
+    prefix, _, target = command.partition(" ")
+    if prefix == "/restart-service" and target in service_restart.SERVICES:
+        return target
+    return None
+
+
 def normalized_action(text):
     """Recognize only exact read-only tasks; never parse free-form shell text."""
     command = " ".join(text.strip().lower().split())
@@ -185,6 +193,8 @@ def normalized_action(text):
         "restart odin services": "restart_services",
         "restart odin": "restart_services",
     }
+    if restart_target(command):
+        return "restart_services"
     if command in known:
         return known[command]
     if command.startswith(("/task", "task ", "/ai-", "/restart")):
@@ -274,7 +284,9 @@ def handle_message(token, msg, seen, answer_fn):
             # The restarted relay will publish a final verified result.
             seen.add(mid)
             save_seen(seen)
-            if service_restart.start_restart(mid):
+            target = restart_target(text)
+            options = {"service": target} if target else {}
+            if service_restart.start_restart(mid, **options):
                 return True
             answer = ("ODIN_RESTART_NOT_STARTED reason=recent_restart_or_duplicate "
                       "No service changes performed.")

@@ -164,3 +164,8 @@ the new odin-private-relay process is activated once, this
 new command cannot work. After a CI-passing fast-forward,
 one initial Termux service restart is needed; subsequent
 restarts can be initiated from the authenticated UI.
+
+To restart only one service, send `/restart-service odin-task-worker` in
+the authenticated inbox and confirm the named target. The target must be
+one of the four supervised Odin services listed above. Single-service and
+all-service requests share the existing cooldown and durable result path.
