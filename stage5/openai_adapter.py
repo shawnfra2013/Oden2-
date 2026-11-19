@@ -61,7 +61,7 @@ def ask_openai(question, history=None):
     try:
         with urlopen(request, timeout=40) as response:
             body = response.read(MAX_BYTES + 1)
-    except (HTTPError, URLError, OSError, TimeoutError) as exc:
+    except (HTTPError, URLError, OSError, TimeoutError):
         # Do not expose API keys, provider body or raw network errors.
         raise RuntimeError("OpenAI request unavailable") from None
     if len(body) > MAX_BYTES:
@@ -69,7 +69,7 @@ def ask_openai(question, history=None):
     try:
         data = json.loads(body)
         if not isinstance(data, dict) or not isinstance(data.get("output"), list):
-            raise ValueError("Invalid response shape")
+            raise TypeError("Invalid response shape")
         parts = [
             content["text"]
             for item in data["output"]
