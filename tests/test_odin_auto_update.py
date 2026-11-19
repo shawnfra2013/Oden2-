@@ -25,7 +25,7 @@ class UpdateSafetyTests(unittest.TestCase):
 
     def make_git(self, *, dirty=False, branch="main", origin=None, diverged=False):
         origins = updater.ORIGINS
-        remote = origin or sorted(origins)[0]
+        remote = origin or min(origins)
 
         def fake(*args):
             table = {
