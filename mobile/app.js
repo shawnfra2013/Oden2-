@@ -8,6 +8,7 @@ const ACTION_LABELS = {
   repo_status: "Repository inspection",
   services: "Service health",
   stage5_health: "AI server health",
+  odin_health: "Odin health",
   checks: "Run regression checks",
   verify_release: "Exact-revision verification",
   preflight_release: "Update preflight"
@@ -204,6 +205,13 @@ function sourceEvents() {
       detail = "Stage 4: " + (result.stage4_passed === true ? "pass" : "unconfirmed")
         + " / Stage 5: " + (result.stage5_passed === true ? "pass" : "unconfirmed")
         + " / lint: " + (result.ruff_passed === true ? "pass" : "unconfirmed");
+    } else if (receipt.action === "odin_health" && receipt.status === "complete") {
+      const services = Object.entries(result.services || {}).map(([name, status]) =>
+        name + " " + status.state + (status.pid ? " (PID " + status.pid
+          + ", " + status.uptime_s + "s)" : ""));
+      detail = shortSha(result.head) + " · " + services.join(" / ")
+        + " · Sync: " + (result.sync_reason || "unknown")
+        + " · Stage 5: " + (result.stage5_reachable ? "reachable" : "unreachable");
     } else if (receipt.action === "repo_status") {
       detail = "Device revision " + shortSha(result.head)
         + " · tracked " + (result.tracked_clean === true ? "clean" : "not clean");

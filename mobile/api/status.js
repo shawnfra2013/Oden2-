@@ -18,7 +18,7 @@ const ID = /^[0-9a-f]{32}$/;
 const SHA = /^[0-9a-f]{40}$/;
 const ACTIONS = new Set([
   "ping", "repo_status", "services", "stage5_health", "checks",
-  "verify_release", "preflight_release"
+  "verify_release", "preflight_release", "odin_health"
 ]);
 const SAFE_KEYS = new Set([
   "alive", "bridge_version", "branch", "head", "tracked_clean",
@@ -27,7 +27,18 @@ const SAFE_KEYS = new Set([
   "expected_sha", "head_before", "head_after", "revision_matches",
   "branch_main", "tests_ran", "verified", "local_sha", "remote_main_sha",
   "fast_forward_possible", "target_matches", "untracked_collisions",
-  "safe_to_attempt_pull", "applied", "checks"
+  "safe_to_attempt_pull", "applied", "checks", "stage5_reachable", "services", "sync_reason"
+]);
+
+const HEALTH_SERVICES = [
+  "odin-git-sync", "odin-task-worker", "odin-github-bridge", "odin-private-relay"
+];
+const SERVICE_STATES = new Set(["running", "down", "unknown", "not_configured"]);
+const SYNC_REASONS = new Set([
+  "unknown", "already_up_to_date", "source_updated", "source_updated_restart_not_automatic",
+  "branch_not_main", "unexpected_origin", "tracked_changes", "invalid_local_revision",
+  "invalid_remote_revision", "diverged", "ci_not_passed", "safe_pull_refused",
+  "revision_mismatch", "update_check_failed"
 ]);
 
 async function get(url) {
@@ -55,7 +66,25 @@ function sanitize(entry, expectedId) {
   const result = {};
   for (const [key, value] of Object.entries(source)) {
     if (!SAFE_KEYS.has(key)) continue;
-    if (typeof value === "boolean") result[key] = value;
+    if (key === "services") {
+      if (entry.action !== "odin_health" || !value || typeof value !== "object") continue;
+      const services = {};
+      for (const name of HEALTH_SERVICES) {
+        const status = value[name];
+        if (!status || !SERVICE_STATES.has(status.state)) continue;
+        const safe = {state: status.state};
+        if (status.state === "running") {
+          for (const field of ["pid", "uptime_s"]) {
+            if (Number.isSafeInteger(status[field]) && status[field] >= 0
+                && status[field] < 1000000000) safe[field] = status[field];
+          }
+        }
+        services[name] = safe;
+      }
+      result.services = services;
+    } else if (key === "sync_reason") {
+      if (entry.action === "odin_health" && SYNC_REASONS.has(value)) result[key] = value;
+    } else if (typeof value === "boolean") result[key] = value;
     else if (typeof value === "number" && Number.isSafeInteger(value)
              && value >= 0 && value < 1000000) result[key] = value;
     else if (typeof value === "string" &&
