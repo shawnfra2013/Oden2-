@@ -156,7 +156,8 @@ def update_once(root=ROOT, fetch_ci=None, git_cmd=None, run_cmd=None):
             return result_record("waiting", "ci_not_passed", old, target)
         completed = run_cmd(
             ["bash", str(root / "scripts" / "odin-safe-pull.sh")],
-            cwd=root, capture_output=True, text=True,
+            cwd=root, env=dict(os.environ, ODIN_EXPECTED_SHA=target),
+            capture_output=True, text=True,
             check=False, timeout=120
         )
         if completed.returncode:
