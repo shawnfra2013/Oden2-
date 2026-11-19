@@ -2,25 +2,20 @@
 set -euo pipefail
 
 ROOT="${HOME}/odin-workspace"
-LOCKDIR="${ROOT}/state/git-sync.lock"
 LOG="${ROOT}/logs/git-sync.log"
 
 mkdir -p "${ROOT}/logs" "${ROOT}/state"
 
+# Runit continues calling this same script. A Python fcntl.flock wrapper
+# holds a kernel lock for the ENTIRE sync, automatically releasing on crash.
+# The old state/git-sync.lock directory is ignored and never modified.
+if [[ "${1:-}" != "--under-odin-sync-lock" || "$#" -ne 1 ]]; then
+    exec python -B "${ROOT}/scripts/odin_git_sync_lock.py"
+fi
+
 log() {
     printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"
 }
-
-cleanup() {
-    rmdir "$LOCKDIR" 2>/dev/null || true
-}
-
-if ! mkdir "$LOCKDIR" 2>/dev/null; then
-    log "SKIP: another sync is already running"
-    exit 0
-fi
-
-trap cleanup EXIT INT TERM
 
 cd "$ROOT"
 
