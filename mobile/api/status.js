@@ -187,4 +187,4 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports._test = { sanitize, loadStatus };
+module.exports._test = { sanitize, sanitizeRequest, requestId, loadStatus };
