@@ -21,8 +21,9 @@ STATE = ROOT / "state" / "github-bridge"
 OUTBOX = STATE / "outbox"
 INBOX_BRANCH = "odin-bridge-inbox"
 OUTBOX_BRANCH = "odin-bridge-outbox"
-ACTIONS = frozenset({"ping", "repo_status", "services", "stage5_health", "checks"})
+ACTIONS = frozenset({"ping", "repo_status", "services", "stage5_health", "checks", "verify_release"})
 ID_PATTERN = re.compile(r"[0-9a-f]{32}\Z")
+SHA_PATTERN = re.compile(r"[0-9a-f]{40}\Z")
 REQUEST_KEYS = {"version", "id", "action", "created_at", "expires_at"}
 ORIGINS = {
     "git@github.com:shawnfra2013/Oden2-.git",
@@ -59,12 +60,19 @@ def validate_request(raw, expected_id, now=None):
     if not ID_PATTERN.fullmatch(expected_id):
         raise ValueError("Invalid ID")
     payload = json.loads(raw)
-    if not isinstance(payload, dict) or set(payload) != REQUEST_KEYS:
+    if not isinstance(payload, dict):
+        raise TypeError("Invalid request object")
+    required = REQUEST_KEYS | ({"expected_sha"} if payload.get("action") == "verify_release" else set())
+    if set(payload) != required:
         raise ValueError("Invalid request fields")
     if payload["version"] != 1 or payload["id"] != expected_id:
         raise ValueError("Invalid version or ID")
     if payload["action"] not in ACTIONS:
         raise ValueError("Action not allowlisted")
+    if payload["action"] == "verify_release":
+        expected = payload["expected_sha"]
+        if not isinstance(expected, str) or not SHA_PATTERN.fullmatch(expected):
+            raise ValueError("Invalid expected commit SHA")
     created = parse_utc(payload["created_at"])
     expires = parse_utc(payload["expires_at"])
     current = now or utcnow()
@@ -138,7 +146,7 @@ def fetch_inbox():
         timeout=90)
 
 
-def status_action(action):
+def status_action(action, request=None):
     if action == "ping":
         return {"alive": True, "bridge_version": 1}
     if action == "repo_status":
@@ -174,6 +182,35 @@ def status_action(action):
             }
         except (OSError, ValueError, URLError):
             return {"reachable": False}
+    if action == "verify_release":
+        if request is None:
+            raise ValueError("Release verification needs an expected SHA")
+        expected = request["expected_sha"]
+        if not isinstance(expected, str) or not SHA_PATTERN.fullmatch(expected):
+            raise ValueError("Invalid expected commit SHA")
+        before = git("rev-parse", "HEAD")
+        branch = git("branch", "--show-current")
+        tracked_clean = (
+            run(["git", "diff", "--quiet"], allow_failure=True).returncode == 0
+            and run(["git", "diff", "--cached", "--quiet"], allow_failure=True).returncode == 0
+        )
+        aligned = before == expected and branch == "main" and tracked_clean
+        report = {
+            "expected_sha": expected, "head_before": before,
+            "branch_main": branch == "main", "tracked_clean": tracked_clean,
+            "revision_matches": before == expected, "tests_ran": False,
+            "verified": False,
+        }
+        if not aligned:
+            return report
+        checks = status_action("checks")
+        after = git("rev-parse", "HEAD")
+        report.update({
+            "head_after": after, "tests_ran": True,
+            "checks": checks,
+            "verified": all(checks.values()) and after == expected,
+        })
+        return report
     if action == "checks":
         checks = [
             ("stage4", [sys.executable, "-B", "-m", "unittest", "discover",
@@ -231,7 +268,7 @@ def process_once():
             raw = git("show", ref + ":" + name, timeout=20)
             request = validate_request(raw, request_id)
             action = request["action"]
-            details = status_action(action)
+            details = status_action(action, request)
             status = "complete"
         except ExpiredRequest:
             details, status = {}, "expired"

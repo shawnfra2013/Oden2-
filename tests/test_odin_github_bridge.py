@@ -2,6 +2,7 @@
 import json
 import unittest
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from scripts import odin_github_bridge as bridge
@@ -25,11 +26,87 @@ class BridgeRequestTests(unittest.TestCase):
             json.dumps(self.request), self.ID, now=self.now
         )
 
+
+    def test_accept_explicit_commit_verification(self):
+        self.request["action"] = "verify_release"
+        self.request["expected_sha"] = "a" * 40
+        self.assertEqual(self.decode()["expected_sha"], "a" * 40)
+
+    def test_verification_requires_expected_sha(self):
+        self.request["action"] = "verify_release"
+        with self.assertRaises(ValueError):
+            self.decode()
+
+    def test_reject_short_or_malformed_commit_sha(self):
+        self.request["action"] = "verify_release"
+        for candidate in ("b" * 39, "Z" * 40, "abc", 42, None):
+            with self.subTest(candidate=candidate):
+                self.request["expected_sha"] = candidate
+                with self.assertRaises(ValueError):
+                    self.decode()
+
+    def test_no_extra_sha_allowed_on_ping(self):
+        self.request["expected_sha"] = "a" * 40
+        with self.assertRaises(ValueError):
+            self.decode()
+
+    def test_release_match_runs_checks_without_writing(self):
+        expected = "a" * 40
+
+        def fake_git(*args, **kwargs):
+            if args[:2] == ("rev-parse", "HEAD"):
+                return expected
+            if args[:2] == ("branch", "--show-current"):
+                return "main"
+            raise AssertionError(f"Unexpected git operation: {args}")
+
+        with patch.object(bridge, "git", side_effect=fake_git), \
+                patch.object(
+                    bridge, "run",
+                    return_value=SimpleNamespace(returncode=0),
+                ) as mock_run:
+            result = bridge.status_action(
+                "verify_release", {"expected_sha": expected}
+            )
+        self.assertTrue(result["verified"])
+        self.assertTrue(result["tests_ran"])
+        self.assertTrue(all(result["checks"].values()))
+        self.assertEqual(mock_run.call_count, 5)
+
+    def test_release_mismatch_skips_regression_tests(self):
+        with patch.object(bridge, "git") as mock_git, \
+                patch.object(
+                    bridge, "run",
+                    return_value=SimpleNamespace(returncode=0),
+                ) as mock_run:
+            mock_git.side_effect = ["b" * 40, "main"]
+            result = bridge.status_action(
+                "verify_release", {"expected_sha": "a" * 40}
+            )
+        self.assertFalse(result["verified"])
+        self.assertFalse(result["revision_matches"])
+        self.assertFalse(result["tests_ran"])
+        self.assertEqual(mock_run.call_count, 2)
+
+    def test_revision_change_during_tests_invalidates_result(self):
+        expected = "a" * 40
+        with patch.object(bridge, "git") as mock_git, \
+                patch.object(
+                    bridge, "run",
+                    return_value=SimpleNamespace(returncode=0),
+                ):
+            mock_git.side_effect = [expected, "main", "b" * 40]
+            result = bridge.status_action(
+                "verify_release", {"expected_sha": expected}
+            )
+        self.assertFalse(result["verified"])
+        self.assertTrue(result["tests_ran"])
+
     def test_accept_valid_ping(self):
         self.assertEqual(self.decode()["action"], "ping")
 
     def test_accept_only_declared_read_only_actions(self):
-        for action in bridge.ACTIONS:
+        for action in bridge.ACTIONS - {"verify_release"}:
             with self.subTest(action=action):
                 self.request["action"] = action
                 self.assertEqual(self.decode()["action"], action)
