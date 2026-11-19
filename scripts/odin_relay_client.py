@@ -57,7 +57,7 @@ def request(token, payload=None):
             if len(content) > MAX_RESPONSE:
                 raise ValueError("Relay response exceeded limit")
             return json.loads(content)
-    except (HTTPError, URLError, TimeoutError, OSError) as exc:
+    except (HTTPError, URLError, TimeoutError, OSError):
         raise RuntimeError("Odin relay transport unavailable") from None
 
 
