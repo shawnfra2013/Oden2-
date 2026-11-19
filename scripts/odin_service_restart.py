@@ -138,9 +138,8 @@ def run_restarts(message_id, *, root=ROOT, state_dir=REQUEST_DIR,
     outcome = {}
     for name in SERVICES:
         service = base / name
-        if service.is_symlink():
-            outcome[name] = "unsafe_path"
-            continue
+        # Runit service entries may legitimately be symlinks to their
+        # source definitions; the service name itself remains allowlisted.
         if not service.is_dir() or not (service / "run").is_file():
             outcome[name] = "missing" if name in MANDATORY else "not_configured"
             continue
