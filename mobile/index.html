@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080b14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="application-name" content="Odin Control">
+  <meta name="description" content="Odin AI workstation control and verified activity dashboard">
+  <title>Odin — Control Center</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="ambient ambient-a" aria-hidden="true"></div>
+  <div class="ambient ambient-b" aria-hidden="true"></div>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M16 2 29 9.5v13L16 30 3 22.5v-13z"/><path d="M16 7 24.5 12v8L16 25l-8.5-5v-8z"/><circle cx="16" cy="16" r="3.5"/></svg>
+        </div>
+        <div><div class="wordmark">ODIN<span class="wordmark-lite"> / CONTROL</span></div><div class="brand-sub">AI WORKSTATION</div></div>
+      </div>
+      <button class="icon-button" id="refreshBtn" title="Refresh live status" aria-label="Refresh live status">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M20 11a8 8 0 1 0-2.2 5.6M20 4v7h-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </header>
+
+    <main id="main">
+      <section class="page active" id="view-overview" aria-label="Overview">
+        <div class="eyebrow">YOUR SYSTEM, ONE VIEW</div>
+        <h1>Odin <span class="muted-title">at a glance.</span></h1>
+        <p class="intro">Verified signals from your device and GitHub, without guesswork.</p>
+
+        <div class="hero-panel">
+          <div class="hero-top">
+            <div class="eyebrow subtle">CONNECTION STATUS</div>
+            <span id="heroIndicator" class="live-pill neutral"><span class="status-dot"></span> Checking</span>
+          </div>
+          <div class="hero-body">
+            <div class="hero-orb" aria-hidden="true">
+              <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="34" stroke="currentColor" stroke-width="1" stroke-dasharray="3 6" fill="none"/><circle cx="50" cy="50" r="23" stroke="currentColor" stroke-width="2" fill="none"/><path d="M50 31 66 40v20l-16 9-16-9V40z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="50" cy="50" r="4" fill="currentColor"/></svg>
+            </div>
+            <div class="hero-copy">
+              <h2 id="heroTitle">Reading bridge…</h2>
+              <p id="heroDetail">Waiting for verified device telemetry.</p>
+            </div>
+          </div>
+          <div class="hero-footer"><span>LAST ODIN RESPONSE</span><strong id="lastSeen">—</strong></div>
+        </div>
+
+        <div class="section-heading"><h2>System health</h2><span class="section-aside" id="snapshotTime">Live snapshot</span></div>
+        <div class="metric-grid">
+          <div class="metric-card"><div class="metric-icon violet">◎</div><div class="metric-name">Bridge</div><div class="metric-value" id="bridgeState">Checking</div></div>
+          <div class="metric-card"><div class="metric-icon blue">⌘</div><div class="metric-name">GitHub CI</div><div class="metric-value" id="ciState">Checking</div></div>
+          <div class="metric-card"><div class="metric-icon green">✧</div><div class="metric-name">AI Worker</div><div class="metric-value" id="workerState">Unknown</div></div>
+          <div class="metric-card"><div class="metric-icon amber">▧</div><div class="metric-name">Stage 5</div><div class="metric-value" id="stage5State">Unknown</div></div>
+        </div>
+
+        <div class="section-heading"><h2>What happens next</h2><span class="section-aside">REAL STATUS</span></div>
+        <div class="panel steps-panel" id="steps" aria-live="polite">
+          <div class="empty-state">Loading the current workflow…</div>
+        </div>
+
+        <div class="section-heading"><h2>Latest activity</h2><button class="text-link" data-nav="activity">View all <span aria-hidden="true">→</span></button></div>
+        <div class="panel" id="overviewActivity"><div class="empty-state">Checking recent events…</div></div>
+      </section>
+
+      <section class="page" id="view-activity" aria-label="Activity">
+        <div class="eyebrow">EVIDENCE & PROGRESS</div>
+        <h1>Activity <span class="muted-title">feed.</span></h1>
+        <p class="intro">Every request, response, check, and waiting state we can independently see.</p>
+        <div class="filters" role="group" aria-label="Filter activity">
+          <button class="filter active" data-filter="all" aria-pressed="true">All</button>
+          <button class="filter" data-filter="request" aria-pressed="false">Requests</button>
+          <button class="filter" data-filter="odin" aria-pressed="false">Odin</button>
+          <button class="filter" data-filter="github" aria-pressed="false">GitHub</button>
+        </div>
+        <div class="panel activity-panel" id="activityFeed" aria-live="polite"><div class="empty-state">Fetching timeline…</div></div>
+        <p class="fine-print">Source: live sanitized metadata from public GitHub branches. Not a recording of private conversations.</p>
+      </section>
+
+      <section class="page" id="view-chat" aria-label="Chat">
+        <div class="eyebrow">CHAT & DELEGATION</div>
+        <h1>Talk to <span class="muted-title">Odin.</span></h1>
+        <p class="intro">A place for the conversation relay—grounded in what the device has actually returned.</p>
+        <div class="panel chat-panel">
+          <div class="chat-banner"><span class="status-dot amber-dot"></span><span>Private conversational relay not connected</span></div>
+          <div class="chat-empty">
+            <div class="chat-avatar">O</div>
+            <h2>Ready for the next connection.</h2>
+            <p>Odin's diagnostic replies already arrive through the bridge. Natural-language replies from this exact ChatGPT thread require a separate authenticated connection.</p>
+          </div>
+          <div class="chat-message-sample"><div class="speaker">LATEST DEVICE RESPONSE</div><div id="chatReceipt">Checking for a verified Odin response…</div><div class="receipt-note">Verified device metadata, not a model-generated conversation reply.</div></div>
+          <div class="chat-composer"><input disabled aria-label="Message Odin (not connected)" placeholder="Messaging unlocks after private pairing"><button disabled aria-label="Send unavailable">↗</button></div>
+        </div>
+        <div class="panel notice-panel"><div class="notice-icon">⌁</div><div><strong>Why is messaging locked?</strong><p>We won't send conversations or OpenAI API keys through a public GitHub mailbox. An authenticated private relay must be paired first.</p></div></div>
+        <a class="secondary-action" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT <span aria-hidden="true">↗</span></a>
+      </section>
+
+      <section class="page" id="view-system" aria-label="System">
+        <div class="eyebrow">YOUR WORKSTATION</div>
+        <h1>System <span class="muted-title">details.</span></h1>
+        <p class="intro">Git revision, services, verification evidence, and connection controls.</p>
+        <div class="panel system-panel">
+          <div class="setting-row"><div><span class="setting-label">GitHub main</span><p>Canonical source revision</p></div><code id="repoSha">—</code></div>
+          <div class="setting-row"><div><span class="setting-label">Odin checkout</span><p>Last revision reported by device</p></div><code id="deviceSha">—</code></div>
+          <div class="setting-row"><div><span class="setting-label">Revision alignment</span><p>GitHub vs. latest device report</p></div><strong id="alignment">Unknown</strong></div>
+          <div class="setting-row"><div><span class="setting-label">Git sync</span><p>Last service-health receipt</p></div><strong id="syncState">Unknown</strong></div>
+          <div class="setting-row"><div><span class="setting-label">Worker</span><p>Last service-health receipt</p></div><strong id="workerDetail">Unknown</strong></div>
+          <div class="setting-row"><div><span class="setting-label">Public relay</span><p>Read-only status access</p></div><strong>Connected</strong></div>
+          <div class="setting-row"><div><span class="setting-label">Device commands</span><p>Remote shell and deployment</p></div><strong>Locked</strong></div>
+          <div class="setting-row"><div><span class="setting-label">ChatGPT thread</span><p>Direct message synchronization</p></div><strong>Not linked</strong></div>
+        </div>
+        <div class="section-heading"><h2>Verified checks</h2></div>
+        <div class="panel" id="testResults"><div class="empty-state">No recent device checks loaded.</div></div>
+        <a class="secondary-action" href="https://github.com/shawnfra2013/Oden2-" target="_blank" rel="noopener noreferrer">Open GitHub repository <span aria-hidden="true">↗</span></a>
+        <p class="fine-print" id="dataSource">Data source: verified public GitHub telemetry. No private project files are fetched.</p>
+      </section>
+    </main>
+    <nav class="tabbar" aria-label="Main navigation">
+      <button class="tab active" data-tab="overview" aria-current="page"><span class="tab-icon">◉</span><span>Overview</span></button>
+      <button class="tab" data-tab="activity"><span class="tab-icon">☷</span><span>Activity</span></button>
+      <button class="tab" data-tab="chat"><span class="tab-icon">◇</span><span>Chat</span></button>
+      <button class="tab" data-tab="system"><span class="tab-icon">▦</span><span>System</span></button>
+    </nav>
+  </div>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
