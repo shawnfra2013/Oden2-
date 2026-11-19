@@ -2,6 +2,7 @@
 import json
 import os
 import sqlite3
+import time
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 
@@ -21,6 +22,7 @@ def journal(state):
                 CREATE TABLE IF NOT EXISTS failures (
                     id INTEGER PRIMARY KEY, request_id TEXT, action TEXT, phase TEXT,
                     reason TEXT, at TEXT, case_id INTEGER, attempt INTEGER);
+                CREATE TABLE IF NOT EXISTS test_holds(id TEXT PRIMARY KEY, release_at INTEGER);
                 CREATE TABLE IF NOT EXISTS deliveries(id TEXT PRIMARY KEY, attempts INTEGER DEFAULT 0);
                 CREATE INDEX IF NOT EXISTS failure_signature
                     ON failures(action,phase,reason,at);
@@ -78,6 +80,9 @@ def interrupted(db, mid, action):
 def save_result(state, mid, body):
     with journal(state) as db:
         db.execute("UPDATE jobs SET phase='pending', body=? WHERE id=?", (json.dumps(body), mid))
+        if body["type"] == "reply":
+            db.execute("INSERT OR IGNORE INTO test_holds SELECT id,? FROM jobs WHERE id=? AND action='disconnect_test'",
+                       (int(time.time()) + 90, mid))
 
 
 def failure(state, mid, action, phase, reason):
@@ -93,6 +98,10 @@ def deliver(state, token, mid, send):
     if phase != "pending":
         return False
     with journal(state) as db:
+        if action == "disconnect_test":
+            hold = db.execute("SELECT release_at FROM test_holds WHERE id=?", (mid,)).fetchone()
+            if hold and time.time() < hold[0]:
+                return False
         db.execute("INSERT OR IGNORE INTO deliveries VALUES(?,0)", (mid,))
         db.execute("UPDATE deliveries SET attempts=attempts+1 WHERE id=?", (mid,))
         attempt, = db.execute("SELECT attempts FROM deliveries WHERE id=?", (mid,)).fetchone()

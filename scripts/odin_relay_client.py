@@ -182,6 +182,7 @@ def normalized_action(text):
     command = " ".join(text.strip().lower().split())
     known = {
         "/ping": "ping",
+        "/ping-disconnect-test": "disconnect_test",
         "ping odin": "ping",
         "/status": "git_status_summary",
         "device status": "git_status_summary",
@@ -280,7 +281,7 @@ def handle_message(token, msg, seen, answer_fn):
     if action != "restart_services" and not journal.claim(STATE, mid, action):
         return journal.deliver(STATE, token, mid, request)
     try:
-        if action == "ping":
+        if action in {"ping", "disconnect_test"}:
             answer = ("ODIN_RELAY_PONG — reply generated on the Odin device; "
                       "AI inference not used.")
         elif action == "git_status_summary":

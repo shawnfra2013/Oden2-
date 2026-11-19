@@ -98,3 +98,24 @@ window.addEventListener("online",refreshHealth);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshHealth();});
 refreshHealth();
 refreshTasks();
+
+async function watchDisconnectTest(){
+ const panel=el("disconnectTest");
+ if(!panel.open||panel.dataset.watching)return;
+ panel.dataset.watching="1";
+ try{
+  while(panel.open){
+   try{
+    const r=await getJSON("/api/disconnect-test");
+    let text="Waiting for /ping-disconnect-test in the private Odin Device Inbox.";
+    if(r.state==="sent")text="Delivered. Attempts: "+r.attempts+". Failed deliveries: "+r.failures+".";
+    else if(r.seconds>0)text="Reply saved. Turn Odin Wi-Fi OFF now. Delivery unlocks in "+r.seconds+" seconds.";
+    else if(r.failures>0)text="Failed delivery recorded. Turn Wi-Fi ON now.";
+    else if(r.id)text="Waiting for the first delivery attempt. Keep Wi-Fi off.";
+    el("disconnectStatus").textContent=text+(r.id?" Request "+r.id.slice(-8):"");
+   }catch{el("disconnectStatus").textContent="Local status unavailable. Keep Wi-Fi on or restore it.";}
+   await new Promise(resolve=>setTimeout(resolve,1000));
+  }
+ }finally{delete panel.dataset.watching;}
+}
+el("disconnectTest").addEventListener("toggle",watchDisconnectTest);

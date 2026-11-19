@@ -280,7 +280,13 @@ def status_action(action, request=None):
         try:
             with urlopen("http://127.0.0.1:8765/api/health", timeout=4) as response:
                 data = json.loads(response.read(4096))
+            try:
+                with urlopen("http://127.0.0.1:8765/api/disconnect-test", timeout=3) as test:
+                    test_ready = json.loads(test.read(4096)).get("state") in {"waiting", "pending", "sent"}
+            except (ValueError, OSError, AttributeError):
+                test_ready = False
             return {
+                "disconnect_test_ready": test_ready,
                 "reachable": True,
                 "ready": data.get("status") == "ready",
                 "ai_enabled": data.get("ai_enabled") is True,

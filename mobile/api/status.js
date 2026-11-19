@@ -21,7 +21,7 @@ const ACTIONS = new Set([
   "verify_release", "preflight_release", "odin_health", "worker_probe"
 ]);
 const SAFE_KEYS = new Set([
-  "alive", "bridge_version", "branch", "head", "tracked_clean",
+  "disconnect_test_ready", "alive", "bridge_version", "branch", "head", "tracked_clean",
   "untracked_count", "odin-git-sync", "odin-task-worker", "reachable",
   "ready", "ai_enabled", "stage4_passed", "stage5_passed", "ruff_passed",
   "expected_sha", "head_before", "head_after", "revision_matches",
