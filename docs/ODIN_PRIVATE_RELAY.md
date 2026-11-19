@@ -152,3 +152,11 @@ case. An interrupted job of unknown outcome opens one immediately. Cases
 remain open for review. Provider responses, tokens and raw logs are never
 included in the case report. This journal covers relay and queued-worker
 paths; Git sync and detached service restarts have their own logs.
+
+For a physical delivery test, open the Stage 5 loopback page on Odin and
+expand **Wi-Fi disconnect test** under System. From the private Device
+Inbox send `/ping-disconnect-test` once. The saved reply has a 90-second
+delivery hold. Switch Odin Wi-Fi off during the countdown and restore it
+after the local monitor records a failed delivery. The server runs on the
+handheld, so that monitor works offline. If local status becomes unavailable,
+restore connectivity. Ordinary pings retain their usual delivery behavior.

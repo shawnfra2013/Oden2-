@@ -4,6 +4,8 @@ import os
 import secrets
 import sqlite3
 import threading
+import time
+from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -13,6 +15,24 @@ WORKSPACE = Path.home() / "odin-workspace"
 HOST = "127.0.0.1"
 PORT = 8765
 MAX_INPUT = 4000
+
+def disconnect_status():
+    path = WORKSPACE / "state/odin-relay/relay-journal.sqlite3"
+    if not path.is_file():
+        return {"state": "waiting"}
+    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=2)) as db:
+        if not db.execute("SELECT 1 FROM sqlite_master WHERE name='test_holds'").fetchone():
+            return {"state": "waiting"}
+        row = db.execute("SELECT h.id,h.release_at,j.phase,coalesce(d.attempts,0),"
+                         "(SELECT count(*) FROM failures WHERE request_id=h.id AND phase='publish_result') "
+                         "FROM test_holds h JOIN jobs j ON j.id=h.id LEFT JOIN deliveries d ON d.id=h.id "
+                         "ORDER BY h.rowid DESC LIMIT 1").fetchone()
+    if not row:
+        return {"state": "waiting"}
+    mid, deadline, phase, attempts, failures = row
+    return {"state": phase, "id": mid, "seconds": max(0, deadline - int(time.time())),
+            "attempts": attempts, "failures": failures}
+
 
 def task_counts():
     base = WORKSPACE / "state" / "task-queue"
@@ -113,6 +133,11 @@ class Handler(BaseHTTPRequestHandler):
                 "provider": os.environ.get("ODIN_STAGE5_PROVIDER", "groq"),
                 "worker_connected": False
             })
+        elif path == "/api/disconnect-test":
+            try:
+                self.json_body(200, disconnect_status())
+            except sqlite3.Error:
+                self.json_body(503, {"error": "Local test journal unavailable"})
         elif path == "/api/tasks":
             self.json_body(200, {"counts": task_counts(),
                                  "access": "read_only"})
