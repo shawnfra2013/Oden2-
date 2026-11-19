@@ -120,11 +120,11 @@ class RelayHardeningTests(unittest.TestCase):
             tempfile.TemporaryDirectory() as folder,
             patch.object(relay, "STATE", Path(folder)),
             patch.object(relay, "LOCK_FILE", Path(folder) / "poll.lock"),
+            relay.exclusive_poll(),
+            self.assertRaisesRegex(RuntimeError, "already active"),
+            relay.exclusive_poll(),
         ):
-            with relay.exclusive_poll():
-                with self.assertRaisesRegex(RuntimeError, "already active"):
-                    with relay.exclusive_poll():
-                        pass
+            pass
 
 
 if __name__ == "__main__":
