@@ -118,14 +118,17 @@ def deliver(state, token, mid, send):
 
 
 def resend(state, token, send):
+    """Reconcile outstanding results and return the IDs handled this cycle."""
     if not (state / "relay-journal.sqlite3").is_file():
-        return
+        return set()
     with journal(state) as db:
         for mid, action in db.execute("SELECT id,action FROM jobs WHERE phase='running'").fetchall():
             interrupted(db, mid, action)
         ids = db.execute("SELECT id FROM jobs WHERE phase='pending' ORDER BY rowid").fetchall()
     for (mid,) in ids:
         deliver(state, token, mid, send)
+    return {mid for (mid,) in ids}
+
 
 def report(state):
     if not (state / "relay-journal.sqlite3").is_file():
