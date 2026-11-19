@@ -1,6 +1,17 @@
 <!-- ODIN_STAGE4_CHECKPOINT_2026-11-10 -->
 # Odin — Technical Project Memory
 
+## Current device checkpoint · November 19, 2026, 2:21 p.m. Central
+
+- The [release receipt](https://github.com/shawnfra2013/Oden2-/blob/odin-bridge-outbox/bridge/responses/4f975f6627818970040b447c2e50d51b.json) verifies on-device main `46e528c`, a clean tracked tree, and passing Stage 4, Stage 5 and Ruff. The [health receipt](https://github.com/shawnfra2013/Oden2-/blob/odin-bridge-outbox/bridge/responses/e0280260b3ae239ff33ccc6a75b02f40.json) confirms the verified rollout of the same revision, five running services, Stage 5 reachable, zero pending or running jobs, and a 23-second-old worker heartbeat.
+- The GitHub bridge runs fixed on-device commands and returns a receipt. Interactive SSH remains unverified. Reuse the receipts above for this revision.
+- The private relay process was running but its last recorded poll was 10,519 seconds old. An authenticated production `/ai-test` submission returned HTTP 503 at queue time. Production logs recorded storage authentication failures during reads. A successful private model reply remains open.
+- The hosted OpenAI chat returned HTTP 503. Production configuration lists `ODIN_OPENAI_MODEL` and lacks `OPENAI_API_KEY`. The separate Termux model-list call authenticated; its generation attempt returned `model_not_found`.
+- Prioritize restoring the existing private storage connection and hosted credential, then obtain a correlated device reply and a hosted OpenAI reply. Physical iPhone acceptance remains open. Feature expansion is paused.
+
+## Historical checkpoints
+
+
 Checkpoint: November 10, 2026.
 This is technical project memory, not personal ChatGPT memory.
 
