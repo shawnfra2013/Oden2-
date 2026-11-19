@@ -5,6 +5,7 @@ Only fixed, read-only diagnostic actions are accepted. Public-repo receipts
 contain structured booleans/counts, never command output or local file names.
 """
 import argparse
+import fcntl
 import json
 import os
 import re
@@ -21,7 +22,11 @@ STATE = ROOT / "state" / "github-bridge"
 OUTBOX = STATE / "outbox"
 INBOX_BRANCH = "odin-bridge-inbox"
 OUTBOX_BRANCH = "odin-bridge-outbox"
-ACTIONS = frozenset({"ping", "repo_status", "services", "stage5_health", "checks", "verify_release"})
+ACTIONS = frozenset({
+    "ping", "repo_status", "services", "stage5_health",
+    "checks", "verify_release", "preflight_release",
+})
+REVISION_ACTIONS = frozenset({"verify_release", "preflight_release"})
 ID_PATTERN = re.compile(r"[0-9a-f]{32}\Z")
 SHA_PATTERN = re.compile(r"[0-9a-f]{40}\Z")
 REQUEST_KEYS = {"version", "id", "action", "created_at", "expires_at"}
@@ -62,14 +67,14 @@ def validate_request(raw, expected_id, now=None):
     payload = json.loads(raw)
     if not isinstance(payload, dict):
         raise TypeError("Invalid request object")
-    required = REQUEST_KEYS | ({"expected_sha"} if payload.get("action") == "verify_release" else set())
+    required = REQUEST_KEYS | ({"expected_sha"} if payload.get("action") in REVISION_ACTIONS else set())
     if set(payload) != required:
         raise ValueError("Invalid request fields")
     if payload["version"] != 1 or payload["id"] != expected_id:
         raise ValueError("Invalid version or ID")
     if payload["action"] not in ACTIONS:
         raise ValueError("Action not allowlisted")
-    if payload["action"] == "verify_release":
+    if payload["action"] in REVISION_ACTIONS:
         expected = payload["expected_sha"]
         if not isinstance(expected, str) or not SHA_PATTERN.fullmatch(expected):
             raise ValueError("Invalid expected commit SHA")
@@ -182,6 +187,57 @@ def status_action(action, request=None):
             }
         except (OSError, ValueError, URLError):
             return {"reachable": False}
+
+    if action == "preflight_release":
+        if request is None:
+            raise ValueError("Preflight needs an expected SHA")
+        expected = request["expected_sha"]
+        if not isinstance(expected, str) or not SHA_PATTERN.fullmatch(expected):
+            raise ValueError("Invalid expected commit SHA")
+        checked_origin()
+        before = git("rev-parse", "HEAD")
+        branch = git("branch", "--show-current")
+        tracked_clean = (
+            run(["git", "diff", "--quiet"], allow_failure=True).returncode == 0
+            and run(["git", "diff", "--cached", "--quiet"], allow_failure=True).returncode == 0
+        )
+        git("fetch", "--quiet", "origin", "main", timeout=90)
+        remote = git("rev-parse", "origin/main")
+        ancestor = (
+            run(
+                ["git", "merge-base", "--is-ancestor", "HEAD", "origin/main"],
+                allow_failure=True,
+            ).returncode == 0
+        )
+        incoming = run(
+            ["git", "diff", "--diff-filter=A", "--name-only", "-z",
+             "HEAD", "origin/main"]
+        ).stdout.split("\0")
+        untracked = run(
+            ["git", "ls-files", "--others", "--exclude-standard", "-z"]
+        ).stdout.split("\0")
+        incoming = [p for p in incoming if p]
+        untracked = [p for p in untracked if p]
+        collisions = sum(
+            new == old or new.startswith(old + "/") or old.startswith(new + "/")
+            for new in incoming for old in untracked
+        )
+        can_attempt = (
+            branch == "main" and tracked_clean and ancestor
+            and remote == expected and collisions == 0
+        )
+        return {
+            "expected_sha": expected,
+            "local_sha": before, "remote_main_sha": remote,
+            "branch_main": branch == "main",
+            "tracked_clean": tracked_clean,
+            "fast_forward_possible": ancestor,
+            "target_matches": remote == expected,
+            "untracked_count": len(untracked),
+            "untracked_collisions": collisions,
+            "safe_to_attempt_pull": can_attempt,
+            "applied": False,
+        }
     if action == "verify_release":
         if request is None:
             raise ValueError("Release verification needs an expected SHA")
@@ -247,6 +303,21 @@ def send_response(request_id, payload):
 
 
 def process_once():
+    # One writer at a time: avoid two agent instances publishing duplicate
+    # receipts or running concurrent check requests on the same checkout.
+    STATE.mkdir(parents=True, exist_ok=True)
+    with (STATE / "agent.lock").open("a+b") as lock_file:
+        try:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise RuntimeError("Another Odin bridge instance is active") from exc
+        try:
+            return process_locked()
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
+def process_locked():
     origin = checked_origin()
     ensure_outbox(origin)
     fetch_inbox()
@@ -265,6 +336,10 @@ def process_once():
             continue
         action = "none"
         try:
+            # Check blob size before reading content from an untrusted inbox.
+            blob_size = int(git("cat-file", "-s", ref + ":" + name))
+            if blob_size > 4096:
+                raise ValueError("Oversized request blob")
             raw = git("show", ref + ":" + name, timeout=20)
             request = validate_request(raw, request_id)
             action = request["action"]
