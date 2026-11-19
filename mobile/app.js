@@ -690,10 +690,11 @@ function renderRelay(){
   const unlocked=privateState.connected && privateState.relay===true;
   $("relayMessage").disabled=!unlocked;
   $("relaySendButton").disabled=!unlocked||relayLocal.sending;
-  $("restartAllButton").disabled=!unlocked||relayLocal.sending;
+  $("restartAllButton").disabled=!unlocked||!privateState.paired||relayLocal.sending;
   let restartStatus=!unlocked?"Unlock private controls to restart Odin services.":
+    !privateState.paired?"Odin device pairing is not configured.":
     "Ready to request a confirmed restart. Odin will send the final result.";
-  if(restartLocal.id){
+  if(unlocked&&restartLocal.id){
     const request=relayLocal.messages.find(m=>m.id===restartLocal.id);
     const response=relayLocal.messages.find(m=>m.sender==="odin"&&m.reply_to===restartLocal.id);
     if(response)restartStatus=response.text;
