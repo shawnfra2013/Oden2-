@@ -36,16 +36,25 @@ function environ(callback){
   return Promise.resolve().then(callback).finally(restore);
 }
 function stubRelay(callback){
-  const original={loadEvents:relay.loadEvents,recordEvent:relay.recordEvent};
+  const original={loadEvents:relay.loadEvents,recordEvent:relay.recordEvent,recordDeviceReply:relay.recordDeviceReply};
   const events=[];
   relay.loadEvents=async()=>events;
   relay.recordEvent=async event=>{
     const value={...event,version:1,id:ID,at:"2026-11-19T06:00:00Z"};
     events.push(value);return value;
   };
+  relay.recordDeviceReply=async(requestId,text)=>{
+    const previous=events.find(event=>event.reply_to===requestId);
+    if(previous)return {entry:previous,created:false};
+    const entry={version:1,id:"a".repeat(32),at:"2026-11-19T06:00:01Z",
+      kind:"message",sender:"odin",to:"iphone",reply_to:requestId,text};
+    events.push(entry);
+    return {entry,created:true};
+  };
   return Promise.resolve().then(()=>callback(events)).finally(()=>{
     relay.loadEvents=original.loadEvents;
     relay.recordEvent=original.recordEvent;
+    relay.recordDeviceReply=original.recordDeviceReply;
   });
 }
 test("relay origin validator is exported and used",()=>{
@@ -178,4 +187,19 @@ test("stable owner request ID is passed to storage and a changed payload returns
       assert.equal(res.statusCode,400);
     }finally{relay.recordOwnerMessage=original;}
   });
+});
+
+test("concurrent device replies return one confirmation and reject mismatched retries",async()=>{
+  await environ(()=>stubRelay(async events=>{
+    const ownerReply=reply();
+    await handler(request("POST",IPHONE_TOKEN,{type:"message",text:"/ping"},ORIGIN),ownerReply);
+    const body={type:"reply",for:ownerReply.data.id,text:"PONG"};
+    const responses=[reply(),reply()];
+    await Promise.all(responses.map(res=>handler(request("POST",DEVICE_TOKEN,body),res)));
+    assert.deepEqual(responses.map(res=>res.statusCode).sort(),[201,409]);
+    const changed=reply();
+    await handler(request("POST",DEVICE_TOKEN,{...body,text:"different"},undefined),changed);
+    assert.equal(changed.statusCode,422);
+    assert.equal(events.filter(event=>event.reply_to===body.for).length,1);
+  }));
 });
