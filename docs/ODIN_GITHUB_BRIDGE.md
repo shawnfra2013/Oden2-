@@ -184,3 +184,14 @@ subscription does not automatically provide API credits.
   must separately pull and opt in to service activation.
 - Stop the bridge if the source branch or origin is unexpected, or if the
   isolated outbox checkout is not clean.
+
+
+## Combined device diagnostics
+
+The read-only `odin_health` action returns the current checkout, tracked
+cleanliness, the four fixed Odin services (state and, when running, PID
+and uptime), the last recognized updater reason, and Stage 5 reachability.
+GitHub outbox receipts contain only these structured fields and exclude
+raw logs, paths, environment values, and private conversations. An updater
+reason reflects its last recorded result. Stage 5 reachability is a separate
+HTTP probe and does not depend on the worker process state.

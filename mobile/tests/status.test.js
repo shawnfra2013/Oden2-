@@ -81,3 +81,12 @@ test("API only permits GET",async()=>{
   assert.equal(allow,"GET");
   assert.equal(body.error,"Method not allowed");
 });
+
+test("combined health drops arbitrary service data and updater messages", () => {
+  const result = sanitize({id, action:"odin_health", status:"complete", checked_at:now,
+    result:{sync_reason:"untrusted text", services:{
+      "odin-git-sync":{state:"running",pid:42,uptime_s:15,log:"discard"},
+      "sshd":{state:"running",pid:1}
+    }}},id).result;
+  assert.deepEqual(result, {services:{"odin-git-sync":{state:"running",pid:42,uptime_s:15}}});
+});

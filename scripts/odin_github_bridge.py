@@ -24,7 +24,7 @@ INBOX_BRANCH = "odin-bridge-inbox"
 OUTBOX_BRANCH = "odin-bridge-outbox"
 ACTIONS = frozenset({
     "ping", "repo_status", "services", "stage5_health",
-    "checks", "verify_release", "preflight_release",
+    "checks", "verify_release", "preflight_release", "odin_health",
 })
 REVISION_ACTIONS = frozenset({"verify_release", "preflight_release"})
 ID_PATTERN = re.compile(r"[0-9a-f]{32}\Z")
@@ -151,7 +151,54 @@ def fetch_inbox():
         timeout=90)
 
 
+HEALTH_SERVICES = ("odin-git-sync", "odin-task-worker", "odin-github-bridge", "odin-private-relay")
+RUN_STATUS = re.compile(r"^run: .*: \(pid ([0-9]{1,9})\) ([0-9]{1,9})s(?:,|$)")
+SYNC_REASONS = frozenset({
+    "already_up_to_date", "source_updated", "source_updated_restart_not_automatic",
+    "branch_not_main", "unexpected_origin", "tracked_changes", "invalid_local_revision",
+    "invalid_remote_revision", "diverged", "ci_not_passed", "safe_pull_refused",
+    "revision_mismatch", "update_check_failed",
+})
+
+
+def health_summary():
+    """Public snapshot with bounded enums and counters, never raw log text."""
+    prefix = Path(os.environ.get("PREFIX", "/data/data/com.termux/files/usr"))
+    services = {}
+    for name in HEALTH_SERVICES:
+        path = prefix / "var" / "service" / name
+        if not (path / "run").is_file():
+            services[name] = {"state": "not_configured"}
+            continue
+        try:
+            result = run(["sv", "status", str(path)], timeout=4, allow_failure=True)
+        except (OSError, RuntimeError, subprocess.TimeoutExpired):
+            services[name] = {"state": "unknown"}
+            continue
+        match = RUN_STATUS.match(result.stdout.strip())
+        if result.returncode == 0 and match:
+            services[name] = {"state": "running", "pid": int(match[1]), "uptime_s": int(match[2])}
+        else:
+            services[name] = {"state": "down" if result.stdout.startswith("down: ") else "unknown"}
+
+    try:
+        with (ROOT / "state" / "auto-update-result.json").open("rb") as handle:
+            raw = handle.read(4097)
+        result = json.loads(raw) if len(raw) <= 4096 else {}
+    except (OSError, ValueError):
+        result = {}
+    reason = result.get("reason") if isinstance(result, dict) else None
+    return {
+        **status_action("repo_status"),
+        "services": services,
+        "sync_reason": reason if isinstance(reason, str) and reason in SYNC_REASONS else "unknown",
+        "stage5_reachable": status_action("stage5_health")["reachable"],
+    }
+
+
 def status_action(action, request=None):
+    if action == "odin_health":
+        return health_summary()
     if action == "ping":
         return {"alive": True, "bridge_version": 1}
     if action == "repo_status":
