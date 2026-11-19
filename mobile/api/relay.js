@@ -5,7 +5,8 @@ const relay=require("../lib/relay");
 module.exports=async function handler(req,res){
   configureResponse(res);
   const device=relay.deviceAuthorized(req);
-  const owner=authorized(req)&&validOrigin(req);
+  const owner=authorized(req) &&
+    (req.method==="GET" ? (!req.headers.origin || validOrigin(req)) : validOrigin(req));
   if(!device&&!owner)return res.status(403).json({error:"Pairing is not configured or access denied"});
   if(!process.env.BLOB_READ_WRITE_TOKEN&&!process.env.VERCEL_OIDC_TOKEN)
     return res.status(503).json({error:"Private relay storage is not configured"});
