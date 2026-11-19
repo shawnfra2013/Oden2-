@@ -26,7 +26,8 @@ class ThreeMessageTests(unittest.TestCase):
             outbound.append(data)
             return {"status": "accepted"}
 
-        with tempfile.TemporaryDirectory() as folder, (
+        with (
+            tempfile.TemporaryDirectory() as folder,
             patch.object(relay, "STATE", Path(folder)),
             patch.object(relay, "LOCK_FILE", Path(folder) / "poll.lock"),
             patch.object(relay, "SEEN_FILE", Path(folder) / "processed.json"),
