@@ -84,7 +84,11 @@ Stage 5 and Ruff regression suites.
 - The shared access module must export `validOrigin` used by `/api/relay`. A previous missing export caused 500 errors. The full authenticated iPhone → Odin → reply handler flow is now covered by regression tests.
 - `/api/relay` returns HTTP 503 and a nonsensitive failing stage if the private store fails. No messages or tokens appear in server logs. The browser keeps an error visible instead of overwriting it during render.
 - A successful `/api/session` means app access succeeded; it does **not** prove the device is online. A `queued` message is not considered delivered until an actual device receipt arrives.
-- `odin-git-sync` is already runit-supervised and logs to `logs/git-sync.log`. It fetches/pushes local commits under safety checks; **it is not an automatic pull/deploy service**. Use `scripts/odin-safe-pull.sh` for reviewed fast-forward-only updates; never silently force/reset an existing checkout.
+- `odin-git-sync` is already runit-supervised and logs to `logs/git-sync.log`. The optional `odin_auto_update.py` extension can apply a CI-passing exact GitHub SHA with `odin-safe-pull.sh` after one-time activation; it is **off until enabled on the device**. It never silently force-resets the checkout or restarts running processes. See `docs/ODIN_SAFE_UPDATES_AND_ROADMAP.md`.
 - `odin-private-relay` is a separate, existing device poller. Its runtime may be stopped by Android battery management or after reboot; a supervisor PID alone does not prove an end-to-end reply.
 - Public GitHub monitoring and private message delivery are different systems; an old public GitHub receipt must not be reported as live private relay health.
 - Vercel deployment is manual (source-file deployment). CI green is necessary but cannot prove a deployed function or Odin service is operating until a live route and `/ping` are checked.
+
+## Safe read-only task shortcuts
+
+The private device composer offers Ping, Device status, Git task and Queue task shortcuts. These fill predefined `/ping`, `/status`, `/task git-status` and `/task queue-status` messages; the user still taps Send. Responses require a running, paired Odin relay. Failed or delayed acknowledgments are labeled instead of reported as healthy. Unrecognized tasks cannot execute arbitrary shell commands.
