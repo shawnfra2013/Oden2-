@@ -17,8 +17,9 @@ completed a real messaging round-trip.
 | `scripts/odin_relay_client.py` | Private phone ↔ Odin message polling, local-model reply and acknowledgment | Existing `odin-private-relay` runit service (when enabled) |
 | `mobile/` | iPhone web UI, Vercel API routes, private authentication, status timeline | `index.html`, `app.js`, `api/`, `lib/` |
 | `mobile/lib/relay.js` | Bounded read view over immutable private Blob events, retaining legacy journal read-only | `mobile/api/relay.js` |
-| `scripts/git-sync.sh` | Existing supervised Git **fetch/push** loop with logs; does **not** automatically install GitHub changes | `services/git-sync/run` and device's `odin-git-sync` service |
-| `scripts/odin-safe-pull.sh` | Guarded, explicit fast-forward-only source update protecting tracked and untracked files | Run from Termux after review |
+| `scripts/git-sync.sh` | Existing supervised Git fetch/push loop with optional CI-gated safe source pull | `services/git-sync/run` and device's `odin-git-sync` service |
+| `scripts/odin-safe-pull.sh` | Guarded fast-forward-only update protecting tracked and untracked files and optional exact SHA pin | Manual use or opt-in updater |
+| `scripts/odin_auto_update.py` | Exact-GitHub-CI-gated source update, private status/enable flag, no automatic restarts | Invoked by existing Git-sync loop when opted in |
 | `.github/workflows/odin-checks.yml` | Python, shell, Node, secret-pattern and regression CI gates | GitHub Actions |
 | `tests/`, `mobile/tests/`, `stage5/test_*.py` | Offline regression tests; production routes still require live verification | CI and local runs |
 
@@ -45,10 +46,12 @@ completed a real messaging round-trip.
 - Deploy `mobile/` to the **existing** Vercel project `odin-control`.
   The team has no GitHub integration attached to that project; manual
   source-file deployment remains necessary and must be verified.
-- The Odin checkout is not automatically advanced by `git-sync`.
-  Use `scripts/odin-safe-pull.sh` for reviewed updates; avoid forced
-  resets, overwriting untracked paths, silent service restarts, or
-  automatic installation of an unverified release.
+- The existing `git-sync` may now invoke `scripts/odin_auto_update.py`
+  **only after** the device owner enables its private state flag. It checks
+  successful GitHub push CI on the exact main SHA, then uses
+  `scripts/odin-safe-pull.sh` pinned to that SHA. The default is off and
+  unsafe updates stop; no resets or unreviewed merges. See
+  `docs/ODIN_SAFE_UPDATES_AND_ROADMAP.md`.
 - Source changes do not automatically restart already-running Python
   services. Verify the running revision and separately approve restart.
 - Do not check in `state/`, service secrets, private conversation text,
@@ -61,6 +64,7 @@ completed a real messaging round-trip.
 
 A corrected relay API handler was tested in CI and redeployed, but a fresh
 authenticated iPhone → Odin → iPhone `/ping` receipt has not yet been
-independently observed on that deployed revision. Continuous unattended
-auto-updates, full ChatGPT thread synchronization, robust iOS push
-notifications, and reboot persistence are **not implemented**.
+independently observed on that deployed revision. Opt-in CI-gated
+source updates have code support but require device activation; automatic
+service restarts, full ChatGPT thread synchronization, robust iOS push
+notifications, and reboot persistence remain **unimplemented**.
