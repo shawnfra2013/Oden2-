@@ -3,66 +3,79 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const relay=require("../lib/relay");
 
-test("journal record uses CAS to append receipt without losing prior message",async()=>{
-  let data=[{
-    version:1,kind:"message",id:"a".repeat(32),at:"2026-11-19T07:00:00Z",
-    sender:"iphone",to:"odin",text:"/ping"
-  }];
-  let version=1;
+const OLD="a".repeat(32);
+function makeStore(){
+  const legacy=[{version:1,id:OLD,at:"2026-11-19T07:00:00Z",
+    kind:"message",sender:"iphone",to:"odin",text:"/ping"}];
+  const files=new Map();
   const backend={
-    async readState(){return {etag:'"'+version+'"',events:[...data]};},
+    readState:async()=>({events:legacy.map(x=>({...x}))}),
     async put(path,raw,options){
-      assert.equal(path,"odin-relay/v1/private-messages.json");
+      assert.ok(path.startsWith("odin-relay/v2/events/"));
+      assert.notEqual(path,"odin-relay/v1/private-messages.json");
       assert.equal(options.access,"private");
-      assert.equal(options.allowOverwrite,true);
-      assert.equal(options.ifMatch,'"'+version+'"');
-      const next=JSON.parse(raw);
-      assert.ok(next.events.some(item=>item.kind==="message"&&item.text==="/ping"));
-      assert.ok(next.events.some(item=>item.kind==="receipt"&&item.state==="delivered"));
-      data=next.events;version++;
+      assert.equal(options.addRandomSuffix,false);
+      assert.equal(Object.hasOwn(options,"allowOverwrite"),false);
+      if(files.has(path))throw new Error("Unexpected event overwrite");
+      files.set(path,JSON.parse(raw));
+    },
+    async list({prefix}){
+      assert.equal(prefix,"odin-relay/v2/events/");
+      return {blobs:[...files.keys()].map(pathname=>({pathname})),
+        hasMore:false,cursor:null};
+    },
+    async get(path){
+      const value=files.get(path);
+      if(!value)return null;
+      return {statusCode:200,stream:new Response(JSON.stringify(value)).body};
     }
   };
-  const receipt=await relay.recordEvent({kind:"receipt",sender:"odin",for:"a".repeat(32),
-    state:"delivered"},backend);
-  assert.equal(receipt.kind,"receipt");
-  assert.equal(data.length,2);
-  assert.equal(data[1].state,"delivered");
+  return {backend,files,legacy};
+}
+
+test("immutable relay preserves existing pending message and appends device reply",async()=>{
+  const {backend,files,legacy}=makeStore();
+  const receipt=await relay.recordEvent({kind:"receipt",sender:"odin",
+    for:OLD,state:"delivered"},backend);
+  const read=await relay.recordEvent({kind:"receipt",sender:"odin",
+    for:OLD,state:"read"},backend);
+  const reply=await relay.recordEvent({kind:"message",sender:"odin",
+    to:"iphone",reply_to:OLD,text:"ODIN_RELAY_PONG"},backend);
+  assert.notEqual(receipt.id,read.id);
+  assert.notEqual(reply.id,read.id);
+  assert.equal(files.size,3);
+  const merged=await relay.loadEvents(backend);
+  assert.equal(legacy.length,1);
+  assert.equal(merged.length,4);
+  const visible=relay.view(merged,"iphone");
+  assert.equal(visible.find(m=>m.id===OLD).status,"replied");
+  assert.equal(visible.find(m=>m.id===reply.id).text,"ODIN_RELAY_PONG");
 });
 
-test("journal retries ETag conflict rather than dropping concurrent writer",async()=>{
-  let data=[{kind:"message",id:"a".repeat(32),version:1,
-    at:"2026-11-19T07:00:00Z",text:"old",sender:"iphone",to:"odin"}];
-  let version=2,writes=0;
-  const backend={
-    async readState(){return {etag:'"'+version+'"',events:[...data]};},
-    async put(_path,raw,{ifMatch}){
-      writes++;
-      if(writes===1){
-        // Another writer's event is preserved on retry.
-        data=[...data,{kind:"message",id:"b".repeat(32),version:1,
-          at:"2026-11-19T07:00:01Z",text:"concurrent",sender:"iphone",to:"odin"}];
-        version++;
-        const e=new Error("Precondition failed");
-        e.name="BlobPreconditionFailedError";
-        throw e;
-      }
-      assert.equal(ifMatch,'"'+version+'"');
-      data=JSON.parse(raw).events;
-    }
-  };
-  await relay.recordEvent({kind:"receipt",sender:"odin",for:"a".repeat(32),
-    state:"read"},backend);
-  assert.equal(writes,2);
-  assert.equal(data.length,3);
-  assert.ok(data.find(x=>x.text==="concurrent"));
-  assert.ok(data.find(x=>x.state==="read"));
+test("concurrent event writes use different paths and cannot overwrite one another",async()=>{
+  const {backend,files}=makeStore();
+  await Promise.all([
+    relay.recordEvent({kind:"receipt",sender:"odin",for:OLD,state:"delivered"},backend),
+    relay.recordEvent({kind:"receipt",sender:"odin",for:OLD,state:"read"},backend)
+  ]);
+  assert.equal(files.size,2);
+  const all=await relay.loadEvents(backend);
+  assert.equal(all.filter(x=>x.kind==="receipt").length,2);
+  assert.equal(relay.view(all,"iphone")[0].status,"read");
 });
 
-test("storage failure classification does not expose exception messages",()=>{
-  const storageError=new Error("token-sensitive-example: not allowed");
-  storageError.status=403;
-  assert.equal(relay.safeStorageCode(storageError),"storage_auth");
-  assert.equal(relay.safeStorageCode(Object.assign(new Error("ETag mismatch"),{
-    name:"BlobPreconditionFailedError"})),"etag_conflict");
-  assert.equal(relay.safeStorageCode(new Error("unrecognized detail")),"storage_error");
+test("private event storage failures surface rather than claiming success",async()=>{
+  const bad={put:async()=>{throw new Error("Storage denied");}};
+  await assert.rejects(
+    ()=>relay.recordEvent({kind:"receipt",sender:"odin",for:OLD,state:"read"},bad),
+    /Storage denied/
+  );
+});
+
+test("storage error classification does not return sensitive exception details",()=>{
+  const err=new Error("token-example-private-secret");
+  err.status=403;
+  assert.equal(relay.safeStorageCode(err),"storage_auth");
+  assert.equal(relay.safeStorageCode(new TypeError("internal secret")),"storage_api_error");
+  assert.equal(relay.safeStorageCode(new Error("unknown sensitive value")),"storage_error");
 });
