@@ -10,7 +10,7 @@ inbound port, a cloud SSH host, or elevated Android privileges.
   JSON request on the `odin-bridge-inbox` branch.
 - Odin's Python agent polls inbox using its existing Git remote authentication.
 - Only the fixed actions `ping`, `repo_status`, `services`,
-  `stage5_health`, and `checks` are recognized. Request JSON cannot supply
+  `stage5_health`, `checks`, and `verify_release` are recognized. Request JSON cannot supply
   a shell command, executable, filename to read, argument list, or URL.
 - Odin pushes a small JSON receipt to `odin-bridge-outbox`.
 - ChatGPT can read that receipt through the GitHub connection.
@@ -100,6 +100,38 @@ The bridge checks at most five requests per cycle. It does not delete
 requests; existing receipt IDs prevent duplicate execution. If Git push fails,
 the outgoing clone retains the local commit and retries the push at the next
 cycle, without repeating the action.
+
+## Revision-aware, read-only verification (v2)
+
+The optional `verify_release` request accepts one additional field:
+`"expected_sha": "<40 lowercase hexadecimal characters>"`. Use the exact
+reviewed commit from GitHub's `main` branch (not a branch name or abbreviated
+SHA). It checks that Odin is on `main`, its working tree has no tracked edits,
+and its local `HEAD` equals `expected_sha`. If any check fails, it reports
+`"verified": false` and **does not run the test suite**.
+
+When the SHA matches, Odin runs the same existing allowlisted Stage 4, Stage 5,
+and Ruff checks. The receipt includes their booleans and a final `HEAD`
+check. If the revision changes while tests execute, verification is false.
+
+This is evidence for *checks run against an Odin checkout at a particular
+revision*, **not** proof that all long-running processes have loaded that
+revision, nor proof of live AI behavior or correct user-facing responses.
+`verify_release` **does not pull, merge, deploy, restart, edit, or run
+an arbitrary command**.
+
+Example request (replace dates, ID and SHA with real fresh values):
+
+```json
+{
+  "version": 1,
+  "id": "0123456789abcdef0123456789abcdef",
+  "action": "verify_release",
+  "expected_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "created_at": "2026-11-18T22:00:00Z",
+  "expires_at": "2026-11-18T22:30:00Z"
+}
+```
 
 ## Operational limits and review gates
 
