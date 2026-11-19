@@ -104,3 +104,27 @@ to `/api/relay`, wake a paused conversation, or become the exact same
 OpenAI API session that runs in the app. The iPhone cloud AI route is a
 separate OpenAI API conversation and should not be labeled as replies
 from this ChatGPT app thread.
+
+## 2026-11-19 receipt-storage recovery
+
+- Odin `GET /api/relay` succeeded, but its `POST` delivery receipt
+  returned HTTP 503; Vercel logs identified stage `odin_receipt`.
+  This is a **server-side private journal write error**, not evidence
+  that the physical Odin failed to poll.
+- Vercel Blob keeps the conversation in the existing private journal;
+  it must never overwrite a newer version or replace it with an empty
+  journal during recovery. Writes now require a confirmed ETag for an
+  existing journal, retry bounded optimistic-concurrency conflicts,
+  and return a sanitized storage failure category for diagnosis.
+- The app's **Messages & responses** feed shows Odin device messages,
+  iPhone messages, and cloud OpenAI API messages with source labels.
+  Cloud API transcript additions are only kept in the current browser
+  tab; the existing private Odin messages remain in Blob storage.
+  These are **not** replies from the exact ChatGPT app thread.
+- The Odin relay client records the HTTP status and method if a
+  protected request fails, without printing body text or credentials.
+  Existing runit supervisors must be restarted after a reviewed local
+  update before the running Python process loads changed code.
+- Production code, CI tests, and deployment status are separate from
+  a successful phone-to-Odin `/ping` round-trip. Do not report that
+  final verification as complete until a new reply is observed.
