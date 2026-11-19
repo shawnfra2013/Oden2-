@@ -41,3 +41,17 @@ main{padding:14px 0 128px}.page{display:none;animation:appear .22s ease}.page.ac
 .action-status{border-top:1px solid var(--border);margin-top:15px;padding-top:14px;font-size:12px;color:#d1c7fa;overflow-wrap:anywhere}
 .device-notice{font-size:10px;line-height:1.5;color:#8391aa;margin-top:9px}
 @media(min-width:600px){.device-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+
+/* Device conversation stream; private and distinct from cloud chat. */
+.relay-panel{margin:0 0 18px}
+.relay-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 17px;border-bottom:1px solid var(--border)}
+.relay-header strong{font-size:14px}
+.relay-header p{font-size:11px;color:#92a1bb;line-height:1.5;margin:5px 0 0}
+.relay-messages{min-height:125px;max-height:390px;overflow-y:auto;padding:14px 17px}
+.relay-entry{max-width:94%;margin:11px 0;padding:12px 14px;border:1px solid rgba(140,153,185,.17);border-radius:14px;background:rgba(112,135,173,.08)}
+.relay-entry.iphone{margin-left:auto;background:rgba(111,97,197,.13);border-color:rgba(166,145,240,.18)}
+.relay-entry-label{color:#b5a6ff;letter-spacing:.08em;font-weight:800;font-size:9px}
+.relay-entry-text{font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
+.relay-entry-status{font-size:10px;color:#8ce0c3;text-transform:capitalize}
+.relay-header .live-pill{font-size:10px;flex-shrink:0}

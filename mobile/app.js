@@ -332,6 +332,7 @@ async function refresh() {
     $("refreshBtn").disabled=false;
     renderAll();
     renderSecureState();
+    if (privateState.connected && document.visibilityState === "visible") refreshRelay();
   }
 }
 
@@ -473,6 +474,8 @@ $("accessForm").addEventListener("submit",async event=>{
     privateState.connected=true;
     privateState.cloud=result.cloud_chat_configured===true;
     privateState.diagnostics=result.device_diagnostics_configured===true;
+    privateState.relay=result.private_relay_configured===true;
+    privateState.paired=result.odin_pairing_configured===true;
     $("accessToken").value="";
     $("accessState").textContent="Private session connected";
   } catch (err) {
@@ -491,7 +494,11 @@ $("disconnectButton").addEventListener("click",()=>{
   privateState.connected=false;
   privateState.cloud=false;
   privateState.diagnostics=false;
+  privateState.relay=false;
+  privateState.paired=false;
   $("accessToken").value="";
+  relayLocal.messages=[];
+  relayLocal.acknowledged.clear();
   clearPrivateChat();
   renderSecureState();
 });
@@ -553,3 +560,94 @@ for(const button of document.querySelectorAll("[data-odin-action]")){
   });
 }
 checkCapabilities();
+
+
+// PRIVATE RELAY: phone <-> Odin, independent from the public GitHub mailbox.
+// Status values are based on server-stored receipts, never inferred from a
+// model prediction. No arbitrary device action can be transported here.
+const relayLocal = {messages:[], acknowledged:new Set(), loading:false};
+function renderRelay(){
+  const unlocked=privateState.connected && privateState.relay===true;
+  $("relayMessage").disabled=!unlocked;
+  $("relaySendButton").disabled=!unlocked;
+  const count=relayLocal.messages.filter(m=>m.sender==="odin"&&
+    !["read","replied"].includes(m.status)).length;
+  const badge=$("relayBadge");
+  badge.className="live-pill "+(unlocked?"good":"warn");
+  badge.lastChild.textContent=unlocked
+    ? (count?count+" unread":"Private relay available")
+    : "Not paired";
+  $("relayState").textContent=!privateState.connected
+    ? "Connect your private session"
+    : !privateState.relay?"Private storage unavailable"
+    : !privateState.paired?"Odin has not been paired with its relay token"
+    : "Messages are polled while this app is open";
+  replaceChildren("relayMessages",relayLocal.messages.length
+    ? relayLocal.messages.slice(-35).map(m=>{
+      const row=create("div","relay-entry "+(m.sender==="odin"?"odin":"iphone"));
+      row.append(create("div","relay-entry-label",
+        (m.sender==="odin"?"ODIN":"IPHONE")+" · "+time(m.at)));
+      row.append(create("div","relay-entry-text",m.text));
+      row.append(create("div","relay-entry-status",m.status));
+      return row;
+    }) : [create("div","empty-state","No private messages yet")]);
+  document.title=count?"("+count+") Odin Control":"Odin — Control Center";
+}
+async function refreshRelay(){
+  if(relayLocal.loading||!privateState.connected||!privateState.relay)return;
+  relayLocal.loading=true;
+  try{
+    const resp=await fetch("/api/relay",{
+      headers:{"Accept":"application/json",
+        "Authorization":"Bearer "+privateState.token},
+      cache:"no-store",signal:AbortSignal.timeout(12000)
+    });
+    if(!resp.ok)throw Error("Relay messages unavailable");
+    const payload=await resp.json();
+    if(!Array.isArray(payload.messages)||payload.source!=="private-odin-relay")
+      throw Error("Unexpected relay response");
+    relayLocal.messages=payload.messages;
+    renderRelay();
+    const activeChat=$("view-chat").classList.contains("active") &&
+      document.visibilityState==="visible";
+    if(activeChat){
+      for(const msg of payload.messages){
+        if(msg.sender==="odin"&&msg.to==="iphone"&&msg.status==="queued" &&
+           !relayLocal.acknowledged.has(msg.id)){
+          relayLocal.acknowledged.add(msg.id);
+          authenticatedPost("/api/relay",{
+            type:"receipt",for:msg.id,state:"read"
+          },privateState.token).catch(()=>{
+            relayLocal.acknowledged.delete(msg.id);
+          });
+        }
+      }
+    }
+  }catch{
+    $("relayState").textContent="Private messages unavailable; retry in a moment";
+  }finally{relayLocal.loading=false;}
+}
+$("relaySendForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!privateState.connected||!privateState.relay)return;
+  const text=$("relayMessage").value.trim();
+  if(!text||text.length>2000)return;
+  $("relaySendButton").disabled=true;
+  $("relayState").textContent="Sending securely…";
+  try{
+    const result=await authenticatedPost("/api/relay",{
+      type:"message",text
+    },privateState.token);
+    if(typeof result.id!=="string")throw Error("Message not queued");
+    $("relayMessage").value="";
+    $("relayState").textContent="Queued for Odin; waiting for a delivery receipt";
+    await refreshRelay();
+  }catch(err){
+    $("relayState").textContent="Could not send: "+err.message;
+  }finally{renderRelay();}
+});
+$("relayRefresh").addEventListener("click",refreshRelay);
+setInterval(()=>{
+  if(document.visibilityState==="visible")refreshRelay();
+},15000);
+renderRelay();
