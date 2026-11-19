@@ -13,6 +13,8 @@ import contextlib
 import fcntl
 import json
 import os
+import socket
+import ssl
 import subprocess
 import sys
 from datetime import UTC, datetime
@@ -21,8 +23,10 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 try:
+    from scripts import odin_relay_journal as journal
     from scripts import odin_service_restart as service_restart
 except ImportError:
+    import odin_relay_journal as journal
     import odin_service_restart as service_restart
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,9 +74,18 @@ def request(token, payload=None):
     except HTTPError as error:
         # A status code is safe to log; do not print response bodies, tokens
         # or message text in this supervised background process.
-        raise RuntimeError(f"Odin relay HTTP {error.code} on {req.get_method()}") from None
-    except (URLError, TimeoutError, OSError):
-        raise RuntimeError("Odin relay transport unavailable") from None
+        failure = RuntimeError(f"Odin relay HTTP {error.code} on {req.get_method()}")
+        failure.code = error.code
+        failure.reason_code = "http_" + str(error.code)
+        raise failure from None
+    except (URLError, TimeoutError, OSError) as error:
+        cause = getattr(error, "reason", error)
+        failure = RuntimeError("Odin relay transport unavailable")
+        failure.reason_code = next((name for kind, name in (
+            (socket.gaierror, "dns"), (ssl.SSLError, "tls"),
+            (TimeoutError, "timeout"), (ConnectionRefusedError, "connection_refused"),
+            (ConnectionResetError, "connection_reset")) if isinstance(cause, kind)), "transport_unavailable")
+        raise failure from None
 
 
 def load_seen():
@@ -257,16 +270,16 @@ def handle_message(token, msg, seen, answer_fn):
         seen.add(mid)
         return False
 
-    # Best-effort idempotency: a repeated receipt is harmless; duplicate
-    # replies are also refused server-side by their original message ID.
-    if msg.get("status") == "queued":
-        request(token, {"type": "receipt", "for": mid, "state": "delivered"})
-    request(token, {"type": "receipt", "for": mid, "state": "read"})
+    action = normalized_action(text) or "conversation"
+    for state in (("delivered", "read") if msg.get("status") == "queued" else ("read",)):
+        try:
+            request(token, {"type": "receipt", "for": mid, "state": state})
+        except (RuntimeError, OSError, ValueError) as error:
+            journal.failure(STATE, mid, action, state, getattr(error, "reason_code", type(error).__name__))
+            raise
+    if action != "restart_services" and not journal.claim(STATE, mid, action):
+        return journal.deliver(STATE, token, mid, request)
     try:
-        # A transport test is deliberately not AI inference or a shell command.
-        # It works when model credentials are unavailable, proving the real
-        # Odin process received and replied to the authenticated message.
-        action = normalized_action(text)
         if action == "ping":
             answer = ("ODIN_RELAY_PONG — reply generated on the Odin device; "
                       "AI inference not used.")
@@ -305,19 +318,17 @@ def handle_message(token, msg, seen, answer_fn):
             raise ValueError("Empty model or task response")
         answer = answer.strip()[:2000]
     except (RuntimeError, ValueError, OSError, ImportError, TypeError) as error:
-        request(token, {
-            "type": "receipt", "for": mid, "state": "failed",
-            "reason": failure_code(error, normalized_action(text))
-        })
-        seen.add(mid)
-        save_seen(seen)
-        return True
-    try:
-        request(token, {"type": "reply", "for": mid, "text": answer})
-    except RuntimeError:
-        # Do not mark processed. A retry may receive a server-side conflict
-        # when it already accepted a reply; status will resolve on next poll.
-        return False
+        reason = failure_code(error, action)
+        journal.failure(STATE, mid, action, "execute", reason)
+        body = {"type": "receipt", "for": mid, "state": "failed", "reason": reason}
+    else:
+        body = {"type": "reply", "for": mid, "text": answer}
+    if action == "restart_services":
+        request(token, body)
+    else:
+        journal.save_result(STATE, mid, body)
+        if not journal.deliver(STATE, token, mid, request):
+            return False
     seen.add(mid)
     save_seen(seen)
     return True
@@ -347,7 +358,13 @@ def poll_once(token, answer_fn=respond_with_odin):
         # Results from a previous supervisor restart are delivered after
         # the relay returns, never falsely reported before services restart.
         service_restart.publish_pending(token, request)
-        payload = request(token)
+        journal.resend(STATE, token, request)
+        try:
+            payload = request(token)
+        except (RuntimeError, OSError, ValueError) as error:
+            journal.failure(STATE, None, "relay", "fetch_inbox",
+                            getattr(error, "reason_code", type(error).__name__))
+            raise
         if payload.get("source") != "private-odin-relay":
             raise RuntimeError("Unexpected relay response")
         messages = payload.get("messages", [])
@@ -389,7 +406,11 @@ def main(argv=None):
     mode.add_argument("--once", action="store_true")
     mode.add_argument("--serve", action="store_true")
     mode.add_argument("--status", action="store_true")
+    mode.add_argument("--investigations", action="store_true")
     args = parser.parse_args(argv)
+    if args.investigations:
+        print(json.dumps(journal.report(STATE), sort_keys=True))
+        return
     if args.status:
         try:
             record = json.loads(STATUS_FILE.read_text(encoding="utf-8"))
