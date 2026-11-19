@@ -135,3 +135,20 @@ from this ChatGPT app thread.
 - Production code, CI tests, and deployment status are separate from
   a successful phone-to-Odin `/ping` round-trip. Do not report that
   final verification as complete until a new reply is observed.
+
+### Offline delivery and private investigations
+
+For ordinary private messages the relay claims the original message ID
+locally before execution, stores the result before network delivery, and
+resends pending results on reconnect. Restart commands retain their
+separate existing durable restart records. Re-submitting a new message
+creates a new request ID. An interrupted ordinary execution with unknown
+outcome is reported for review without executing it again.
+
+Run `python -B scripts/odin_relay_client.py --investigations` in Termux
+to list local cases, affected IDs, phases, timestamps and failure counts.
+Two failures with the same action, phase and reason in one hour open one
+case. An interrupted job of unknown outcome opens one immediately. Cases
+remain open for review. Provider responses, tokens and raw logs are never
+included in the case report. This journal covers relay and queued-worker
+paths; Git sync and detached service restarts have their own logs.
