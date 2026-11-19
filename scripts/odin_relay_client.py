@@ -359,7 +359,7 @@ def poll_once(token, answer_fn=respond_with_odin):
         # Results from a previous supervisor restart are delivered after
         # the relay returns, never falsely reported before services restart.
         service_restart.publish_pending(token, request)
-        journal.resend(STATE, token, request)
+        reconciled = journal.resend(STATE, token, request)
         try:
             payload = request(token)
         except (RuntimeError, OSError, ValueError) as error:
@@ -378,6 +378,8 @@ def poll_once(token, answer_fn=respond_with_odin):
                 failed += 1
                 continue
             if msg.get("sender") != "iphone" or msg.get("to") != "odin":
+                continue
+            if msg.get("id") in reconciled:
                 continue
             if msg.get("id") in seen or msg.get("status") in ("replied", "failed"):
                 continue
