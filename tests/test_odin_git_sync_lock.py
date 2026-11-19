@@ -1,6 +1,5 @@
 """Offline regression tests for Odin's crash-safe OS-managed Git-sync lock."""
 import fcntl
-import os
 import subprocess
 import sys
 import tempfile
