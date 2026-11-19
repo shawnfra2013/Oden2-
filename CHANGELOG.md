@@ -202,3 +202,18 @@ Remaining limitations:
   source Git history or ignored untracked files are modified.
 - Installing the updated source and independently observing a later
   scheduled sync on physical Odin are separate live acceptance checks.
+
+## 2026-11-19 — Odin AI readiness and friendly task commands
+
+- Recognize an exact allowlist of friendly read-only commands including
+  "Task git-status" without routing them to model inference.
+- Add /ai-status (no network or credential disclosure) and explicit
+  /ai-test (actual bounded provider call).
+- Preserve the separate local Odin conversation and hosted cloud API
+  boundaries. AI responses remain unverified model text, not evidence
+  of actions or shell execution.
+- Add device-only AI environment readiness and a fixed failure-code
+  protocol for private messages, validated by Vercel and shown in the
+  existing iPhone interface. No secret contents appear in replies.
+- Add Python and Node regression tests; a live reply from an AI model,
+  unlike the already proven Git task, still requires separate verification.
