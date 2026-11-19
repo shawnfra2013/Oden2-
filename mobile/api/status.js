@@ -4,8 +4,14 @@
 // No GitHub credentials, private chats, or arbitrary device commands.
 const REPO = "shawnfra2013/Oden2-";
 const HEAD = "https://api.github.com/repos/" + REPO + "/branches/main";
-const HISTORY = "https://api.github.com/repos/" + REPO
-  + "/commits?sha=odin-bridge-outbox&per_page=20";
+const OUTBOX_HISTORY = "https://api.github.com/repos/" + REPO
+  + "/commits?sha=odin-bridge-outbox&path=bridge/responses&per_page=20";
+const INBOX_HISTORY = "https://api.github.com/repos/" + REPO
+  + "/commits?sha=odin-bridge-inbox&path=bridge/requests&per_page=20";
+const CI = "https://api.github.com/repos/" + REPO
+  + "/actions/runs?branch=main&per_page=5";
+const INBOX_RAW = "https://raw.githubusercontent.com/" + REPO
+  + "/odin-bridge-inbox/bridge/requests/";
 const RAW = "https://raw.githubusercontent.com/" + REPO
   + "/odin-bridge-outbox/bridge/responses/";
 const ID = /^[0-9a-f]{32}$/;
@@ -69,6 +75,29 @@ function sanitize(entry, expectedId) {
     checked_at: entry.checked_at, result };
 }
 
+function requestId(message) {
+  const matches = typeof message === "string"
+    ? message.match(/[0-9a-f]{32}/g) : null;
+  return matches ? matches.find(value => ID.test(value)) || null : null;
+}
+
+function sanitizeRequest(entry, expectedId) {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)
+      || entry.id !== expectedId || !ACTIONS.has(entry.action)
+      || !Number.isFinite(Date.parse(entry.created_at))
+      || !Number.isFinite(Date.parse(entry.expires_at))) return null;
+  return {
+    id: expectedId, action: entry.action,
+    created_at: entry.created_at, expires_at: entry.expires_at
+  };
+}
+
+async function fetchRequest(id) {
+  try {
+    return sanitizeRequest(await get(INBOX_RAW + id + ".json"), id);
+  } catch { return null; }
+}
+
 async function fetchReceipt(id) {
   try {
     const entry = await get(RAW + id + ".json");
@@ -79,23 +108,65 @@ async function fetchReceipt(id) {
 }
 
 async function loadStatus() {
-  const [main, commits] = await Promise.all([get(HEAD), get(HISTORY)]);
-  if (!SHA.test(main?.commit?.sha) || !Array.isArray(commits)) {
+  const [main, outbox, inbox, workflow] = await Promise.all([
+    get(HEAD), get(OUTBOX_HISTORY), get(INBOX_HISTORY), get(CI)
+  ]);
+  if (!SHA.test(main?.commit?.sha) ||
+      !Array.isArray(outbox) || !Array.isArray(inbox)) {
     throw new Error("Unexpected upstream schema");
   }
-  const ids = [];
-  for (const commit of commits) {
-    const match = /^Odin bridge response ([0-9a-f]{32})$/.exec(commit?.commit?.message || "");
-    if (match && ID.test(match[1]) && !ids.includes(match[1])) ids.push(match[1]);
-    if (ids.length >= 10) break;
+  const responseIds = [];
+  const requestIds = [];
+  for (const commit of outbox) {
+    const id = requestId(commit?.commit?.message);
+    if (id && !responseIds.includes(id)) responseIds.push(id);
+    if (responseIds.length >= 12) break;
   }
-  const receipts = (await Promise.all(ids.map(fetchReceipt))).filter(Boolean)
+  for (const commit of inbox) {
+    const id = requestId(commit?.commit?.message);
+    if (id && !requestIds.includes(id)) requestIds.push(id);
+    if (requestIds.length >= 12) break;
+  }
+  const [responseData, requestData] = await Promise.all([
+    Promise.all(responseIds.map(fetchReceipt)),
+    Promise.all(requestIds.map(fetchRequest))
+  ]);
+  const receipts = responseData.filter(Boolean)
     .sort((a, b) => Date.parse(b.checked_at) - Date.parse(a.checked_at));
+  const requests = requestData.filter(Boolean)
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .map(req => {
+      const receipt = receipts.find(item => item.id === req.id);
+      return {
+        ...req,
+        stage: receipt?.status || (Date.parse(req.expires_at) < Date.now()
+          ? "expired_without_response" : "waiting_for_odin"),
+        response_at: receipt?.checked_at || null
+      };
+    });
+  const runs = Array.isArray(workflow?.workflow_runs)
+    ? workflow.workflow_runs : [];
+  const checks = runs.slice(0, 3).map(run => ({
+    id: String(run.id),
+    status: ["queued", "in_progress", "completed", "waiting", "pending"]
+      .includes(run.status) ? run.status : "unknown",
+    conclusion: ["success", "failure", "cancelled", "skipped",
+      "timed_out", "action_required"].includes(run.conclusion)
+      ? run.conclusion : null,
+    head_sha: SHA.test(run.head_sha) ? run.head_sha : null,
+    created_at: Number.isFinite(Date.parse(run.created_at))
+      ? run.created_at : null,
+    url: typeof run.html_url === "string" &&
+      /^https:\/\/github\.com\/shawnfra2013\/Oden2-\/actions\/runs\/\d+$/.test(run.html_url)
+      ? run.html_url : null
+  }));
   return {
     source: "public-github-read-only",
     server_time: new Date().toISOString(),
     main_sha: main.commit.sha,
-    receipts
+    receipts, requests, checks,
+    chatgpt_thread_connected: false,
+    device_command_execution_enabled: false
   };
 }
 
