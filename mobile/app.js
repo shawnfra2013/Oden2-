@@ -666,7 +666,15 @@ checkCapabilities();
 // PRIVATE RELAY: phone <-> Odin, independent from the public GitHub mailbox.
 // Status values are based on server-stored receipts, never inferred from a
 // model prediction. No arbitrary device action can be transported here.
-const relayLocal = {messages:[], acknowledged:new Set(), loading:false, error:null, notice:null, lastUpdated:null};
+const relayLocal = {messages:[], acknowledged:new Set(), loading:false, sending:false, error:null, notice:null, lastUpdated:null};
+const restartLocal = {id:null};
+const RESTART_COMMANDS=new Set([
+  "/restart-services", "/restart-all-services", "restart all services",
+  "restart odin services", "restart odin"
+]);
+function isRestartCommand(text){
+  return RESTART_COMMANDS.has(text.trim().toLowerCase().replace(/\s+/g," "));
+}
 const RELAY_FAILURE_LABELS=Object.freeze({
   ai_disabled:"AI is disabled on Odin; enable the local provider",
   credential_missing:"AI provider key is not available to the Odin relay",
@@ -681,7 +689,21 @@ const RELAY_FAILURE_LABELS=Object.freeze({
 function renderRelay(){
   const unlocked=privateState.connected && privateState.relay===true;
   $("relayMessage").disabled=!unlocked;
-  $("relaySendButton").disabled=!unlocked;
+  $("relaySendButton").disabled=!unlocked||relayLocal.sending;
+  $("restartAllButton").disabled=!unlocked||!privateState.paired||relayLocal.sending;
+  let restartStatus=!unlocked?"Unlock private controls to restart Odin services.":
+    !privateState.paired?"Odin device pairing is not configured.":
+    "Ready to request a confirmed restart. Odin will send the final result.";
+  if(unlocked&&restartLocal.id){
+    const request=relayLocal.messages.find(m=>m.id===restartLocal.id);
+    const response=relayLocal.messages.find(m=>m.sender==="odin"&&m.reply_to===restartLocal.id);
+    if(response)restartStatus=response.text;
+    else if(request?.status==="read")restartStatus=
+      "Odin read the request. Restart/health checks may be in progress; awaiting final result.";
+    else if(request?.status==="failed")restartStatus="Restart request failed before completion.";
+    else restartStatus="Restart request queued. Waiting for Odin to receive it.";
+  }
+  $("restartAllStatus").textContent=restartStatus;
   const count=relayLocal.messages.filter(m=>m.sender==="odin"&&
     !["read","replied"].includes(m.status)).length;
   const badge=$("relayBadge");
@@ -769,40 +791,50 @@ async function refreshRelay(){
     renderRelay();
   }finally{relayLocal.loading=false;}
 }
-$("relaySendForm").addEventListener("submit",async e=>{
-  e.preventDefault();
-  if(!privateState.connected||!privateState.relay)return;
-  const text=$("relayMessage").value.trim();
+async function queuePrivateRelayMessage(text){
+  if(!privateState.connected||!privateState.relay||relayLocal.sending)return;
   if(!text||text.length>2000)return;
-  $("relaySendButton").disabled=true;
+  relayLocal.sending=true;
   relayLocal.error=null;
   relayLocal.notice="Sending securely…";
   renderRelay();
   try{
-    const result=await authenticatedPost("/api/relay",{
-      type:"message",text
-    },privateState.token);
+    const result=await authenticatedPost("/api/relay",{type:"message",text},privateState.token);
     if(typeof result.id!=="string")throw Error("Message not queued");
+    if(isRestartCommand(text))restartLocal.id=result.id;
     $("relayMessage").value="";
-    relayLocal.notice="Queued for Odin; waiting for a delivery receipt";
+    relayLocal.notice=isRestartCommand(text)
+      ?"Restart request queued; Odin will reply after checking all services."
+      :"Queued for Odin; waiting for a delivery receipt";
     await refreshRelay();
   }catch(err){
     relayLocal.error="Could not send: "+err.message;
     relayLocal.notice=null;
-  }finally{renderRelay();}
+  }finally{
+    relayLocal.sending=false;
+    renderRelay();
+  }
+}
+function confirmRestart(){
+  return window.confirm("Restart all managed Odin services now? "+
+    "This may interrupt active work and temporarily disconnect messages. "+
+    "Odin will report service health after reconnecting.");
+}
+$("relaySendForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const text=$("relayMessage").value.trim();
+  if(isRestartCommand(text)&&!confirmRestart())return;
+  await queuePrivateRelayMessage(text);
+});
+$("restartAllButton").addEventListener("click",async()=>{
+  if(!privateState.connected||!privateState.relay||!privateState.paired)return;
+  if(!confirmRestart())return;
+  await queuePrivateRelayMessage("/restart-services");
 });
 for(const button of document.querySelectorAll("[data-relay-quick]")){
   button.addEventListener("click",()=>{
     if(!privateState.connected || !privateState.relay)return;
     $("relayMessage").value=button.dataset.relayQuick;
-    if(button.dataset.relayQuick==="/restart-services"){
-      if(window.confirm("Restart all Odin services? Odin may briefly stop responding.")){
-        $("relaySendButton").click();
-      }else{
-        $("relayMessage").value="";
-      }
-      return;
-    }
     $("relayMessage").focus();
   });
 }

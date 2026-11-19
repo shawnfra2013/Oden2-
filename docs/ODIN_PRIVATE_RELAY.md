@@ -135,23 +135,3 @@ from this ChatGPT app thread.
 - Production code, CI tests, and deployment status are separate from
   a successful phone-to-Odin `/ping` round-trip. Do not report that
   final verification as complete until a new reply is observed.
-
-## Service controls
-
-In the authenticated Odin Device Inbox, select **Restart all services** and
-confirm, or send `/restart-services` or `restart all services`. The first
-device reply acknowledges the request. After the reconnect, send
-`/restart-status` to retrieve the last runit result and timestamp. Missing
-optional services are listed as `not_installed`. An installed service is
-reported as running only after runit accepts the restart and reports a
-running process with a changed PID when a prior PID was available.
-
-The manual terminal equivalent is `python -B scripts/odin_restart_services.py`
-from the repository. The fixed list covers Odin Git sync, task worker,
-GitHub bridge and private relay. The command leaves Android and unrelated
-Termux services alone.
-
-After a successful CI-gated automatic source update, the updater reloads
-the running worker, GitHub bridge and private relay. Services that are
-already down remain down. Git sync uses the updated script on its next
-cycle. Check `logs/git-sync.log` for the source update and reload result.

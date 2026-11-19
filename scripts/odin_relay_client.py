@@ -1,4 +1,4 @@
-"""Private Odin ↔ iPhone agent relay with fixed device actions.
+"""Private, message-only Odin ↔ iPhone agent relay.
 
 This daemon NEVER executes arbitrary instructions, installs packages or
 edits Git. It polls an authenticated HTTPS API, records delivery/read
@@ -21,13 +21,17 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+try:
+    from scripts import odin_service_restart as service_restart
+except ImportError:
+    import odin_service_restart as service_restart
+
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "state" / "odin-relay"
 TOKEN_FILE = STATE / "token"
 SEEN_FILE = STATE / "processed.json"
 LOCK_FILE = STATE / "poll.lock"
 STATUS_FILE = STATE / "relay-status.json"
-RESTART_RESULT = STATE / "restart-result.txt"
 API = "https://odin-control.vercel.app/api/relay"
 MAX_RESPONSE = 150000
 POLL_SECONDS = 45
@@ -154,7 +158,7 @@ def write_poll_status(handled, failed, count):
 
 
 def normalized_action(text):
-    """Recognize only exact device actions; never parse free-form shell text."""
+    """Recognize only exact read-only tasks; never parse free-form shell text."""
     command = " ".join(text.strip().lower().split())
     known = {
         "/ping": "ping",
@@ -176,9 +180,10 @@ def normalized_action(text):
         "model status": "ai_status",
         "/ai-test": "ai_test",
         "/restart-services": "restart_services",
+        "/restart-all-services": "restart_services",
         "restart all services": "restart_services",
-        "restart all odin services": "restart_services",
-        "/restart-status": "restart_status",
+        "restart odin services": "restart_services",
+        "restart odin": "restart_services",
     }
     if command in known:
         return known[command]
@@ -210,7 +215,8 @@ def ai_status_reply():
 
 def failure_code(error, action):
     """Return one fixed diagnostic code without leaking provider exceptions."""
-    if action in {"git_status", "git_status_summary", "queue_status", "restart_status"}:
+    if action in {"git_status", "git_status_summary", "queue_status",
+                  "restart_services"}:
         return "task_failed"
     if action == "ai_status":
         return "status_unavailable"
@@ -264,16 +270,18 @@ def handle_message(token, msg, seen, answer_fn):
         elif action == "ai_status":
             answer = ai_status_reply()
         elif action == "restart_services":
-            answer = ("ODIN_RESTART_REQUEST_RECEIVED. Send /restart-status "
-                      "after the relay reconnects to check the result.")
-        elif action == "restart_status":
-            try:
-                answer = RESTART_RESULT.read_text(encoding="utf-8")
-            except FileNotFoundError:
-                answer = "ODIN_RESTART_NO_RECORD"
+            # Persist idempotency before the detached helper can restart us.
+            # The restarted relay will publish a final verified result.
+            seen.add(mid)
+            save_seen(seen)
+            if service_restart.start_restart(mid):
+                return True
+            answer = ("ODIN_RESTART_NOT_STARTED reason=recent_restart_or_duplicate "
+                      "No service changes performed.")
         elif action == "unsupported_command":
             answer = ("ODIN_TASK_REJECTED: supported: /ping, /status, "
-                      "/task git-status, /task queue-status, /ai-status, /ai-test")
+                      "/task git-status, /task queue-status, /ai-status, /ai-test, "
+                      "/restart-services")
         elif action == "ai_test":
             result = answer_fn("Reply briefly with the words Odin AI ready.")
             answer = ("ODIN_AI_TEST_RESPONSE (provider answer, not task proof): "
@@ -301,13 +309,6 @@ def handle_message(token, msg, seen, answer_fn):
         return False
     seen.add(mid)
     save_seen(seen)
-    if action == "restart_services":
-        # The reply must reach the phone before runit stops this process.
-        subprocess.Popen(
-            [sys.executable, "-B", str(ROOT / "scripts" / "odin_restart_services.py")],
-            cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL, start_new_session=True,
-        )
     return True
 
 
@@ -332,6 +333,9 @@ def respond_with_odin(text):
 
 def poll_once(token, answer_fn=respond_with_odin):
     with exclusive_poll():
+        # Results from a previous supervisor restart are delivered after
+        # the relay returns, never falsely reported before services restart.
+        service_restart.publish_pending(token, request)
         payload = request(token)
         if payload.get("source") != "private-odin-relay":
             raise RuntimeError("Unexpected relay response")

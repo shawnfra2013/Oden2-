@@ -222,7 +222,7 @@ def main(argv=None):
         # Keep the calling sync supervisor alive while it holds the sync lock.
         try:
             reloaded = subprocess.run(
-                [sys.executable, "-B", str(ROOT / "scripts" / "odin_restart_services.py"),
+                [sys.executable, "-B", str(ROOT / "scripts" / "odin_service_restart.py"),
                  "--after-update"],
                 cwd=ROOT, check=False, timeout=200,
             )

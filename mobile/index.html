@@ -128,8 +128,7 @@
             <button type="button" data-relay-quick="/task queue-status">Queue task</button>
             <button type="button" data-relay-quick="/ai-status">AI status</button>
             <button type="button" data-relay-quick="/ai-test">Test AI</button>
-            <button type="button" data-relay-quick="/restart-services">Restart all services</button>
-            <button type="button" data-relay-quick="/restart-status">Restart status</button>
+            <button type="button" data-relay-quick="/restart-services">Restart services command</button>
           </div>
           <form id="relaySendForm" class="chat-composer">
             <input id="relayMessage" maxlength="2000" disabled aria-label="Message Odin agent privately" placeholder="Write to Odin (requires private pairing)">
@@ -182,7 +181,18 @@
             <button data-odin-action="verify_release" disabled>Verify revision</button>
           </div>
           <div class="action-status" id="actionStatus">Connect your private session to submit read-only device requests.</div>
-          <div class="device-notice">No arbitrary commands, package installs, service restarts or automatic deployment. Tests may take a few minutes.</div>
+          <div class="device-notice">These public GitHub diagnostics are read-only. Service restarts use the separately authenticated private control below. No arbitrary commands or package installation.</div>
+        </div>
+        <div class="section-heading"><h2>Service controls</h2><span class="section-aside">PRIVATE DEVICE CONTROL</span></div>
+        <div class="panel controls-panel" id="restartControls">
+          <div class="setting-row">
+            <div><span class="setting-label">Restart all Odin services</span>
+              <p>Restart the existing supervised Git sync, task worker, optional GitHub bridge and private relay. Odin stays powered on.</p>
+            </div>
+          </div>
+          <button id="restartAllButton" type="button" class="secondary-action" disabled>Restart all services</button>
+          <div class="action-status" id="restartAllStatus" role="status">Unlock private controls to restart services.</div>
+          <p class="fine-print">Confirmation required. This may briefly interrupt running tasks and messages. A successful result appears only after Odin checks services again.</p>
         </div>
         <div class="section-heading"><h2>Verified checks</h2></div>
         <div class="panel" id="testResults"><div class="empty-state">No recent device checks loaded.</div></div>
