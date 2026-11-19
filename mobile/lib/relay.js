@@ -116,8 +116,11 @@ function view(events,viewer) {
   return messages.filter(m=>viewer==="iphone"||m.to==="odin"||m.sender==="odin").map(m=>{
     const related=receipts.filter(r=>r.for===m.id && r.sender===m.to);
     const reply=messages.find(x=>x.sender===m.to && x.reply_to===m.id);
-    const states=["delivered","read","failed"];
-    let status=reply?"replied":related.findLast(r=>states.includes(r.state))?.state||"queued";
+    const states={delivered:1,read:2,failed:3};
+    const last=related.filter(r=>Object.hasOwn(states,r.state))
+      .sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)||
+        states[a.state]-states[b.state]||a.id.localeCompare(b.id)).at(-1);
+    const status=reply?"replied":last?.state||"queued";
     return {id:m.id,at:m.at,sender:m.sender,to:m.to,
       text:m.text,reply_to:m.reply_to||null,status,
       last_activity:reply?.at||related[related.length-1]?.at||m.at};
