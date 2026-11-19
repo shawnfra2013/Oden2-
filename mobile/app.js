@@ -373,9 +373,9 @@ setInterval(()=>{
 refresh();
 
 
-// The private controls share no state with the public GitHub telemetry loader.
-// A token exists only in memory in the current browser tab, never in a URL,
-// GitHub branch, localStorage, or analytics event.
+// Private bearer auth still uses an in-memory session. On explicit opt-in,
+// only an AES-GCM encrypted copy may persist in local browser storage.
+// The unlock password is never transmitted or stored, and is not a server key.
 const privateState = {
   token:null, connected:false, cloud:false, diagnostics:false,
   history:[], cloudEvents:[], pending:null, capabilities:null, sending:false
@@ -442,7 +442,9 @@ function renderSecureState() {
   if(!ready){
     const capabilities=p.capabilities;
     $("accessState").textContent=capabilities?.access_configured
-      ? "Private server configured. Enter your access token to connect."
+      ? (savedVaultPresent() && !preferTokenForm
+        ? "Enter your saved unlock password; the token stays encrypted on this device."
+        : "Private server configured. Enter your access token to connect.")
       : "Private server token is not set. See setup instructions in GitHub.";
   } else {
     $("accessState").textContent="Authenticated for this tab. Cloud AI: "
@@ -469,6 +471,50 @@ function renderSecureState() {
   }
 }
 
+let preferTokenForm=false;
+function savedVaultPresent(){
+  try{return OdinVault.hasSaved();}catch{return false;}
+}
+function renderVaultUI(){
+  const saved=savedVaultPresent();
+  const connected=privateState.connected;
+  $("accessForm").hidden=connected || (saved && !preferTokenForm);
+  $("vaultUnlockForm").hidden=connected || !saved || preferTokenForm;
+  $("vaultSaveForm").hidden=!connected || (saved && !preferTokenForm);
+  $("vaultManagement").hidden=!saved;
+  $("vaultUseToken").hidden=connected;
+  $("vaultUseToken").textContent=preferTokenForm
+    ? "Use saved password" : "Use access token instead";
+}
+async function connectPrivateAccess(token){
+  const result=await authenticatedPost("/api/session",{},token);
+  if(!result.authenticated)throw Error("Authentication rejected");
+  privateState.token=token;
+  privateState.connected=true;
+  privateState.cloud=result.cloud_chat_configured===true;
+  privateState.diagnostics=result.device_diagnostics_configured===true;
+  privateState.relay=result.private_relay_configured===true;
+  privateState.paired=result.odin_pairing_configured===true;
+  $("accessToken").value="";
+  refreshRelay();
+}
+function lockPrivateAccess(){
+  privateState.token=null;
+  privateState.connected=false;
+  privateState.cloud=false;
+  privateState.diagnostics=false;
+  privateState.relay=false;
+  privateState.paired=false;
+  $("accessToken").value="";
+  $("vaultUnlockPassword").value="";
+  $("vaultSavePassword").value="";
+  relayLocal.messages=[];
+  relayLocal.acknowledged.clear();
+  relayLocal.error=null;
+  relayLocal.notice=null;
+  relayLocal.lastUpdated=null;
+  clearPrivateChat();
+}
 $("accessForm").addEventListener("submit",async event=>{
   event.preventDefault();
   const token=$("accessToken").value.trim();
@@ -478,43 +524,84 @@ $("accessForm").addEventListener("submit",async event=>{
   }
   $("accessButton").disabled=true;
   $("accessState").textContent="Verifying private access…";
-  try {
-    const result=await authenticatedPost("/api/session",{},token);
-    if(!result.authenticated)throw Error("Authentication rejected");
-    privateState.token=token;
-    privateState.connected=true;
-    privateState.cloud=result.cloud_chat_configured===true;
-    privateState.diagnostics=result.device_diagnostics_configured===true;
-    privateState.relay=result.private_relay_configured===true;
-    privateState.paired=result.odin_pairing_configured===true;
-    $("accessToken").value="";
-    $("accessState").textContent="Private session connected";
-  } catch (err) {
-    privateState.token=null;
-    privateState.connected=false;
-    privateState.cloud=false;
-    privateState.diagnostics=false;
-    $("accessState").textContent=err.message;
-  } finally {
+  let status;
+  try{
+    await connectPrivateAccess(token);
+    // A token entered manually can be saved under a new local password.
+    preferTokenForm=true;
+    status="Connected. Set an unlock password below to avoid pasting this token again.";
+  }catch(error){
+    lockPrivateAccess();
+    status=error.message;
+  }finally{
     $("accessButton").disabled=false;
+    renderVaultUI();
     renderSecureState();
+    $("accessState").textContent=status;
+  }
+});
+$("vaultSaveForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  if(!privateState.connected||!privateState.token)return;
+  const password=$("vaultSavePassword").value;
+  $("vaultSaveButton").disabled=true;
+  let status;
+  try{
+    await OdinVault.save(privateState.token,password);
+    status="Encrypted access saved on this device. Next time, enter your password.";
+    preferTokenForm=false;
+  }catch{
+    status="Could not save encrypted access. Your current session remains connected.";
+  }finally{
+    $("vaultSavePassword").value="";
+    $("vaultSaveButton").disabled=false;
+    renderVaultUI();
+    $("accessState").textContent=status;
+  }
+});
+$("vaultUnlockForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const password=$("vaultUnlockPassword").value;
+  $("vaultUnlockButton").disabled=true;
+  $("accessState").textContent="Unlocking saved access…";
+  let status;
+  try{
+    const token=await OdinVault.unlock(password);
+    await connectPrivateAccess(token);
+    preferTokenForm=false;
+    status="Private session unlocked. Your password was never sent to the server.";
+  }catch{
+    lockPrivateAccess();
+    status="Unlock failed. Check the password, or select Use access token instead.";
+  }finally{
+    $("vaultUnlockPassword").value="";
+    $("vaultUnlockButton").disabled=false;
+    renderVaultUI();
+    renderSecureState();
+    $("accessState").textContent=status;
+  }
+});
+$("vaultUseToken").addEventListener("click",()=>{
+  preferTokenForm=!preferTokenForm;
+  renderVaultUI();
+});
+$("vaultForget").addEventListener("click",()=>{
+  try{
+    OdinVault.forget();
+    preferTokenForm=false;
+    renderVaultUI();
+    $("accessState").textContent=privateState.connected
+      ? "Encrypted saved access forgotten. Current session remains connected."
+      : "Saved access forgotten. Enter your long access token to connect.";
+  }catch{
+    $("accessState").textContent="Could not clear saved access in this browser.";
   }
 });
 $("disconnectButton").addEventListener("click",()=>{
-  privateState.token=null;
-  privateState.connected=false;
-  privateState.cloud=false;
-  privateState.diagnostics=false;
-  privateState.relay=false;
-  privateState.paired=false;
-  $("accessToken").value="";
-  relayLocal.messages=[];
-  relayLocal.acknowledged.clear();
-  relayLocal.error=null;
-  relayLocal.notice=null;
-  relayLocal.lastUpdated=null;
-  clearPrivateChat();
+  lockPrivateAccess();
+  preferTokenForm=false;
   renderSecureState();
+  renderVaultUI();
 });
 $("cloudChatForm").addEventListener("submit",async event=>{
   event.preventDefault();
@@ -702,4 +789,5 @@ $("relayRefresh").addEventListener("click",refreshRelay);
 setInterval(()=>{
   if(document.visibilityState==="visible")refreshRelay();
 },15000);
+renderVaultUI();
 renderRelay();
