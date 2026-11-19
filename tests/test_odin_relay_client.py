@@ -43,6 +43,29 @@ class OdinRelayTests(unittest.TestCase):
                 self.assertEqual(calls[2]["text"], "Hi phone")
                 self.assertIn(self.ID, client.load_seen())
 
+    def test_transport_ping_proves_device_reply_without_ai_model(self):
+        calls = []
+
+        def fake_request(_token, body=None):
+            calls.append(body)
+            return {"accepted": True}
+
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(client, "STATE", Path(folder)),
+            patch.object(client, "SEEN_FILE", Path(folder) / "seen.json"),
+            patch.object(client, "request", side_effect=fake_request),
+        ):
+            message = {**self.message(), "text": "/ping"}
+            seen = set()
+            self.assertTrue(client.handle_message(
+                "not-a-real-token", message, seen,
+                lambda _: self.fail("Model must never run for /ping"),
+            ))
+            self.assertEqual(calls[-1]["type"], "reply")
+            self.assertIn("ODIN_RELAY_PONG", calls[-1]["text"])
+            self.assertIn(self.ID, seen)
+
     def test_does_not_repeat_processed_message(self):
         with patch.object(client, "request", side_effect=AssertionError):
             self.assertFalse(
