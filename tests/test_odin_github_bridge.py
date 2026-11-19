@@ -1,7 +1,7 @@
 """Offline validation tests for the GitHub-backed Odin bridge."""
 import json
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from scripts import odin_github_bridge as bridge
@@ -11,7 +11,7 @@ class BridgeRequestTests(unittest.TestCase):
     ID = "0123456789abcdef0123456789abcdef"
 
     def setUp(self):
-        self.now = datetime(2026, 11, 18, 22, 0, tzinfo=timezone.utc)
+        self.now = datetime(2026, 11, 18, 22, 0, tzinfo=UTC)
         self.request = {
             "version": 1,
             "id": self.ID,
