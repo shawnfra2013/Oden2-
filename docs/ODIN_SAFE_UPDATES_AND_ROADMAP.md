@@ -130,3 +130,43 @@ revision. Those require separate real-world receipts.
 
 These are *next tasks*, not claimed features of this release. Avoid
 new infrastructure until a measurable need is demonstrated.
+
+## Git-sync lock reliability — 2026-11-19
+
+The previously used `state/git-sync.lock` **directory** could remain
+after a terminated Termux process. It repeatedly logged
+`SKIP: another sync is already running` even when no Git-sync child
+existed. On-device recovery removed the confirmed empty abandoned
+directory; the manually triggered sync then logged `START`,
+`ODIN_UPDATE current already_up_to_date`, and
+`OK: already synchronized (untracked files preserved)`.
+
+The corrected existing `scripts/git-sync.sh` enters
+`scripts/odin_git_sync_lock.py`, which holds a Python `fcntl.flock`
+exclusive, non-blocking kernel lock on a private regular file named
+`state/git-sync.flock` for the duration of the original sync.
+Only a *real, concurrent process* can hold that lock; closing the
+descriptor, Termux termination or killing the process releases it.
+The lock file itself is deliberately **not deleted**. The original
+`state/git-sync.lock` directory, if present, is ignored and preserved.
+No new daemon, additional Termux package, boot hook or periodic task.
+
+If two runs overlap, the second writes
+`SKIP: active Git-sync process holds kernel lock` and does no work.
+Unexpected lock errors are logged and return nonzero to the existing
+runit wrapper; the original sync exit status is preserved. The
+five-minute schedule, exact-CI-SHA gate, fast-forward checks, tracked
+file protection and existing untracked files remain unchanged.
+
+Validate on Odin after a CI-passing GitHub update using:
+```bash
+cd ~/odin-workspace
+bash scripts/odin-safe-pull.sh
+bash scripts/git-sync.sh
+tail -n 12 logs/git-sync.log
+sv status "$PREFIX/var/service/odin-git-sync"
+```
+A successful manual call proves the updated lock works; proof of
+unattended periodic operation requires a *later* scheduled log entry.
+Do not remove or reset any lock directory or user files as part of this
+new procedure.
