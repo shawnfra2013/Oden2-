@@ -1,0 +1,5 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Optional runit service; not enabled until explicitly linked on Odin.
+set -euo pipefail
+cd "$HOME/odin-workspace"
+exec python -u -B scripts/odin_github_bridge.py --serve
