@@ -177,7 +177,7 @@ def normalized_action(text):
     }
     if command in known:
         return known[command]
-    if command.startswith(("/task", "task ")) or command.startswith("/ai-"):
+    if command.startswith(("/task", "task ", "/ai-")):
         return "unsupported_command"
     return None
 
