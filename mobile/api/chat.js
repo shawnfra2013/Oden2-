@@ -1,7 +1,7 @@
 "use strict";
 const {protect} = require("../lib/access");
-const {openAiApiKey} = require("../lib/openai-config");
-const MODEL = /^[a-zA-Z0-9._-]{1,100}$/;
+const {openAiApiKey, cloudChatConfigured} = require("../lib/openai-config");
+const {randomUUID} = require("node:crypto");
 function validate(data) {
   if (Object.keys(data).some(k=>!["message","history"].includes(k))
       || typeof data.message!=="string"
@@ -21,7 +21,7 @@ module.exports=async function handler(req,res) {
   if (!protect(req,res)) return;
   const key=openAiApiKey();
   const model=process.env.ODIN_OPENAI_MODEL;
-  if (!key || !MODEL.test(model||"")) {
+  if (!cloudChatConfigured()) {
     return res.status(503).json({error:"Cloud chat not configured; add a fresh API key and model in Vercel settings"});
   }
   const input=validate(req.body);
@@ -30,15 +30,23 @@ module.exports=async function handler(req,res) {
     model,input,store:false,max_output_tokens:700,
     instructions:"You are the Odin Control cloud AI assistant. You are an independent API conversation, NOT the user's exact ChatGPT app conversation and NOT an active Odin device process. Guide the user about their AYN Odin 2 AI workstation and its public GitHub repository shawnfra2013/Oden2-. Never claim that you have connected to Odin, pushed code, tested, restarted services or approved a device action unless the user supplies a separate verified receipt. Never request API keys in the chat. Device operations require a separate explicitly confirmed diagnostic action."
   };
+  const requestId = randomUUID();
+  res.setHeader("X-Odin-Request-Id", requestId);
+  function fail(stage, status) {
+    console.error("ODIN_CLOUD_FAILURE", JSON.stringify({request_id:requestId, stage, upstream_status:status}));
+    return res.status(502).json({error:"Cloud chat request failed", request_id:requestId, stage});
+  }
+  let stage = "provider_request";
   try {
     const response=await fetch("https://api.openai.com/v1/responses",{
       method:"POST",
       headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
       body:JSON.stringify(payload),signal:AbortSignal.timeout(40000)
     });
-    if(!response.ok)return res.status(502).json({error:"Model provider unavailable or account not configured"});
+    if(!response.ok)return fail("provider_http", response.status);
+    stage = "provider_response";
     const raw=await response.text();
-    if(raw.length>1048576)return res.status(502).json({error:"Oversized provider response"});
+    if(raw.length>1048576)return fail(stage);
     const data=JSON.parse(raw);
     const answer=(data.output||[]).flatMap(item=>
       item?.type==="message" && Array.isArray(item.content) ? item.content : [])
@@ -50,7 +58,7 @@ module.exports=async function handler(req,res) {
       exact_chatgpt_thread:false
     });
   } catch {
-    return res.status(502).json({error:"Cloud chat request failed; no device command was sent"});
+    return fail(stage);
   }
 };
 module.exports._test={validate};
