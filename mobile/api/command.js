@@ -1,4 +1,5 @@
 "use strict";
+const {notify}=require("../lib/wake");
 const {randomBytes} = require("node:crypto");
 const {protect} = require("../lib/access");
 const REPO = "shawnfra2013/Oden2-";
@@ -57,6 +58,7 @@ module.exports = async function handler(req,res) {
       signal:AbortSignal.timeout(12000)
     });
     if(submitted.status!==201)throw Error("GitHub submission failed");
+    await notify("bridge");
     return res.status(202).json({
       accepted:true,id:request.id,action:request.action,
       created_at:request.created_at,expires_at:request.expires_at,

@@ -1,6 +1,7 @@
 {
   "version": 2,
   "functions": {
+    "api/wake.js": {"maxDuration": 30},
     "api/status.js": {
       "maxDuration": 10
     }

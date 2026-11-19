@@ -15,7 +15,6 @@ import json
 import os
 import subprocess
 import sys
-import time
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -400,12 +399,16 @@ def main(argv=None):
         return
     token = read_token()
     if args.serve:
+        try:
+            from .odin_wake import wait_for_work
+        except ImportError:
+            from odin_wake import wait_for_work
         while True:
             try:
                 poll_once(token)
             except (RuntimeError, ValueError, OSError) as error:
                 print(f"Private relay poll failed: {error}", file=sys.stderr, flush=True)
-            time.sleep(POLL_SECONDS)
+            wait_for_work("relay", POLL_SECONDS)
     else:
         print("Handled private messages:", poll_once(token))
 
