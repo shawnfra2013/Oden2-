@@ -73,7 +73,8 @@ class RelayHardeningTests(unittest.TestCase):
                 return SimpleNamespace(returncode=0, stdout=b"one\0two\0")
             raise AssertionError(command)
 
-        with tempfile.TemporaryDirectory() as folder, (
+        with (
+            tempfile.TemporaryDirectory() as folder,
             patch.object(relay, "ROOT", Path(folder)),
             patch.object(subprocess, "run", side_effect=git_run),
         ):
@@ -101,7 +102,8 @@ class RelayHardeningTests(unittest.TestCase):
 
         item = {"id": "f" * 32, "sender": "iphone", "to": "odin",
                 "status": "queued", "text": "/task delete everything"}
-        with tempfile.TemporaryDirectory() as folder, (
+        with (
+            tempfile.TemporaryDirectory() as folder,
             patch.object(relay, "STATE", Path(folder)),
             patch.object(relay, "SEEN_FILE", Path(folder) / "seen.json"),
             patch.object(relay, "request", side_effect=mock_request),
@@ -114,7 +116,8 @@ class RelayHardeningTests(unittest.TestCase):
             self.assertIn("ODIN_TASK_REJECTED", calls[-1]["text"])
 
     def test_poll_lock_is_exclusive(self):
-        with tempfile.TemporaryDirectory() as folder, (
+        with (
+            tempfile.TemporaryDirectory() as folder,
             patch.object(relay, "STATE", Path(folder)),
             patch.object(relay, "LOCK_FILE", Path(folder) / "poll.lock"),
         ):
