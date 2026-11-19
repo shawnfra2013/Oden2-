@@ -41,6 +41,7 @@ struct Snapshot: Decodable {
             let head: String?
             let queuePending: Int?
             let queueRunning: Int?
+            let workerHeartbeatAgeS: Int?
             let stage5Reachable: Bool?
         }
     }

@@ -14,6 +14,10 @@ final class InboxTests: XCTestCase {
         XCTAssertTrue(composer.exists)
         let headerFrame = sidebar.frame
         let composerFrame = composer.frame
+        let inbox = XCTAttachment(screenshot: app.screenshot())
+        inbox.name = "Odin inbox"
+        inbox.lifetime = .keepAlways
+        add(inbox)
         transcript.swipeDown()
         XCTAssertEqual(sidebar.frame, headerFrame)
         XCTAssertEqual(composer.frame, composerFrame)
@@ -21,5 +25,9 @@ final class InboxTests: XCTestCase {
 
         sidebar.tap()
         XCTAssertTrue(app.staticTexts["Pinned"].waitForExistence(timeout: 4))
+        let pins = XCTAttachment(screenshot: app.screenshot())
+        pins.name = "Pinned sidebar"
+        pins.lifetime = .keepAlways
+        add(pins)
     }
 }

@@ -244,7 +244,7 @@ struct InboxView: View {
                     .accessibilityIdentifier("composerInput")
                 Button {
                     let draft = model.draft
-                    if model.agent == .odin && isRestart(draft) { requestRestart(draft) }
+                    if model.agent == .odin && model.mode != .plan && isRestart(draft) { requestRestart(draft) }
                     else { Task { await model.send(draft) } }
                 } label: {
                     Group {
@@ -292,7 +292,7 @@ struct InboxView: View {
                                 HStack {
                                     Button("Copy") { UIPasteboard.general.string = pin.text }
                                     Button("Paste to composer") {
-                                        model.draft += pin.text
+                                        model.draft += model.draft.isEmpty ? pin.text : "\n" + pin.text
                                         sidebar = false
                                         editing = true
                                     }
@@ -440,6 +440,9 @@ private struct SettingsView: View {
                                 if let queue = health.result.queuePending { LabeledContent("Pending tasks", value: String(queue)) }
                                 if let queue = health.result.queueRunning { LabeledContent("Running tasks", value: String(queue)) }
                                 if let sha = health.result.head { LabeledContent("Device revision", value: String(sha.prefix(8))) }
+                                if let date = health.date, let age = health.result.workerHeartbeatAgeS {
+                                    LabeledContent("Last worker heartbeat", value: date.addingTimeInterval(-Double(age)).formatted())
+                                }
                                 if let reachable = health.result.stage5Reachable {
                                     LabeledContent("Stage 5", value: reachable ? "Reachable" : "Unreachable")
                                 }
@@ -462,10 +465,10 @@ private struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
-            .safeAreaInset(edge: .top, spacing: 0) {
-                StatusStrip(model: model).padding(12).background(surface)
-            }
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            StatusStrip(model: model).padding(12).background(surface)
         }
     }
 }

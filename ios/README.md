@@ -7,8 +7,9 @@ diagnostics, and confirmed service controls.
 
 Choose Odin or ChatGPT with the agent picker. Start, Plan, and Work change
 the guidance sent with a question. Think longer asks for additional analysis
-in the prompt. ChatGPT is the project's OpenAI API conversation. Slash
-commands go to Odin unchanged and use the existing private relay.
+in the prompt. ChatGPT is the project's OpenAI API conversation. In Start
+and Work, slash commands go to Odin unchanged through the private relay.
+Plan mode asks for planning help and routes typed slash commands as text.
 
 Long-press within a message to select text. Copy uses the native selection
 menu. Pin to sidebar saves the selected excerpt on this iPhone. The sidebar

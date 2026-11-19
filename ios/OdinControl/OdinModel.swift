@@ -11,7 +11,7 @@ enum Mode: String, CaseIterable, Identifiable {
     var id: Self { self }
 
     func prompt(_ text: String, deeper: Bool, agent: Agent) -> String {
-        if agent == .odin && text.hasPrefix("/") { return text }
+        if agent == .odin && self != .plan && text.hasPrefix("/") { return text }
         let guidance: String
         switch self {
         case .start: guidance = ""
