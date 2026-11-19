@@ -259,7 +259,7 @@ def handle_message(token, msg, seen, answer_fn):
         elif action == "ai_status":
             answer = ai_status_reply()
         elif action == "unsupported_command":
-            answer = ("ODIN_COMMAND_REJECTED: supported: /ping, /status, "
+            answer = ("ODIN_TASK_REJECTED: supported: /ping, /status, "
                       "/task git-status, /task queue-status, /ai-status, /ai-test")
         elif action == "ai_test":
             result = answer_fn("Reply briefly with the words Odin AI ready.")
