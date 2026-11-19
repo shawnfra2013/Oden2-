@@ -97,6 +97,20 @@
           <div class="connect-state" id="accessState">Not connected. Set up the server secrets first.</div>
           <button class="text-link" id="disconnectButton" type="button" disabled>Disconnect private session</button>
         </div>
+        <div class="panel relay-panel">
+          <div class="relay-header">
+            <div><strong>Odin Device Inbox</strong><p>Private messages, delivery receipts and on-device agent replies</p></div>
+            <span class="live-pill neutral" id="relayBadge"><span class="status-dot"></span> Not paired</span>
+          </div>
+          <div class="relay-messages" id="relayMessages" aria-live="polite">
+            <div class="empty-state">Connect private access to view Odin messages.</div>
+          </div>
+          <form id="relaySendForm" class="chat-composer">
+            <input id="relayMessage" maxlength="2000" disabled aria-label="Message Odin agent privately" placeholder="Write to Odin (requires private pairing)">
+            <button id="relaySendButton" type="submit" disabled aria-label="Send to Odin">↗</button>
+          </form>
+          <div class="chat-tools"><span id="relayState">Messages only, no remote shell commands</span><button type="button" class="text-link" id="relayRefresh">Check messages</button></div>
+        </div>
         <div class="panel chat-panel">
           <div class="chat-banner"><span class="status-dot amber-dot"></span><span id="cloudChatBanner">Cloud AI chat — requires private connection</span></div>
           <div class="chat-log" id="chatLog" aria-live="polite">
