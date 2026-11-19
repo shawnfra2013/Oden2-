@@ -99,3 +99,27 @@ test("unauthorized relay message and external Origin are rejected",async()=>{
     assert.equal(res.statusCode,403);
   }));
 });
+
+
+test("storage failures return a visible sanitized stage, not fake success",async()=>{
+  await environ(async()=>{
+    const original=relay.loadEvents;
+    const originalError=console.error;
+    let logged=null;
+    relay.loadEvents=async()=>{throw new Error("example-private-secret-never-log");};
+    console.error=(...args)=>{logged=args.join(" ");};
+    try {
+      const res=reply();
+      await handler(request("GET",IPHONE_TOKEN,{}),res);
+      assert.equal(res.statusCode,503);
+      assert.equal(res.data.stage,"load");
+      assert.match(res.data.error,/Private relay unavailable/);
+      assert.match(logged,/ODIN_RELAY_FAILURE/);
+      assert.doesNotMatch(logged,/example-private-secret/);
+      assert.doesNotMatch(JSON.stringify(res.data),/example-private-secret/);
+    }finally{
+      relay.loadEvents=original;
+      console.error=originalError;
+    }
+  });
+});
