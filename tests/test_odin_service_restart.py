@@ -1,6 +1,5 @@
 """Offline acceptance tests: bounded supervised restart, no arbitrary commands."""
 import json
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -147,9 +146,8 @@ class OdinServiceRestartTests(unittest.TestCase):
             self.assertIn("helper_interrupted", entries[0][1]["reply"])
 
     def test_bad_id_does_not_become_shell_argv(self):
-        with tempfile.TemporaryDirectory() as folder:
-            with self.assertRaises(ValueError):
-                restart.reserve_restart("abc; reboot", state_dir=Path(folder))
+        with tempfile.TemporaryDirectory() as folder, self.assertRaises(ValueError):
+            restart.reserve_restart("abc; reboot", state_dir=Path(folder))
         self.assertEqual(restart.SERVICES[-1], "odin-private-relay")
         self.assertNotIn("sshd", restart.SERVICES)
 
