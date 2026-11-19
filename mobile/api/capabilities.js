@@ -1,5 +1,6 @@
 "use strict";
 const {configureResponse} = require("../lib/access");
+const {openAiApiKey} = require("../lib/openai-config");
 module.exports = function handler(req,res) {
   configureResponse(res);
   if (req.method !== "GET") {
@@ -9,7 +10,7 @@ module.exports = function handler(req,res) {
   const access = typeof process.env.ODIN_CONTROL_ACCESS_TOKEN === "string"
     && process.env.ODIN_CONTROL_ACCESS_TOKEN.length >= 32;
   const model = process.env.ODIN_OPENAI_MODEL || "";
-  const ai = Boolean(process.env.OPENAI_API_KEY && /^[A-Za-z0-9._-]{1,100}$/.test(model));
+  const ai = Boolean(openAiApiKey() && /^[A-Za-z0-9._-]{1,100}$/.test(model));
   const github = Boolean(process.env.ODIN_GITHUB_TOKEN);
   return res.status(200).json({
     source:"odin-control-server",
