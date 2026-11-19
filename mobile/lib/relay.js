@@ -71,17 +71,28 @@ async function writeEvent(path,entry,backend){
 async function recordOwnerMessage(id,text,backend={put,get}){
   if(typeof id!=="string"||!ID.test(id)||!isText(text))throw new TypeError("Invalid owner message");
   const entry={version:1,id,at:new Date().toISOString(),kind:"message",sender:"iphone",to:"odin",text:text.trim()};
-  const path=EVENT_PREFIX+"request-"+id+".json";
+  const {entry:saved}=await writeOnce(EVENT_PREFIX+"request-"+id+".json",entry,backend);
+  if(saved.id!==id||saved.kind!=="message"||saved.sender!=="iphone"||saved.to!=="odin")
+    throw Error("Stored owner message does not match its pathname");
+  return saved.text===entry.text?saved:null;
+}
+async function recordDeviceReply(requestId,text,backend={put,get}){
+  if(typeof requestId!=="string"||!ID.test(requestId)||!isText(text))throw new TypeError("Invalid device reply");
+  const entry={version:1,id:randomBytes(16).toString("hex"),at:new Date().toISOString(),
+    kind:"message",sender:"odin",to:"iphone",reply_to:requestId,text:text.trim()};
+  const saved=await writeOnce(EVENT_PREFIX+"reply-"+requestId+".json",entry,backend);
+  if(saved.entry.reply_to!==requestId||saved.entry.kind!=="message"||
+      saved.entry.sender!=="odin"||saved.entry.to!=="iphone")
+    throw Error("Stored device reply does not match its pathname");
+  return saved;
+}
+async function writeOnce(path,entry,backend){
   try{
-    // Blob rejects an existing pathname when overwrites are disabled (the default).
     await writeEvent(path,entry,backend);
-    return entry;
+    return {entry,created:true};
   }catch(error){
     if(!["already_exists","etag_conflict"].includes(safeStorageCode(error)))throw error;
-    const saved=await readPrivateEvent(path,backend);
-    if(saved.id!==id||saved.kind!=="message"||saved.sender!=="iphone"||saved.to!=="odin")
-      throw Error("Stored owner message does not match its pathname");
-    return saved.text===entry.text?saved:null;
+    return {entry:await readPrivateEvent(path,backend),created:false};
   }
 }
 async function readPrivateEvent(pathname,backend){
@@ -178,6 +189,6 @@ function validReply(body){
     && Object.keys(body).sort().join(",")==="for,text,type"
     && body.type==="reply" && ID.test(body.for) && isText(body.text);
 }
-module.exports={ID,isText,deviceAuthorized,safeCompare,recordEvent,recordOwnerMessage,loadEvents,
+module.exports={ID,isText,deviceAuthorized,safeCompare,recordEvent,recordOwnerMessage,recordDeviceReply,loadEvents,
   view,validMessage,validReceipt,validReply,safeStorageCode,FAILURE_CODES,
   _test:{readState,readPrivateEvent,EVENT_PREFIX}};

@@ -94,3 +94,19 @@ test("lost confirmation and concurrent retries keep one owner message and origin
   const viewed=relay.view(await relay.loadEvents(backend),"odin");
   assert.equal(viewed.filter(message=>message.id===id).length,1);
 });
+
+test("parallel replies for the same request create one immutable event",async()=>{
+  const {backend,files}=makeStore();
+  const first=await Promise.all([
+    relay.recordDeviceReply(OLD,"same reply",backend),
+    relay.recordDeviceReply(OLD,"same reply",backend)
+  ]);
+  assert.equal(first.filter(x=>x.created).length,1);
+  assert.deepEqual(first[0].entry,first[1].entry);
+  assert.equal(files.size,1);
+  const different=await relay.recordDeviceReply(OLD,"different reply",backend);
+  assert.equal(different.created,false);
+  assert.equal(different.entry.text,"same reply");
+  const seen=relay.view(await relay.loadEvents(backend),"iphone");
+  assert.equal(seen.filter(x=>x.reply_to===OLD).length,1);
+});

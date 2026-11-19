@@ -3,6 +3,11 @@ const {notify}=require("../lib/wake");
 const {authorized,validOrigin,validBody,configureResponse}=require("../lib/access");
 const relay=require("../lib/relay");
 
+function repeatedReply(res,entry,text){
+  if(entry.text===text)return res.status(409).json({error:"Already replied"});
+  return res.status(422).json({error:"Stored reply differs from this delivery"});
+}
+
 module.exports=async function handler(req,res){
   configureResponse(res);
   const device=relay.deviceAuthorized(req);
@@ -65,15 +70,14 @@ module.exports=async function handler(req,res){
     }
     if(device&&relay.validReply(body)){
       const all=await relay.loadEvents();
+      const text=body.text.trim();
+      const previous=all.find(x=>x.kind==="message"&&x.reply_to===body.for&&x.sender==="odin"&&x.to==="iphone");
+      if(previous)return repeatedReply(res,previous,text);
       if(!all.some(x=>x.kind==="message"&&x.id===body.for&&x.to==="odin"))
         return res.status(404).json({error:"Original message unavailable"});
-      if(all.some(x=>x.kind==="message"&&x.reply_to===body.for&&x.sender==="odin"))
-        return res.status(409).json({error:"Already replied"});
       stage="odin_reply";
-      const entry=await relay.recordEvent({
-        kind:"message",sender:"odin",to:"iphone",reply_to:body.for,
-        text:body.text.trim()
-      });
+      const {entry,created}=await relay.recordDeviceReply(body.for,text);
+      if(!created)return repeatedReply(res,entry,text);
       return res.status(201).json({id:entry.id,status:"replied",at:entry.at});
     }
     return res.status(400).json({error:"Message action not allowed"});
