@@ -27,7 +27,7 @@ const SAFE_KEYS = new Set([
   "expected_sha", "head_before", "head_after", "revision_matches",
   "branch_main", "tests_ran", "verified", "local_sha", "remote_main_sha",
   "fast_forward_possible", "target_matches", "untracked_collisions",
-  "safe_to_attempt_pull", "applied"
+  "safe_to_attempt_pull", "applied", "checks"
 ]);
 
 async function get(url) {
