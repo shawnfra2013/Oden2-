@@ -369,3 +369,11 @@ process state and updater result. The authenticated inbox can request a
 fixed named service restart, with the existing cooldown and durable result.
 A direct Codex-to-Termux SSH session has not been established. See the
 release roadmap for live acceptance and the next expansion.
+
+## Verified unattended rollout — 2026-11-19
+
+Odin used GitHub SSH on port 443 and automatically updated to
+`3efb0c1091cf6597e020a81cfc185acbcf59e0ac`. Git sync log lines
+2320–2324 confirmed the task worker, GitHub bridge, and private relay
+were running after reload. Git sync continued on its next cycle.
+The iPhone-triggered restart and model reply still need live acceptance.

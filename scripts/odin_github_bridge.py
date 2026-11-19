@@ -161,6 +161,26 @@ SYNC_REASONS = frozenset({
 })
 
 
+def rollout_summary():
+    try:
+        with (ROOT / "state" / "last-auto-rollout.json").open("rb") as handle:
+            raw = handle.read(4097)
+        data = json.loads(raw) if len(raw) <= 4096 else {}
+        revision = data["revision"]
+        checked_at = datetime.fromisoformat(data["checked_at"])
+        reload_status = data["reload_status"]
+        if (SHA_PATTERN.fullmatch(revision) and checked_at.tzinfo is not None
+                and reload_status in ("pending", "verified", "unverified")):
+            return {
+                "revision": revision,
+                "checked_at": iso(checked_at.astimezone(UTC)),
+                "reload_status": reload_status,
+            }
+    except (OSError, ValueError, TypeError, KeyError, OverflowError):
+        pass
+    return None
+
+
 def health_summary():
     """Public snapshot with bounded enums and counters, never raw log text."""
     prefix = Path(os.environ.get("PREFIX", "/data/data/com.termux/files/usr"))
@@ -193,6 +213,7 @@ def health_summary():
         "services": services,
         "sync_reason": reason if isinstance(reason, str) and reason in SYNC_REASONS else "unknown",
         "stage5_reachable": status_action("stage5_health")["reachable"],
+        "last_rollout": rollout_summary(),
     }
 
 

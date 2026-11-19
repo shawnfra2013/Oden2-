@@ -105,13 +105,27 @@ class UpdateSafetyTests(unittest.TestCase):
 
                 with (
                     patch.object(updater, "RESULT", result),
+                    patch.object(updater, "ROLLOUT_RESULT", result.with_name("rollout.json")),
                     patch.object(updater, "flag_is_enabled", return_value=True),
                     patch.object(updater, "update_once", return_value=current),
-                    patch.object(updater, "save_result", side_effect=lambda data, result=result: result.write_text(json.dumps(data))),
+                    patch.object(updater, "save_result", side_effect=lambda data, destination=result: destination.write_text(json.dumps(data))),
                     patch.object(updater.subprocess, "run", side_effect=reload_services) as launch,
                 ):
                     updater.main(["--once"])
                     self.assertEqual(launch.called, expected)
+                    evidence = result.with_name("rollout.json")
+                    if expected:
+                        saved = json.loads(evidence.read_text())
+                        self.assertEqual(saved["revision"], self.TARGET)
+                        self.assertEqual(saved["reload_status"], "verified")
+                        with patch.object(updater, "update_once", return_value=updater.result_record(
+                            "current", "already_up_to_date", self.TARGET, self.TARGET, self.TARGET
+                        )):
+                            updater.main(["--once"])
+                        self.assertEqual(json.loads(evidence.read_text()), saved)
+                        self.assertEqual(launch.call_count, 1)
+                    else:
+                        self.assertFalse(evidence.exists())
 
     def test_dirty_checkout_refused_before_fetch(self):
         result = updater.update_once(git_cmd=self.make_git(dirty=True))

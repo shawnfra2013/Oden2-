@@ -212,6 +212,11 @@ function sourceEvents() {
       detail = shortSha(result.head) + " · " + services.join(" / ")
         + " · Sync: " + (result.sync_reason || "unknown")
         + " · Stage 5: " + (result.stage5_reachable ? "reachable" : "unreachable");
+      if (result.last_rollout) {
+        const rollout = result.last_rollout;
+        detail += " · Last rollout " + shortSha(rollout.revision) + " · "
+          + time(rollout.checked_at) + " · reload " + rollout.reload_status;
+      }
     } else if (receipt.action === "repo_status") {
       detail = "Device revision " + shortSha(result.head)
         + " · tracked " + (result.tracked_clean === true ? "clean" : "not clean");
@@ -818,7 +823,7 @@ async function queuePrivateRelayMessage(text){
     if(isRestartCommand(text))restartLocal.id=result.id;
     $("relayMessage").value="";
     relayLocal.notice=isRestartCommand(text)
-      ?"Restart request queued; Odin will reply after checking all services."
+      ?"Restart request queued; Odin will report the requested service checks."
       :"Queued for Odin; waiting for a delivery receipt";
     await refreshRelay();
   }catch(err){
