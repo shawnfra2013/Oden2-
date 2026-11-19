@@ -18,7 +18,7 @@ const ID = /^[0-9a-f]{32}$/;
 const SHA = /^[0-9a-f]{40}$/;
 const ACTIONS = new Set([
   "ping", "repo_status", "services", "stage5_health", "checks",
-  "verify_release", "preflight_release", "odin_health"
+  "verify_release", "preflight_release", "odin_health", "worker_probe"
 ]);
 const SAFE_KEYS = new Set([
   "alive", "bridge_version", "branch", "head", "tracked_clean",

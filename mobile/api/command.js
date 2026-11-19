@@ -4,7 +4,7 @@ const {randomBytes} = require("node:crypto");
 const {protect} = require("../lib/access");
 const REPO = "shawnfra2013/Oden2-";
 const API = "https://api.github.com/repos/"+REPO;
-const ACTIONS = new Set(["ping","repo_status","services","stage5_health","checks","verify_release","preflight_release","odin_health"]);
+const ACTIONS = new Set(["ping","repo_status","services","stage5_health","checks","verify_release","preflight_release","odin_health","worker_probe"]);
 const SHA=/^[0-9a-f]{40}$/;
 const iso=date=>date.toISOString().replace(/\.\d{3}Z$/,"Z");
 function parseAction(body){
