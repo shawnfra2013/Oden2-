@@ -1,0 +1,14 @@
+"use strict";
+const {protect}=require("../lib/access");
+module.exports=function handler(req,res){
+  if(!protect(req,res))return;
+  if(Object.keys(req.body).length) return res.status(400).json({error:"Unexpected fields"});
+  return res.status(200).json({
+    authenticated:true,
+    cloud_chat_configured:Boolean(process.env.OPENAI_API_KEY && process.env.ODIN_OPENAI_MODEL),
+    device_diagnostics_configured:Boolean(process.env.ODIN_GITHUB_TOKEN),
+    private_odin_conversation_connected:false,
+    exact_chatgpt_thread_connected:false,
+    arbitrary_shell_enabled:false
+  });
+};

@@ -15,3 +15,29 @@ main{padding:14px 0 128px}.page{display:none;animation:appear .22s ease}.page.ac
 @media(min-width:700px){.shell{padding-left:30px;padding-right:30px}.metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.tabbar{max-width:830px;left:50%;transform:translateX(-50%);border-left:1px solid var(--border);border-right:1px solid var(--border);border-radius:18px 18px 0 0}.hero-body{min-height:180px}.hero-copy h2{font-size:30px}main{padding-bottom:135px}}
 @media(max-width:350px){.shell{padding-left:15px;padding-right:15px}.hero-panel{padding:17px}.hero-orb{width:85px;height:85px}.hero-copy h2{font-size:22px}.brand-sub{font-size:8px}.wordmark{font-size:14px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;scroll-behavior:auto!important}}
+
+
+/* Authenticated feature layer; inherits the existing Odin dark palette. */
+.secure-connect{padding:18px;margin-bottom:15px;background:linear-gradient(130deg,rgba(60,49,95,.33),rgba(21,27,42,.9))}
+.secure-heading{display:flex;align-items:center;gap:12px;margin-bottom:15px}
+.secure-heading strong{font-size:13px}
+.secure-heading p{margin:4px 0 0;color:#9ba6bc;font-size:11px;line-height:1.5}
+.lock-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:13px;background:rgba(155,138,246,.13);color:var(--violet);font-size:26px;flex-shrink:0}
+.connect-row{display:flex;gap:9px}
+.connect-row input{flex:1;min-width:0;background:rgba(5,9,20,.7);border:1px solid rgba(165,176,208,.22);border-radius:12px;color:#eee;padding:12px;font-size:12px}
+.connect-row button{border:0;border-radius:12px;background:var(--violet);padding:0 14px;color:#111420;font-weight:750;font-size:12px}
+.connect-state{font-size:11px;color:#b3bfd8;margin:11px 0;line-height:1.5;overflow-wrap:anywhere}
+.chat-log{min-height:220px;max-height:440px;overflow:auto;padding:12px 14px}
+.private-chat-line{margin:12px 0;max-width:95%}.private-chat-line.user{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end}
+.private-chat-label{font-size:9px;letter-spacing:.1em;font-weight:800;color:#a99aff;margin-bottom:6px}
+.private-chat-bubble{border-radius:16px;padding:12px 14px;background:rgba(127,113,197,.18);border:1px solid rgba(164,149,243,.12);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}
+.private-chat-line.user .private-chat-bubble{background:rgba(59,100,154,.18);border-color:rgba(98,156,228,.15)}
+.chat-tools{padding:3px 16px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;color:#8693a9;font-size:10px}
+.controls-panel{padding:16px}
+.device-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.device-actions button{border:1px solid rgba(167,155,232,.2);background:rgba(114,102,170,.12);border-radius:13px;min-height:43px;padding:9px 12px;color:#e0dcff;font-size:11px;font-weight:700}
+.device-actions button:active:not(:disabled){background:rgba(125,108,204,.26)}
+.device-actions button:disabled{background:rgba(121,133,161,.07);color:#8c97ad}
+.action-status{border-top:1px solid var(--border);margin-top:15px;padding-top:14px;font-size:12px;color:#d1c7fa;overflow-wrap:anywhere}
+.device-notice{font-size:10px;line-height:1.5;color:#8391aa;margin-top:9px}
+@media(min-width:600px){.device-actions{grid-template-columns:repeat(4,minmax(0,1fr))}}

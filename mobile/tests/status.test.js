@@ -55,13 +55,16 @@ test("commit message IDs are read safely", () => {
   assert.equal(requestId("unrelated commit"),null);
 });
 
-test("dashboard has disabled conversation composer, no private API calls", () => {
+test("dashboard has gated conversation and controls", () => {
   const root=path.resolve(__dirname,"..");
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
   const js=fs.readFileSync(path.join(root,"app.js"),"utf8");
-  assert.match(html, /Messaging unlocks after private pairing/);
-  assert.match(html, /<input disabled/);
+  assert.match(html, /id="accessForm"/);
+  assert.match(html, /id="cloudChatForm"/);
+  assert.match(html, /id="deviceActions"/);
+  assert.match(html, /id="cloudMessage"[^>]*disabled/);
   assert.match(js, /fetch\("\/api\/status"/);
+  assert.match(js, /authenticatedPost\("\/api\/command"/);
   assert.doesNotMatch(js, /OPENAI_API_KEY|sk-proj|exec\(/);
 });
 

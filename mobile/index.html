@@ -88,17 +88,31 @@
         <div class="eyebrow">CHAT & DELEGATION</div>
         <h1>Talk to <span class="muted-title">Odin.</span></h1>
         <p class="intro">A place for the conversation relay—grounded in what the device has actually returned.</p>
-        <div class="panel chat-panel">
-          <div class="chat-banner"><span class="status-dot amber-dot"></span><span>Private conversational relay not connected</span></div>
-          <div class="chat-empty">
-            <div class="chat-avatar">O</div>
-            <h2>Ready for the next connection.</h2>
-            <p>Odin's diagnostic replies already arrive through the bridge. Natural-language replies from this exact ChatGPT thread require a separate authenticated connection.</p>
-          </div>
-          <div class="chat-message-sample"><div class="speaker">LATEST DEVICE RESPONSE</div><div id="chatReceipt">Checking for a verified Odin response…</div><div class="receipt-note">Verified device metadata, not a model-generated conversation reply.</div></div>
-          <div class="chat-composer"><input disabled aria-label="Message Odin (not connected)" placeholder="Messaging unlocks after private pairing"><button disabled aria-label="Send unavailable">↗</button></div>
+        <div class="panel secure-connect">
+          <div class="secure-heading"><span class="lock-icon">⌁</span><div><strong>Private controls</strong><p>Your access token stays in this browser tab and is never stored in GitHub.</p></div></div>
+          <form id="accessForm" class="connect-row">
+            <input id="accessToken" type="password" autocomplete="off" spellcheck="false" placeholder="Vercel access token" minlength="32" aria-label="Odin Control access token" required>
+            <button type="submit" id="accessButton">Connect</button>
+          </form>
+          <div class="connect-state" id="accessState">Not connected. Set up the server secrets first.</div>
+          <button class="text-link" id="disconnectButton" type="button" disabled>Disconnect private session</button>
         </div>
-        <div class="panel notice-panel"><div class="notice-icon">⌁</div><div><strong>Why is messaging locked?</strong><p>We won't send conversations or OpenAI API keys through a public GitHub mailbox. An authenticated private relay must be paired first.</p></div></div>
+        <div class="panel chat-panel">
+          <div class="chat-banner"><span class="status-dot amber-dot"></span><span id="cloudChatBanner">Cloud AI chat — requires private connection</span></div>
+          <div class="chat-log" id="chatLog" aria-live="polite">
+            <div class="chat-empty"><div class="chat-avatar">O</div><h2>One workspace. Clear boundaries.</h2>
+            <p>Ask the cloud AI assistant about Odin. This is a separate API conversation, not the exact ChatGPT app thread or a message to the on-device agent.</p></div>
+          </div>
+          <form id="cloudChatForm" class="chat-composer">
+            <input id="cloudMessage" maxlength="3000" disabled aria-label="Message cloud AI assistant" placeholder="Connect your private session to chat">
+            <button type="submit" id="cloudSend" disabled aria-label="Send message">↗</button>
+          </form>
+          <div class="chat-tools"><button class="text-link" id="clearChat" type="button">Clear this session</button><span id="chatSendStatus">No messages sent</span></div>
+        </div>
+        <div class="panel notice-panel"><div class="notice-icon">⌁</div><div><strong>Odin device messages are separate.</strong>
+          <p>This cloud assistant cannot secretly control Odin. Use the diagnostic controls in System for verified device actions. Private agent-to-phone conversation still needs its own secure relay.</p></div></div>
+        <div class="panel chat-message-sample"><div class="speaker">LATEST VERIFIED ODIN RECEIPT</div>
+          <div id="chatReceipt">Checking the latest device response…</div><div class="receipt-note">Device evidence, not a ChatGPT model reply.</div></div>
         <a class="secondary-action" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT <span aria-hidden="true">↗</span></a>
       </section>
 
@@ -115,6 +129,20 @@
           <div class="setting-row"><div><span class="setting-label">Public relay</span><p>Read-only status access</p></div><strong>Connected</strong></div>
           <div class="setting-row"><div><span class="setting-label">Device commands</span><p>Remote shell and deployment</p></div><strong>Locked</strong></div>
           <div class="setting-row"><div><span class="setting-label">ChatGPT thread</span><p>Direct message synchronization</p></div><strong>Not linked</strong></div>
+        </div>
+        <div class="section-heading"><h2>Send an Odin diagnostic</h2><span class="section-aside">APPROVED ACTIONS ONLY</span></div>
+        <div class="panel controls-panel">
+          <div class="device-actions" id="deviceActions">
+            <button data-odin-action="ping" disabled>Ping Odin</button>
+            <button data-odin-action="repo_status" disabled>Repository</button>
+            <button data-odin-action="services" disabled>Services</button>
+            <button data-odin-action="stage5_health" disabled>AI health</button>
+            <button data-odin-action="checks" disabled>Run tests</button>
+            <button data-odin-action="preflight_release" disabled>Update preflight</button>
+            <button data-odin-action="verify_release" disabled>Verify revision</button>
+          </div>
+          <div class="action-status" id="actionStatus">Connect your private session to submit read-only device requests.</div>
+          <div class="device-notice">No arbitrary commands, package installs, service restarts or automatic deployment. Tests may take a few minutes.</div>
         </div>
         <div class="section-heading"><h2>Verified checks</h2></div>
         <div class="panel" id="testResults"><div class="empty-state">No recent device checks loaded.</div></div>

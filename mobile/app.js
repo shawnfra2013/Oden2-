@@ -331,6 +331,7 @@ async function refresh() {
     state.loading=false;
     $("refreshBtn").disabled=false;
     renderAll();
+    renderSecureState();
   }
 }
 
@@ -369,3 +370,186 @@ setInterval(()=>{
   if (document.visibilityState==="visible") refresh();
 },60000);
 refresh();
+
+
+// The private controls share no state with the public GitHub telemetry loader.
+// A token exists only in memory in the current browser tab, never in a URL,
+// GitHub branch, localStorage, or analytics event.
+const privateState = {
+  token:null, connected:false, cloud:false, diagnostics:false,
+  history:[], pending:null, capabilities:null, sending:false
+};
+
+function addChatLine(role,text) {
+  const container=create("div","private-chat-line "+role);
+  const label=create("div","private-chat-label",role==="user" ? "YOU" : "CLOUD AI");
+  const bubble=create("div","private-chat-bubble",text);
+  container.append(label,bubble);
+  $("chatLog").append(container);
+  $("chatLog").scrollTop=$("chatLog").scrollHeight;
+}
+function clearPrivateChat() {
+  privateState.history=[];
+  $("chatLog").replaceChildren(create("div","empty-state",
+    "New local tab conversation. Nothing was sent to Odin."));
+  $("chatSendStatus").textContent="Conversation cleared";
+}
+async function authenticatedPost(path, body, token) {
+  const response=await fetch(path,{
+    method:"POST",cache:"no-store",
+    headers:{"Accept":"application/json","Content-Type":"application/json",
+      "Authorization":"Bearer "+token},
+    body:JSON.stringify(body),
+    signal:AbortSignal.timeout(path==="/api/chat"?50000:20000)
+  });
+  const data=await response.json().catch(()=>({error:"Unexpected response"}));
+  if(!response.ok)throw Error(data.error || "Request rejected");
+  return data;
+}
+async function checkCapabilities() {
+  try {
+    const response=await fetch("/api/capabilities",{cache:"no-store"});
+    if(!response.ok)throw Error("Capabilities unavailable");
+    privateState.capabilities=await response.json();
+  } catch {
+    privateState.capabilities=null;
+  }
+  renderSecureState();
+}
+
+function renderSecureState() {
+  const p=privateState;
+  const ready=p.connected;
+  $("accessButton").textContent=ready?"Reconnect":"Connect";
+  $("disconnectButton").disabled=!ready;
+  $("cloudMessage").disabled=!(ready&&p.cloud);
+  $("cloudSend").disabled=!(ready&&p.cloud)||p.sending;
+  for (const button of document.querySelectorAll("[data-odin-action]")) {
+    button.disabled=!(ready&&p.diagnostics)||p.sending;
+  }
+  if(!ready){
+    const capabilities=p.capabilities;
+    $("accessState").textContent=capabilities?.access_configured
+      ? "Private server configured. Enter your access token to connect."
+      : "Private server token is not set. See setup instructions in GitHub.";
+  } else {
+    $("accessState").textContent="Authenticated for this tab. Cloud AI: "
+      +(p.cloud?"ready":"needs server key")
+      +" · Odin diagnostics: "+(p.diagnostics?"ready":"needs GitHub token");
+  }
+  $("cloudChatBanner").textContent=ready&&p.cloud
+    ? "Cloud AI available · Separate from this ChatGPT app thread"
+    : "Cloud AI chat not connected";
+  if(p.pending){
+    const id=p.pending.id;
+    const req=state.data?.requests?.find(item=>item.id===id);
+    const response=state.data?.receipts?.find(item=>item.id===id);
+    let status="Awaiting Odin: "+p.pending.action+" · "+id.slice(-8);
+    if(response)status="Odin receipt: "+response.status+" · "
+      +readableAction(response.action)+" · "+time(response.checked_at);
+    else if(req?.stage==="expired_without_response")
+      status="Expired without Odin response · "+id.slice(-8);
+    $("actionStatus").textContent=status;
+  } else {
+    $("actionStatus").textContent=ready&&p.diagnostics
+      ? "Select a diagnostic. It will appear in the activity timeline."
+      : "Remote diagnostics are locked until secure access and the GitHub token are configured.";
+  }
+}
+
+$("accessForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const token=$("accessToken").value.trim();
+  if(token.length<32){
+    $("accessState").textContent="Access token must contain at least 32 characters.";
+    return;
+  }
+  $("accessButton").disabled=true;
+  $("accessState").textContent="Verifying private access…";
+  try {
+    const result=await authenticatedPost("/api/session",{},token);
+    if(!result.authenticated)throw Error("Authentication rejected");
+    privateState.token=token;
+    privateState.connected=true;
+    privateState.cloud=result.cloud_chat_configured===true;
+    privateState.diagnostics=result.device_diagnostics_configured===true;
+    $("accessToken").value="";
+    $("accessState").textContent="Private session connected";
+  } catch (err) {
+    privateState.token=null;
+    privateState.connected=false;
+    privateState.cloud=false;
+    privateState.diagnostics=false;
+    $("accessState").textContent=err.message;
+  } finally {
+    $("accessButton").disabled=false;
+    renderSecureState();
+  }
+});
+$("disconnectButton").addEventListener("click",()=>{
+  privateState.token=null;
+  privateState.connected=false;
+  privateState.cloud=false;
+  privateState.diagnostics=false;
+  $("accessToken").value="";
+  clearPrivateChat();
+  renderSecureState();
+});
+$("cloudChatForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  if(!privateState.connected||!privateState.cloud||privateState.sending)return;
+  const msg=$("cloudMessage").value.trim();
+  if(!msg||msg.length>3000)return;
+  privateState.sending=true;
+  $("chatSendStatus").textContent="Waiting for the cloud AI provider…";
+  $("cloudMessage").value="";
+  addChatLine("user",msg);
+  renderSecureState();
+  try {
+    const result=await authenticatedPost("/api/chat",{
+      message:msg,history:privateState.history.slice(-8)
+    },privateState.token);
+    if(typeof result.answer!=="string"||result.source!=="openai-api")
+      throw Error("Unexpected AI response");
+    addChatLine("assistant",result.answer);
+    privateState.history.push({role:"user",content:msg},{role:"assistant",content:result.answer});
+    privateState.history=privateState.history.slice(-8);
+    $("chatSendStatus").textContent="Cloud reply received · Not a device execution receipt";
+  } catch(err){
+    addChatLine("assistant","Chat unavailable: "+err.message);
+    $("chatSendStatus").textContent="No validated AI response";
+  } finally {
+    privateState.sending=false;
+    renderSecureState();
+  }
+});
+$("clearChat").addEventListener("click",clearPrivateChat);
+for(const button of document.querySelectorAll("[data-odin-action]")){
+  button.addEventListener("click",async()=>{
+    if(!privateState.connected||!privateState.diagnostics||privateState.sending)
+      return;
+    const action=button.dataset.odinAction;
+    if(!Object.prototype.hasOwnProperty.call(ACTION_LABELS,action))return;
+    const intensive=["checks","verify_release"].includes(action);
+    if(intensive && !window.confirm(
+      "Submit "+readableAction(action)+"? Odin will run its predefined tests, without modifying the repository."
+    ))return;
+    privateState.sending=true;
+    $("actionStatus").textContent="Submitting "+readableAction(action)+" to GitHub…";
+    renderSecureState();
+    try {
+      const result=await authenticatedPost("/api/command",{action},privateState.token);
+      if(result.accepted!==true||typeof result.id!=="string")
+        throw Error("Request not accepted");
+      privateState.pending={id:result.id,action};
+      $("actionStatus").textContent="Sent to GitHub · waiting for Odin's next poll";
+      await refresh();
+    }catch(err){
+      $("actionStatus").textContent="Not submitted: "+err.message;
+    }finally{
+      privateState.sending=false;
+      renderSecureState();
+    }
+  });
+}
+checkCapabilities();
