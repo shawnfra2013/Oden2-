@@ -47,8 +47,8 @@ def task_counts():
     return counts
 
 def ask_ai(question, history=None):
-    from inference_adapter import ask_bounded
-    return ask_bounded(question) if history is None else ask_bounded(question, history)
+    from chat_provider import ask_model
+    return ask_model(question, history)
 
 
 
@@ -110,6 +110,7 @@ class Handler(BaseHTTPRequestHandler):
                 "status": "ready",
                 "mode": "isolated",
                 "ai_enabled": os.environ.get("ODIN_STAGE5_ENABLE_AI") == "1",
+                "provider": os.environ.get("ODIN_STAGE5_PROVIDER", "groq"),
                 "worker_connected": False
             })
         elif path == "/api/tasks":
