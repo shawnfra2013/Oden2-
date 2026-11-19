@@ -3,6 +3,17 @@ Oden ADB OS edits/build
 
 
 <!-- odin-stage4-20261017 -->
+## Odin bridge and device diagnostics
+
+Use **System → Odin health** in [Odin Control](https://odin-control.vercel.app/)
+for a device receipt with the checkout revision, runit service states and
+uptimes, last updater reason, and Stage 5 HTTP status. The authenticated
+private inbox accepts `/restart-service odin-task-worker` and
+`/restart-services` for confirmed restarts. See the
+[bridge runbook](docs/ODIN_GITHUB_BRIDGE.md),
+[release and acceptance plan](docs/ODIN_SAFE_UPDATES_AND_ROADMAP.md),
+and [project memory](docs/PROJECT_MEMORY.md) for the verified device baseline.
+
 ## Stage 4 stabilization — October 17, 2026
 
 Task-bound proposal provenance, confined atomic writes, collision-safe evidence, and structured command results. See [Stage 4 verification](docs/stage4-stabilization.md).
