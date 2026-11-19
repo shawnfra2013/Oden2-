@@ -124,19 +124,27 @@ def svc_call(cmd, path, *, timeout=25):
                           capture_output=True, text=True, timeout=timeout)
 
 
-def run_restarts(message_id, *, root=ROOT, state_dir=REQUEST_DIR,
-                 prefix=None, call=svc_call):
-    """Only known, already-configured Odin runit services. Relay last."""
-    path = state_dir / (message_id + ".json")
-    data = read_record(path)
-    if data["phase"] != "queued":
-        return 2
-    data["phase"] = "running"
-    save_record(path, data)
+def restart_configured(*, state_dir=REQUEST_DIR, prefix=None, call=svc_call,
+                       after_update=False):
+    state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd = os.open(state_dir / "execution.lock",
+                 os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "rb") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return "ODIN_SERVICES_RESTART_RESULT verified=false reason=restart_in_progress", False
+        return restart_under_lock(prefix, call, after_update)
+
+
+def restart_under_lock(prefix, call, after_update):
     base = Path(prefix or os.environ.get(
         "PREFIX", "/data/data/com.termux/files/usr")) / "var" / "service"
     outcome = {}
     for name in SERVICES:
+        if after_update and name == "odin-git-sync":
+            outcome[name] = "next_sync_cycle"
+            continue
         service = base / name
         # Runit service entries may legitimately be symlinks to their
         # source definitions; the service name itself remains allowlisted.
@@ -144,6 +152,14 @@ def run_restarts(message_id, *, root=ROOT, state_dir=REQUEST_DIR,
             outcome[name] = "missing" if name in MANDATORY else "not_configured"
             continue
         try:
+            if after_update:
+                prior = call("status", service)
+                if prior.returncode or not prior.stdout.startswith(("run: ", "down: ")):
+                    outcome[name] = "health_failed"
+                    continue
+                if prior.stdout.startswith("down: "):
+                    outcome[name] = "inactive"
+                    continue
             result = call("restart", service)
             if result.returncode:
                 outcome[name] = "restart_failed"
@@ -159,17 +175,31 @@ def run_restarts(message_id, *, root=ROOT, state_dir=REQUEST_DIR,
             outcome[name] = "running" if running else "health_failed"
         except (OSError, subprocess.TimeoutExpired):
             outcome[name] = "timeout_or_unavailable"
-    configured = [name for name, state in outcome.items() if state != "not_configured"]
+    configured = [name for name, state in outcome.items() if state not in {"not_configured", "next_sync_cycle", "inactive"}]
     healthy = all(outcome[name] == "running" for name in configured)
     status = "true" if healthy else "false"
     # Fixed allowlist and bounded status strings, no diagnostics or secrets.
     summary = ",".join(name + ":" + outcome[name] for name in SERVICES)
+    reply = ("ODIN_SERVICES_RESTART_RESULT verified=" + status
+             + " managed=" + str(len(configured))
+             + " running=" + str(sum(outcome[n] == "running" for n in SERVICES))
+             + " services=" + summary)
+    return reply, healthy
+
+
+def run_restarts(message_id, *, root=ROOT, state_dir=REQUEST_DIR,
+                 prefix=None, call=svc_call):
+    """Only known, already-configured Odin runit services. Relay last."""
+    path = state_dir / (message_id + ".json")
+    data = read_record(path)
+    if data["phase"] != "queued":
+        return 2
+    data["phase"] = "running"
+    save_record(path, data)
+    data["reply"], healthy = restart_configured(
+        state_dir=state_dir, prefix=prefix, call=call)
     data["phase"] = "finished"
     data["completed_at"] = now()
-    data["reply"] = ("ODIN_SERVICES_RESTART_RESULT verified=" + status
-                     + " managed=" + str(len(configured))
-                     + " running=" + str(sum(outcome[n] == "running" for n in SERVICES))
-                     + " services=" + summary)
     save_record(path, data)
     return 0 if healthy else 1
 
@@ -217,8 +247,15 @@ def publish_pending(token, send, *, state_dir=REQUEST_DIR):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--execute", required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--execute")
+    mode.add_argument("--local", action="store_true")
+    mode.add_argument("--after-update", action="store_true")
     args = parser.parse_args(argv)
+    if args.local or args.after_update:
+        reply, healthy = restart_configured(after_update=args.after_update)
+        print(reply, flush=True)
+        return 0 if healthy else 1
     if not ID_RE.fullmatch(args.execute):
         parser.error("Invalid restart request ID")
     return run_restarts(args.execute)

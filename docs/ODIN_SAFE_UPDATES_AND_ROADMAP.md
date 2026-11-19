@@ -233,3 +233,17 @@ One initial relay restart after the new code is installed is required
 because the already-running old Python process cannot reload itself
 using an action it does not yet know. Later authorized requests
 require no manual Termux input while the relay remains alive.
+
+### Automatic reload after a CI-gated pull
+
+When source auto-update is enabled, a successful verified fast-forward
+reloads running Odin worker, GitHub bridge, and private relay services.
+The sync supervisor keeps its lock and uses the new sync script on its
+next cycle. Inactive services stay down. Source update and reload outcomes
+are recorded separately in `logs/git-sync.log`.
+
+The older updater records a source-only pull on the first transition.
+The new updater uses that exact-HEAD record on its next cycle to perform
+the initial reload. For a manual pull, use
+`python -B scripts/odin_service_restart.py --local` in the Odin checkout.
+The local command and authenticated relay share a single execution lock.
