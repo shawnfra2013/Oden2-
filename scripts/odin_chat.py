@@ -98,6 +98,7 @@ def main(argv=None):
             break
         if question == ":new":
             identifier = None
+            SESSION_FILE.unlink(missing_ok=True)
             print("Fresh conversation; prior local history preserved.")
             continue
         if question == ":status":
