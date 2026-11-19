@@ -26,12 +26,11 @@ class OdinRelayTests(unittest.TestCase):
             calls.append(body)
             return {"accepted": True}
 
-        with tempfile.TemporaryDirectory() as folder:
-            with (
-                patch.object(client, "STATE", Path(folder)),
-                patch.object(client, "SEEN_FILE", Path(folder) / "seen.json"),
-                patch.object(client, "request", side_effect=fake_request),
-            ):
+        with tempfile.TemporaryDirectory() as folder, (
+            patch.object(client, "STATE", Path(folder)),
+            patch.object(client, "SEEN_FILE", Path(folder) / "seen.json"),
+            patch.object(client, "request", side_effect=fake_request),
+        ):
                 seen = set()
                 success = client.handle_message(
                     "not-a-real-token", self.message(), seen, lambda _: "Hi phone"
@@ -65,12 +64,11 @@ class OdinRelayTests(unittest.TestCase):
             calls.append(body)
             return {}
 
-        with tempfile.TemporaryDirectory() as folder:
-            with (
-                patch.object(client, "STATE", Path(folder)),
-                patch.object(client, "SEEN_FILE", Path(folder) / "seen.json"),
-                patch.object(client, "request", side_effect=fake_request),
-            ):
+        with tempfile.TemporaryDirectory() as folder, (
+            patch.object(client, "STATE", Path(folder)),
+            patch.object(client, "SEEN_FILE", Path(folder) / "seen.json"),
+            patch.object(client, "request", side_effect=fake_request),
+        ):
                 seen = set()
                 def bad_model(_):
                     raise RuntimeError("Model is not configured")
