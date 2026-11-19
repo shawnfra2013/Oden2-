@@ -532,6 +532,7 @@ function lockPrivateAccess(){
   $("vaultSavePassword").value="";
   relayLocal.messages=[];
   relayLocal.acknowledged.clear();
+  pendingRelaySends.clear();
   relayLocal.error=null;
   relayLocal.notice=null;
   relayLocal.lastUpdated=null;
@@ -690,6 +691,7 @@ checkCapabilities();
 // model prediction. No arbitrary device action can be transported here.
 const relayLocal = {messages:[], acknowledged:new Set(), loading:false, sending:false, error:null, notice:null, lastUpdated:null};
 const restartLocal = {id:null};
+const pendingRelaySends = new Map();
 const RESTART_COMMANDS=new Set([
   "/restart-services", "/restart-all-services", "restart all services",
   "restart odin services", "restart odin"
@@ -827,16 +829,22 @@ async function queuePrivateRelayMessage(text){
   relayLocal.notice="Sending securely…";
   renderRelay();
   try{
-    const result=await authenticatedPost("/api/relay",{type:"message",text},privateState.token);
-    if(typeof result.id!=="string")throw Error("Message not queued");
+    let id=pendingRelaySends.get(text);
+    if(!id){
+      id=crypto.randomUUID().replaceAll("-","");
+      pendingRelaySends.set(text,id);
+    }
+    const result=await authenticatedPost("/api/relay",{type:"message",text,id},privateState.token);
+    if(result.id!==id||result.status!=="queued")throw Error("Message confirmation unavailable");
+    pendingRelaySends.delete(text);
     if(isRestartCommand(text))restartLocal.id=result.id;
-    $("relayMessage").value="";
+    if($("relayMessage").value.trim()===text)$("relayMessage").value="";
     relayLocal.notice=isRestartCommand(text)
       ?"Restart request queued; Odin will report the requested service checks."
       :"Queued for Odin; waiting for a delivery receipt";
     await refreshRelay();
   }catch(err){
-    relayLocal.error="Could not send: "+err.message;
+    relayLocal.error="Send not confirmed. Retry the same message in this tab. "+err.message;
     relayLocal.notice=null;
   }finally{
     relayLocal.sending=false;

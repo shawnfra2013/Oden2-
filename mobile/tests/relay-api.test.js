@@ -156,3 +156,26 @@ test("relay rejects arbitrary sensitive failure reason and reasons on success",a
     assert.equal(res.statusCode,400);
   }));
 });
+
+test("stable owner request ID is passed to storage and a changed payload returns conflict",async()=>{
+  await environ(async()=>{
+    const original=relay.recordOwnerMessage;
+    const entry={id:ID,at:"2026-11-19T06:00:00Z"};
+    relay.recordOwnerMessage=async(id,text)=>{
+      assert.equal(id,ID);
+      return text==="/ping"?entry:null;
+    };
+    try{
+      let res=reply();
+      await handler(request("POST",IPHONE_TOKEN,{type:"message",text:"/ping",id:ID},ORIGIN),res);
+      assert.equal(res.statusCode,202);
+      assert.deepEqual(res.data,{...entry,status:"queued"});
+      res=reply();
+      await handler(request("POST",IPHONE_TOKEN,{type:"message",text:"changed",id:ID},ORIGIN),res);
+      assert.equal(res.statusCode,409);
+      res=reply();
+      await handler(request("POST",DEVICE_TOKEN,{type:"message",text:"/ping",id:ID},ORIGIN),res);
+      assert.equal(res.statusCode,400);
+    }finally{relay.recordOwnerMessage=original;}
+  });
+});

@@ -59,11 +59,30 @@ async function recordEvent(event,backend={put}){
   const at=new Date().toISOString();
   const entry={version:1,id,at,...event};
   const path=EVENT_PREFIX+at.replace(/[-:.TZ]/g,"")+"-"+id+".json";
+  await writeEvent(path,entry,backend);
+  return entry;
+}
+async function writeEvent(path,entry,backend){
   await backend.put(path,JSON.stringify(entry),{
     access:"private",addRandomSuffix:false,contentType:"application/json",
     cacheControlMaxAge:60
   });
-  return entry;
+}
+async function recordOwnerMessage(id,text,backend={put,get}){
+  if(typeof id!=="string"||!ID.test(id)||!isText(text))throw new TypeError("Invalid owner message");
+  const entry={version:1,id,at:new Date().toISOString(),kind:"message",sender:"iphone",to:"odin",text:text.trim()};
+  const path=EVENT_PREFIX+"request-"+id+".json";
+  try{
+    // Blob rejects an existing pathname when overwrites are disabled (the default).
+    await writeEvent(path,entry,backend);
+    return entry;
+  }catch(error){
+    if(!["already_exists","etag_conflict"].includes(safeStorageCode(error)))throw error;
+    const saved=await readPrivateEvent(path,backend);
+    if(saved.id!==id||saved.kind!=="message"||saved.sender!=="iphone"||saved.to!=="odin")
+      throw Error("Stored owner message does not match its pathname");
+    return saved.text===entry.text?saved:null;
+  }
 }
 async function readPrivateEvent(pathname,backend){
   const blob=await backend.get(pathname,{access:"private",useCache:false});
@@ -76,6 +95,11 @@ async function readPrivateEvent(pathname,backend){
     !["message","receipt"].includes(data.kind))
     throw Error("Invalid private relay event");
   return data;
+}
+function eventOrder(blob){
+  const uploaded=new Date(blob.uploadedAt ?? NaN);
+  if(Number.isFinite(uploaded.getTime()))return uploaded.toISOString().replace(/[-:.TZ]/g,"");
+  return /^\d{17}/.exec(blob.pathname.slice(EVENT_PREFIX.length))?.[0]||"";
 }
 async function loadEvents(backend={list,get,readState}){
   const blobs=[];
@@ -96,9 +120,9 @@ async function loadEvents(backend={list,get,readState}){
   }
   // Do not claim a complete history if the storage scan was incomplete.
   if(hasMore)throw Error("Private relay event listing exceeded limit");
-  // New objects have sortable timestamp-based names; bound the number of
-  // private reads while retaining every object in storage for future export.
-  const latest=blobs.sort((a,b)=>b.pathname.localeCompare(a.pathname))
+  // Fixed request paths use the upload time. Older paths also encode their time.
+  const latest=blobs.sort((a,b)=>eventOrder(b).localeCompare(eventOrder(a))||
+    b.pathname.localeCompare(a.pathname))
     .slice(0,MAX_EVENTS);
   const [legacy,events]=await Promise.all([
     backend.readState(),
@@ -135,7 +159,8 @@ function view(events,viewer) {
 }
 function validMessage(body) {
   return body && typeof body==="object" && !Array.isArray(body)
-    && Object.keys(body).sort().join(",")==="text,type"
+    && (Object.keys(body).sort().join(",")==="text,type" ||
+      (Object.keys(body).sort().join(",")==="id,text,type" && typeof body.id==="string" && ID.test(body.id)))
     && body.type==="message" && isText(body.text);
 }
 function validReceipt(body){
@@ -153,6 +178,6 @@ function validReply(body){
     && Object.keys(body).sort().join(",")==="for,text,type"
     && body.type==="reply" && ID.test(body.for) && isText(body.text);
 }
-module.exports={ID,isText,deviceAuthorized,safeCompare,recordEvent,loadEvents,
+module.exports={ID,isText,deviceAuthorized,safeCompare,recordEvent,recordOwnerMessage,loadEvents,
   view,validMessage,validReceipt,validReply,safeStorageCode,FAILURE_CODES,
   _test:{readState,readPrivateEvent,EVENT_PREFIX}};

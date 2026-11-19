@@ -16,12 +16,12 @@ function makeStore(){
       assert.equal(options.access,"private");
       assert.equal(options.addRandomSuffix,false);
       assert.equal(Object.hasOwn(options,"allowOverwrite"),false);
-      if(files.has(path))throw new Error("Unexpected event overwrite");
+      if(files.has(path))throw new Error("Blob already exists");
       files.set(path,JSON.parse(raw));
     },
     async list({prefix}){
       assert.equal(prefix,"odin-relay/v2/events/");
-      return {blobs:[...files.keys()].map(pathname=>({pathname})),
+      return {blobs:[...files.keys()].map(pathname=>({pathname,uploadedAt:files.get(pathname).at})),
         hasMore:false,cursor:null};
     },
     async get(path){
@@ -78,4 +78,19 @@ test("storage error classification does not return sensitive exception details",
   assert.equal(relay.safeStorageCode(err),"storage_auth");
   assert.equal(relay.safeStorageCode(new TypeError("internal secret")),"storage_api_error");
   assert.equal(relay.safeStorageCode(new Error("unknown sensitive value")),"storage_error");
+});
+
+test("lost confirmation and concurrent retries keep one owner message and original timestamp",async()=>{
+  const {backend,files}=makeStore();
+  const id="b".repeat(32);
+  const first=await relay.recordOwnerMessage(id,"/ping",backend);
+  const retried=await Promise.all([
+    relay.recordOwnerMessage(id,"/ping",backend),
+    relay.recordOwnerMessage(id,"/ping",backend)
+  ]);
+  assert.deepEqual(retried,[first,first]);
+  assert.equal(files.size,1);
+  assert.equal(await relay.recordOwnerMessage(id,"another message",backend),null);
+  const viewed=relay.view(await relay.loadEvents(backend),"odin");
+  assert.equal(viewed.filter(message=>message.id===id).length,1);
 });

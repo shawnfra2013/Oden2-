@@ -33,9 +33,10 @@ module.exports=async function handler(req,res){
     const body=req.body;
     if(owner&&!device&&relay.validMessage(body)){
       stage="queue";
-      const entry=await relay.recordEvent({
-        kind:"message",sender:"iphone",to:"odin",text:body.text.trim()
-      });
+      const entry=body.id
+        ? await relay.recordOwnerMessage(body.id,body.text)
+        : await relay.recordEvent({kind:"message",sender:"iphone",to:"odin",text:body.text.trim()});
+      if(!entry)return res.status(409).json({error:"Request ID already belongs to a different message"});
       await notify("relay");
       return res.status(202).json({id:entry.id,status:"queued",at:entry.at});
     }
