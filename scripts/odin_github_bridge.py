@@ -181,6 +181,29 @@ def rollout_summary():
     return None
 
 
+def heartbeat_age(path):
+    try:
+        with path.open("rb") as handle:
+            raw = handle.read(4097)
+        data = json.loads(raw) if len(raw) <= 4096 else {}
+        checked_at = datetime.fromisoformat(data["checked_at"])
+        age = int((utcnow() - checked_at).total_seconds())
+        return age if 0 <= age < 1_000_000 else None
+    except (OSError, ValueError, TypeError, KeyError, OverflowError):
+        return None
+
+
+def queue_depth(path):
+    try:
+        with os.scandir(path) as entries:
+            return sum(
+                1 for entry in entries
+                if entry.name.endswith(".json") and entry.is_file(follow_symlinks=False)
+            )
+    except OSError:
+        return None
+
+
 def health_summary():
     """Public snapshot with bounded enums and counters, never raw log text."""
     prefix = Path(os.environ.get("PREFIX", "/data/data/com.termux/files/usr"))
@@ -214,6 +237,10 @@ def health_summary():
         "sync_reason": reason if isinstance(reason, str) and reason in SYNC_REASONS else "unknown",
         "stage5_reachable": status_action("stage5_health")["reachable"],
         "last_rollout": rollout_summary(),
+        "worker_heartbeat_age_s": heartbeat_age(ROOT / "state/task-queue/worker-status.json"),
+        "relay_poll_age_s": heartbeat_age(ROOT / "state/odin-relay/relay-status.json"),
+        "queue_pending": queue_depth(ROOT / "state/task-queue/pending"),
+        "queue_running": queue_depth(ROOT / "state/task-queue/running"),
     }
 
 

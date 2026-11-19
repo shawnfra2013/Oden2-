@@ -278,3 +278,8 @@ timestamp, and reload status (`pending`, `verified`, or `unverified`).
 Later no-op or failed syncs preserve that record. The first automatic
 pull performed by the new updater supplies the first record. Confirm it
 from an Odin health receipt after at least one subsequent no-op sync.
+
+After the heartbeat release, request Odin health with the worker and private
+relay active. Confirm both ages and both queue counts. The worker records
+its heartbeat before starting a queue cycle, so age can increase while a
+task runs. Use service state and running count alongside heartbeat age.

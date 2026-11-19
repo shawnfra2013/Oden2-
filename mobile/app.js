@@ -212,6 +212,12 @@ function sourceEvents() {
       detail = shortSha(result.head) + " · " + services.join(" / ")
         + " · Sync: " + (result.sync_reason || "unknown")
         + " · Stage 5: " + (result.stage5_reachable ? "reachable" : "unreachable");
+      const age = seconds => Number.isInteger(seconds) ? seconds + "s ago" : "unknown";
+      detail += " · Worker heartbeat " + age(result.worker_heartbeat_age_s)
+        + " · Relay poll " + age(result.relay_poll_age_s);
+      if (Number.isInteger(result.queue_pending) && Number.isInteger(result.queue_running)) {
+        detail += " · Queue " + result.queue_pending + " pending, " + result.queue_running + " running";
+      }
       if (result.last_rollout) {
         const rollout = result.last_rollout;
         detail += " · Last rollout " + shortSha(rollout.revision) + " · "

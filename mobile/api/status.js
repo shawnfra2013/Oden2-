@@ -27,6 +27,7 @@ const SAFE_KEYS = new Set([
   "expected_sha", "head_before", "head_after", "revision_matches",
   "branch_main", "tests_ran", "verified", "local_sha", "remote_main_sha",
   "fast_forward_possible", "target_matches", "untracked_collisions",
+  "worker_heartbeat_age_s", "relay_poll_age_s", "queue_pending", "queue_running",
   "safe_to_attempt_pull", "applied", "checks", "stage5_reachable", "services", "sync_reason", "last_rollout"
 ]);
 

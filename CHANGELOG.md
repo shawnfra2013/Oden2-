@@ -248,3 +248,6 @@ Remaining limitations:
 
 - Odin keeps the last automatic pull and reload outcome across no-op syncs.
 - Odin health reports the saved revision, timestamp, and reload result.
+
+- Odin health now reports worker heartbeat and private relay poll age,
+  alongside pending and running task counts.
