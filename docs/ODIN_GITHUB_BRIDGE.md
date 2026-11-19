@@ -133,6 +133,45 @@ Example request (replace dates, ID and SHA with real fresh values):
 }
 ```
 
+## Hardened background bridge and safe updates (v3)
+
+The hardened agent uses an exclusive local lock for each poll, rejects request blobs
+larger than 4096 bytes before reading them, and adds `preflight_release`:
+a **read-only update assessment** for an exact, reviewed 40-character main
+commit SHA. It fetches remote Git metadata (without merging or restarting
+anything) and reports the branch, tracked-clean flag, main ancestry,
+expected remote target, untracked-file count, and possible file collisions.
+
+Use the same request structure as `verify_release` but set
+`"action": "preflight_release"`. A response of
+`"safe_to_attempt_pull": true` is **not an automatic deployment**.
+It is only one required check; a fresh local update must still pass Git's
+built-in protections and the device operator's approval.
+
+`scripts/odin-safe-pull.sh` now permits unrelated, preserved untracked
+files and checks both exact-path and path-prefix collisions using NUL-delimited
+Git filenames. It rejects tracked edits, a non-main checkout, an unexpected
+origin or divergence. It never deletes, resets, stashes, or force-pushes.
+
+The runit-generated `services/*/supervise/` directory is now ignored by Git.
+This does not delete the existing supervisor data or alter how runit works.
+
+## Chat from inside Odin: separate from public telemetry
+
+This bridge is **not a ChatGPT conversation transport**. The user can interact
+with the existing local Stage 5 AI Chat, which stores conversations in local
+SQLite and uses its configured inference provider when enabled. The model
+running through that backend is a separate conversational session, not this
+ChatGPT app thread.
+
+Never publish chat histories, private prompts, agent context or API credentials
+to the public `odin-bridge-inbox` or `odin-bridge-outbox` branches.
+Building actual conversational synchronisation requires a private, authorized
+channel and a clear identity/session mapping. GitHub status receipts are
+not suitable for it. OpenAI API access on Odin would also require separately
+configured, securely stored API credentials and API billing; a ChatGPT
+subscription does not automatically provide API credits.
+
 ## Operational limits and review gates
 
 - Never use this mechanism to execute arbitrary commands, run downloaded
