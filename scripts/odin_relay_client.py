@@ -100,7 +100,14 @@ def handle_message(token, msg, seen, answer_fn):
         request(token, {"type": "receipt", "for": mid, "state": "delivered"})
     request(token, {"type": "receipt", "for": mid, "state": "read"})
     try:
-        answer = answer_fn(text)
+        # A transport test is deliberately not AI inference or a shell command.
+        # It works when model credentials are unavailable, proving the real
+        # Odin process received and replied to the authenticated message.
+        answer = (
+            "ODIN_RELAY_PONG — reply generated on the Odin device; "
+            "AI inference not used."
+            if text.strip() == "/ping" else answer_fn(text)
+        )
         if not isinstance(answer, str) or not answer.strip():
             raise RuntimeError("No model response")
         answer = answer.strip()[:2000]
