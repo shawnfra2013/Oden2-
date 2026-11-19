@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-private let background = Color(red: 7/255, green: 10/255, blue: 18/255)
+private let appBackground = Color(red: 7/255, green: 10/255, blue: 18/255)
 private let surface = Color(red: 17/255, green: 22/255, blue: 34/255)
 private let violet = Color(red: 156/255, green: 141/255, blue: 1)
 private let mint = Color(red: 89/255, green: 220/255, blue: 187/255)
@@ -40,7 +40,7 @@ struct InboxView: View {
                 }
             }
         }
-        .background(background.ignoresSafeArea())
+        .background(appBackground.ignoresSafeArea())
         .sheet(isPresented: $settings) { SettingsView(model: model, restart: requestRestart) }
         .confirmationDialog("Restart Odin services?", isPresented: Binding(
             get: { restart != nil }, set: { if !$0 { restart = nil } }
@@ -110,7 +110,7 @@ struct InboxView: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 11)
         .frame(maxWidth: .infinity)
-        .background(background)
+        .background(appBackground)
         .accessibilityIdentifier("fixedHeader")
     }
 
@@ -202,8 +202,7 @@ struct InboxView: View {
     }
 
     private var composer: some View {
-        @Bindable var model = model
-        return VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 9) {
             if let notice = model.notice {
                 HStack(alignment: .top) {
                     Text(notice).font(.caption).foregroundStyle(.orange)
@@ -212,64 +211,73 @@ struct InboxView: View {
                         .labelStyle(.iconOnly)
                 }
             }
-            HStack(spacing: 10) {
-                Menu {
-                    ForEach(Mode.allCases) { option in
-                        Button {
-                            model.mode = option
-                        } label: {
-                            if model.mode == option { Label(option.rawValue, systemImage: "checkmark") }
-                            else { Text(option.rawValue) }
-                        }
-                    }
-                } label: {
-                    Label(model.mode.rawValue, systemImage: "slider.horizontal.3")
-                }
-                .accessibilityLabel("Mode, \(model.mode.rawValue)")
-                Button {
-                    model.thinkLonger.toggle()
-                } label: {
-                    Label("Think longer", systemImage: model.thinkLonger ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(model.thinkLonger ? violet : .secondary)
-                }
-                .accessibilityAddTraits(model.thinkLonger ? [.isSelected] : [])
-                Spacer()
-                if editing {
-                    Button("Dismiss keyboard", systemImage: "keyboard.chevron.compact.down") { editing = false }
-                        .labelStyle(.iconOnly)
-                }
-            }
-            .font(.caption.weight(.medium))
-            HStack(alignment: .bottom, spacing: 8) {
-                TextField(model.agent == .odin ? "Message Odin" : "Ask ChatGPT", text: $model.draft, axis: .vertical)
-                    .lineLimit(1...4)
-                    .focused($editing)
-                    .padding(.vertical, 10)
-                    .accessibilityIdentifier("composerInput")
-                Button {
-                    let draft = model.draft
-                    if model.agent == .odin && model.mode != .plan && isRestart(draft) { requestRestart(draft) }
-                    else { Task { await model.send(draft) } }
-                } label: {
-                    Group {
-                        if model.sending { ProgressView().tint(background) }
-                        else { Image(systemName: "arrow.up").font(.body.weight(.bold)) }
-                    }
-                    .frame(width: 44, height: 44)
-                    .background(violet, in: Circle())
-                    .foregroundStyle(background)
-                }
-                .accessibilityLabel("Send")
-                .disabled(!model.canSend || model.sending || model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .opacity(model.canSend ? 1 : 0.45)
-            }
-            .padding(.leading, 14).padding(.trailing, 5).padding(.vertical, 4)
-            .background(surface, in: RoundedRectangle(cornerRadius: 24))
+            composeModes
+            composeField
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .frame(maxWidth: 650)
         .frame(maxWidth: .infinity)
-        .background(background)
+        .background(appBackground)
+    }
+
+    private var composeModes: some View {
+        HStack(spacing: 10) {
+            Menu {
+                ForEach(Mode.allCases) { option in
+                    Button {
+                        model.mode = option
+                    } label: {
+                        if model.mode == option { Label(option.rawValue, systemImage: "checkmark") }
+                        else { Text(option.rawValue) }
+                    }
+                }
+            } label: {
+                Label(model.mode.rawValue, systemImage: "slider.horizontal.3")
+            }
+            .accessibilityLabel("Mode, \(model.mode.rawValue)")
+            Button {
+                model.thinkLonger.toggle()
+            } label: {
+                Label("Think longer", systemImage: model.thinkLonger ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(model.thinkLonger ? violet : .secondary)
+            }
+            .accessibilityAddTraits(model.thinkLonger ? [.isSelected] : [])
+            Spacer()
+            if editing {
+                Button("Dismiss keyboard", systemImage: "keyboard.chevron.compact.down") { editing = false }
+                    .labelStyle(.iconOnly)
+            }
+        }
+        .font(.caption.weight(.medium))
+    }
+
+    private var composeField: some View {
+        @Bindable var model = model
+        return HStack(alignment: .bottom, spacing: 8) {
+            TextField(model.agent == .odin ? "Message Odin" : "Ask ChatGPT", text: $model.draft, axis: .vertical)
+                .lineLimit(1...4)
+                .focused($editing)
+                .padding(.vertical, 10)
+                .accessibilityIdentifier("composerInput")
+            Button {
+                let draft = model.draft
+                if model.agent == .odin && model.mode != .plan && isRestart(draft) { requestRestart(draft) }
+                else { Task { await model.send(draft) } }
+            } label: {
+                Group {
+                    if model.sending { ProgressView().tint(appBackground) }
+                    else { Image(systemName: "arrow.up").font(.body.weight(.bold)) }
+                }
+                .frame(width: 44, height: 44)
+                .background(violet, in: Circle())
+                .foregroundStyle(appBackground)
+            }
+            .accessibilityLabel("Send")
+            .disabled(!model.canSend || model.sending || model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .opacity(model.canSend ? 1 : 0.45)
+        }
+        .padding(.leading, 14).padding(.trailing, 5).padding(.vertical, 4)
+        .background(surface, in: RoundedRectangle(cornerRadius: 24))
     }
 
     private var pinsDrawer: some View {
@@ -290,26 +298,7 @@ struct InboxView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         ForEach(model.pins) { pin in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(pin.agent).font(.caption.weight(.semibold)).foregroundStyle(violet)
-                                Text(pin.text).font(.callout).lineLimit(4).textSelection(.enabled)
-                                HStack {
-                                    Button("Copy") { UIPasteboard.general.string = pin.text }
-                                    Button("Paste to composer") {
-                                        model.draft += model.draft.isEmpty ? pin.text : "\n" + pin.text
-                                        sidebar = false
-                                        editing = true
-                                    }
-                                }.font(.caption.weight(.semibold))
-                                HStack {
-                                    if model.transcript.contains(where: { $0.id == pin.messageID }) {
-                                        Button("View message") { jump = pin.messageID; sidebar = false }
-                                    }
-                                    Button("Unpin", role: .destructive) { model.unpin(pin) }
-                                }.font(.caption)
-                            }
-                            .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                            .background(background.opacity(0.7), in: RoundedRectangle(cornerRadius: 12))
+                            pinCard(pin)
                         }
                     }.padding(14)
                 }
@@ -318,6 +307,29 @@ struct InboxView: View {
         .frame(maxWidth: 315, maxHeight: .infinity)
         .background(surface)
         .accessibilityIdentifier("pinsDrawer")
+    }
+
+    private func pinCard(_ pin: Pin) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(pin.agent).font(.caption.weight(.semibold)).foregroundStyle(violet)
+            Text(pin.text).font(.callout).lineLimit(4).textSelection(.enabled)
+            HStack {
+                Button("Copy") { UIPasteboard.general.string = pin.text }
+                Button("Paste to composer") {
+                    model.draft += model.draft.isEmpty ? pin.text : "\n" + pin.text
+                    sidebar = false
+                    editing = true
+                }
+            }.font(.caption.weight(.semibold))
+            HStack {
+                if model.transcript.contains(where: { $0.id == pin.messageID }) {
+                    Button("View message") { jump = pin.messageID; sidebar = false }
+                }
+                Button("Unpin", role: .destructive) { model.unpin(pin) }
+            }.font(.caption)
+        }
+        .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+        .background(appBackground.opacity(0.7), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func requestRestart(_ text: String) {
