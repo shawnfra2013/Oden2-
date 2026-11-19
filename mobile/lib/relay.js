@@ -115,5 +115,5 @@ function validReply(body){
     && body.type==="reply" && ID.test(body.for) && isText(body.text);
 }
 module.exports={ID,isText,deviceAuthorized,safeCompare,recordEvent,loadEvents,
-  view,validMessage,validReceipt,validReply,
-  _test:{safeStorageCode,readState}};
+  view,validMessage,validReceipt,validReply,safeStorageCode,
+  _test:{readState}};
