@@ -123,3 +123,36 @@ test("storage failures return a visible sanitized stage, not fake success",async
     }
   });
 });
+
+test("device failure reason remains an allowlisted code visible to the iPhone",async()=>{
+  await environ(()=>stubRelay(async()=>{
+    let res=reply();
+    await handler(request("POST",IPHONE_TOKEN,
+      {type:"message",text:"Explain this"},ORIGIN),res);
+    assert.equal(res.statusCode,202);
+    res=reply();
+    await handler(request("POST",DEVICE_TOKEN,
+      {type:"receipt",for:ID,state:"failed",reason:"credential_missing"}),res);
+    assert.equal(res.statusCode,201);
+    res=reply();
+    await handler(request("GET",IPHONE_TOKEN,{},ORIGIN),res);
+    const message=res.data.messages.find(x=>x.sender==="iphone");
+    assert.equal(message.status,"failed");
+    assert.equal(message.failure_reason,"credential_missing");
+  }));
+});
+test("relay rejects arbitrary sensitive failure reason and reasons on success",async()=>{
+  await environ(()=>stubRelay(async()=>{
+    let res=reply();
+    await handler(request("POST",DEVICE_TOKEN,{
+      type:"receipt",for:ID,state:"failed",
+      reason:"private-provider-token-should-not-leak"
+    }),res);
+    assert.equal(res.statusCode,400);
+    res=reply();
+    await handler(request("POST",DEVICE_TOKEN,{
+      type:"receipt",for:ID,state:"read",reason:"credential_missing"
+    }),res);
+    assert.equal(res.statusCode,400);
+  }));
+});

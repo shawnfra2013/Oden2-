@@ -213,3 +213,26 @@ presses Send. Cloud AI messages are separate from this ChatGPT conversation.
 not prove that Odin has installed/restarted the new revision or that a fresh
 private iPhone message received a live reply. Those are separate acceptance
 gates documented in the roadmap.
+
+## 2026-11-19 — AI readiness through the existing private Odin relay
+
+After the iPhone received a real physical Odin reply to /task git-status,
+the next implementation adds exact, safe natural-language aliases such as
+"Task git-status" and "check git status". These aliases never execute
+untrusted shell text. Unrecognized /task requests are rejected.
+Ordinary messages still use Odin's existing configured Stage 5 AI adapter
+and local SQLite history, not the separate hosted iPhone cloud API.
+
+Send /ai-status from Odin Control to see nonsecret runtime facts:
+the selected device provider (Groq or OpenAI), whether the relay
+process sees ODIN_STAGE5_ENABLE_AI=1, whether an appropriate API key is
+present, and whether the selected model is configured. ready=true
+means **configured, not independently tested**. /ai-test is a separate
+explicit real model request, not a synthetic offline ping.
+
+AI request failures are returned as fixed allowlisted receipt codes
+(e.g. ai_disabled, credential_missing, provider_timeout) rather
+than raw exception text. The phone displays an explanation without
+exposing private credentials or provider responses through GitHub.
+No key migration, new service or automatic service restart was added.
+See docs/ODIN_SAFE_UPDATES_AND_ROADMAP.md for acceptance steps.

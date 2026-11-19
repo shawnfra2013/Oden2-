@@ -152,6 +152,76 @@ def write_poll_status(handled, failed, count):
     temp.replace(STATUS_FILE)
 
 
+def normalized_action(text):
+    """Recognize only exact read-only tasks; never parse free-form shell text."""
+    command = " ".join(text.strip().lower().split())
+    known = {
+        "/ping": "ping",
+        "ping odin": "ping",
+        "/status": "git_status_summary",
+        "device status": "git_status_summary",
+        "show device status": "git_status_summary",
+        "/task git-status": "git_status",
+        "task git-status": "git_status",
+        "git status": "git_status",
+        "check git status": "git_status",
+        "show git status": "git_status",
+        "/task queue-status": "queue_status",
+        "task queue-status": "queue_status",
+        "queue status": "queue_status",
+        "check queue status": "queue_status",
+        "/ai-status": "ai_status",
+        "ai status": "ai_status",
+        "model status": "ai_status",
+        "/ai-test": "ai_test",
+    }
+    if command in known:
+        return known[command]
+    if command.startswith(("/task", "task ", "/ai-")):
+        return "unsupported_command"
+    return None
+
+
+def local_ai_status():
+    """Read the running relay's AI environment, never the key's value."""
+    stage5 = str(ROOT / "stage5")
+    if stage5 not in sys.path:
+        sys.path.insert(0, stage5)
+    from chat_provider import provider_status
+
+    return provider_status()
+
+
+def ai_status_reply():
+    state = local_ai_status()
+    return ("ODIN_AI_STATUS "
+            + " ".join(
+                key + "=" + str(state[key]).lower()
+                if isinstance(state[key], bool) else key + "=" + state[key]
+                for key in ("provider", "enabled", "credential_present",
+                            "model_configured", "ready", "reason")
+            ))
+
+
+def failure_code(error, action):
+    """Return one fixed diagnostic code without leaking provider exceptions."""
+    if action in {"git_status", "git_status_summary", "queue_status"}:
+        return "task_failed"
+    if action == "ai_status":
+        return "status_unavailable"
+    try:
+        state = local_ai_status()
+        if not state["ready"]:
+            return state["reason"]
+    except (RuntimeError, ValueError, OSError, ImportError):
+        return "provider_unavailable"
+    if isinstance(error, TimeoutError):
+        return "provider_timeout"
+    if isinstance(error, (ValueError, TypeError)):
+        return "model_response_invalid"
+    return "provider_unavailable"
+
+
 def handle_message(token, msg, seen, answer_fn):
     mid = msg.get("id")
     if not isinstance(mid, str) or len(mid) != 32 or any(
@@ -176,22 +246,37 @@ def handle_message(token, msg, seen, answer_fn):
         # A transport test is deliberately not AI inference or a shell command.
         # It works when model credentials are unavailable, proving the real
         # Odin process received and replied to the authenticated message.
-        clean = text.strip()
-        if clean == "/ping":
+        action = normalized_action(text)
+        if action == "ping":
             answer = ("ODIN_RELAY_PONG — reply generated on the Odin device; "
                       "AI inference not used.")
-        elif clean in ("/status", "/task git-status", "/task queue-status"):
-            answer = status_reply(clean)
-        elif clean.startswith("/task "):
-            answer = ("ODIN_TASK_REJECTED: allowed tasks: /task git-status, "
-                      "/task queue-status")
+        elif action == "git_status_summary":
+            answer = status_reply("/status")
+        elif action == "git_status":
+            answer = status_reply("/task git-status")
+        elif action == "queue_status":
+            answer = status_reply("/task queue-status")
+        elif action == "ai_status":
+            answer = ai_status_reply()
+        elif action == "unsupported_command":
+            answer = ("ODIN_TASK_REJECTED: supported: /ping, /status, "
+                      "/task git-status, /task queue-status, /ai-status, /ai-test")
+        elif action == "ai_test":
+            result = answer_fn("Reply briefly with the words Odin AI ready.")
+            answer = ("ODIN_AI_TEST_RESPONSE (provider answer, not task proof): "
+                      + result)
         else:
+            # Normal conversation uses the existing provider and local SQLite
+            # history. A model answer is not a verified device action.
             answer = answer_fn(text)
         if not isinstance(answer, str) or not answer.strip():
-            raise RuntimeError("No model response")
+            raise ValueError("Empty model or task response")
         answer = answer.strip()[:2000]
-    except (RuntimeError, ValueError, OSError):
-        request(token, {"type": "receipt", "for": mid, "state": "failed"})
+    except (RuntimeError, ValueError, OSError, ImportError, TypeError) as error:
+        request(token, {
+            "type": "receipt", "for": mid, "state": "failed",
+            "reason": failure_code(error, normalized_action(text))
+        })
         seen.add(mid)
         save_seen(seen)
         return True

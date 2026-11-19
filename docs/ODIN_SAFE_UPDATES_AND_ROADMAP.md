@@ -170,3 +170,37 @@ A successful manual call proves the updated lock works; proof of
 unattended periodic operation requires a *later* scheduled log entry.
 Do not remove or reset any lock directory or user files as part of this
 new procedure.
+
+## Next milestone — device AI readiness and friendly commands
+
+The authenticated iPhone relay has now returned a genuine
+ODIN_TASK_COMPLETE verified=true task=git-status from physical Odin
+at the expected Git commit. Transport and the fixed Git task are proven;
+a normal *AI* conversation has not yet been proven.
+
+The next code release adds:
+- Fixed read-only alias matching for Task git-status, git status,
+  check git status, and a small set of device/queue-status phrases.
+  The alias matcher does not interpret arbitrary natural language,
+  generate a shell command, or grant additional actions.
+- /ai-status: returns only provider, AI-enabled, key-present,
+  model-configured and ready flags plus a safe reason code from the
+  running Odin relay's environment. Even ready=true is **not proof**
+  that the provider accepted a request.
+- /ai-test: an explicit bounded request through the existing
+  on-device model and local SQLite conversation. Its output is
+  model text, not a verified action and not this ChatGPT app thread.
+- The iPhone displays allowlisted reasons for **failed** AI receipts
+  instead of an unexplained failure. Raw provider errors, secret values,
+  prompts and local files stay out of this diagnostic channel.
+
+After a green release and a safe source update, restart only
+odin-private-relay to load its new Python code. Then send /ai-status;
+if it says disabled or a key is missing, configure the existing
+device provider privately before attempting /ai-test. Do not ask
+the user to paste a credential in ChatGPT, public GitHub branches or
+the iPhone message field. Follow up with a normal question and confirm
+an actual on-device model response before declaring this milestone done.
+
+No device credential is automatically inferred from the hosted
+Vercel cloud AI capability flag; those are independent providers.

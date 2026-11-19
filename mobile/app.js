@@ -667,6 +667,17 @@ checkCapabilities();
 // Status values are based on server-stored receipts, never inferred from a
 // model prediction. No arbitrary device action can be transported here.
 const relayLocal = {messages:[], acknowledged:new Set(), loading:false, error:null, notice:null, lastUpdated:null};
+const RELAY_FAILURE_LABELS=Object.freeze({
+  ai_disabled:"AI is disabled on Odin; enable the local provider",
+  credential_missing:"AI provider key is not available to the Odin relay",
+  model_missing:"AI model name is not configured on Odin",
+  invalid_provider:"Unsupported Odin AI provider selected",
+  provider_unavailable:"Odin AI provider request failed",
+  provider_timeout:"Odin AI request timed out",
+  model_response_invalid:"Odin AI returned an invalid response",
+  task_failed:"Verified read-only task failed on Odin",
+  status_unavailable:"Odin AI status could not be checked"
+});
 function renderRelay(){
   const unlocked=privateState.connected && privateState.relay===true;
   $("relayMessage").disabled=!unlocked;
@@ -711,7 +722,9 @@ function renderRelay(){
         else if(m.status==="read" && age>90000)stateLabel="Read by Odin · awaiting response";
         else if(m.status==="delivered")stateLabel="Delivered to Odin · awaiting processing";
       }
-      if(m.status==="failed")stateLabel="Failed · review Odin relay status";
+      if(m.status==="failed")stateLabel="Failed · "+
+        (RELAY_FAILURE_LABELS[m.failure_reason]||
+          "Review Odin relay status; no verified answer was returned");
       row.append(create("div","relay-entry-status",stateLabel));
       return row;
     }) : [create("div","empty-state","No messages or replies yet")]);

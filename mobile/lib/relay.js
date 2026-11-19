@@ -4,6 +4,11 @@ const {randomBytes,timingSafeEqual,createHash}=require("node:crypto");
 const PATH="odin-relay/v1/private-messages.json";
 const EVENT_PREFIX="odin-relay/v2/events/";
 const ID=/^[0-9a-f]{32}$/;
+const FAILURE_CODES=new Set([
+  "ai_disabled","credential_missing","model_missing","invalid_provider",
+  "provider_unavailable","provider_timeout","model_response_invalid",
+  "task_failed","status_unavailable"
+]);
 const MAX_EVENTS=120;
 function isText(value){return typeof value==="string" && value.trim().length>0 && value.length<=2000 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value);}
 function safeCompare(a,b){
@@ -123,6 +128,8 @@ function view(events,viewer) {
     const status=reply?"replied":last?.state||"queued";
     return {id:m.id,at:m.at,sender:m.sender,to:m.to,
       text:m.text,reply_to:m.reply_to||null,status,
+      failure_reason:status==="failed"&&FAILURE_CODES.has(last?.reason)
+        ? last.reason:null,
       last_activity:reply?.at||related[related.length-1]?.at||m.at};
   });
 }
@@ -132,10 +139,14 @@ function validMessage(body) {
     && body.type==="message" && isText(body.text);
 }
 function validReceipt(body){
-  return body && typeof body==="object" && !Array.isArray(body)
-    && Object.keys(body).sort().join(",")==="for,state,type"
-    && body.type==="receipt" && ID.test(body.for)
-    && ["delivered","read","failed"].includes(body.state);
+  if(!body || typeof body!=="object" || Array.isArray(body))return false;
+  const keys=Object.keys(body).sort().join(",");
+  if(keys!=="for,state,type"&&keys!=="for,reason,state,type")return false;
+  if(body.type!=="receipt"||!ID.test(body.for)
+    ||!["delivered","read","failed"].includes(body.state))return false;
+  if(keys==="for,reason,state,type")
+    return body.state==="failed" && FAILURE_CODES.has(body.reason);
+  return true;
 }
 function validReply(body){
   return body && typeof body==="object" && !Array.isArray(body)
@@ -143,5 +154,5 @@ function validReply(body){
     && body.type==="reply" && ID.test(body.for) && isText(body.text);
 }
 module.exports={ID,isText,deviceAuthorized,safeCompare,recordEvent,loadEvents,
-  view,validMessage,validReceipt,validReply,safeStorageCode,
+  view,validMessage,validReceipt,validReply,safeStorageCode,FAILURE_CODES,
   _test:{readState,readPrivateEvent,EVENT_PREFIX}};

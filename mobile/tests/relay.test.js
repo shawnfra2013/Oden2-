@@ -49,3 +49,23 @@ test("device authentication is separate from iPhone access",()=>{
     else process.env.ODIN_DEVICE_RELAY_TOKEN=old;
   }
 });
+
+test("failed receipts have bounded reason codes and do not disclose messages",()=>{
+  assert.equal(relay.validReceipt({
+    type:"receipt",for:ID,state:"failed",reason:"ai_disabled"
+  }),true);
+  assert.equal(relay.validReceipt({
+    type:"receipt",for:ID,state:"failed",reason:"secret-password"
+  }),false);
+  assert.equal(relay.validReceipt({
+    type:"receipt",for:ID,state:"read",reason:"ai_disabled"
+  }),false);
+  const initial=msg(ID,"iphone","odin","Hello Odin","2026-11-19T00:00:00.000Z");
+  const failure={kind:"receipt",version:1,id:"a".repeat(32),
+    at:"2026-11-19T00:00:04.000Z",sender:"odin",for:ID,state:"failed",
+    reason:"ai_disabled"};
+  const record=relay.view([initial,failure],"iphone")[0];
+  assert.equal(record.status,"failed");
+  assert.equal(record.failure_reason,"ai_disabled");
+  assert.equal(record.text,"Hello Odin");
+});

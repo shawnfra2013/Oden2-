@@ -113,3 +113,21 @@ Stage 5 and Ruff regression suites.
 ## Safe read-only task shortcuts
 
 The private device composer offers Ping, Device status, Git task and Queue task shortcuts. These fill predefined `/ping`, `/status`, `/task git-status` and `/task queue-status` messages; the user still taps Send. Responses require a running, paired Odin relay. Failed or delayed acknowledgments are labeled instead of reported as healthy. Unrecognized tasks cannot execute arbitrary shell commands.
+
+## AI readiness in the private Odin inbox
+
+The **AI status** shortcut fills /ai-status; Odin replies with
+credential-safe information from the environment of its *running relay
+process*. ready=true only indicates configuration, not a confirmed
+network/model response. **Test AI** fills /ai-test, which invokes the
+existing on-device model adapter when sent; it does not send a ChatGPT
+app message or execute a shell command.
+
+A normal message is routed to Odin's selected device AI provider and
+its existing local SQLite conversation. Failures are stored as bounded
+codes such as ai_disabled, credential_missing, model_missing,
+provider_timeout, and provider_unavailable; the iPhone shows a
+nonsecret explanation. Credentials remain on the device. The
+separate **Cloud AI** section still needs a server-side key and is
+not automatically enabled by Odin's device provider. This release
+does not configure API credentials or verify a live provider call.
