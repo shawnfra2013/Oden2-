@@ -156,3 +156,22 @@ Remaining limitations:
 
 - Add browser menu links to existing Odin sections and document the
   fast-forward update and browser verification steps.
+
+## 2026-11-19 — CI-gated updater and reliable device inbox
+
+- Added a private opt-in CI-gated updater within existing Git-sync, pinned to
+  the exact successful `main` workflow revision. Existing safe-pull checks
+  protect the checkout, preserved untracked files and secrets.
+- Changed Git-sync to avoid recurring false failures from harmless untracked
+  files when local main is already current.
+- Added exclusive relay polling, per-message failure isolation, bounded
+  multi-message processing and locally persisted operational status.
+- Added verified read-only `/status`, `/task git-status` and
+  `/task queue-status` responses, plus explicit unknown-task rejection.
+- Added iPhone task shortcuts and delayed-message status labels.
+- Added offline regression tests and a focused 10-upgrade checklist and
+  five-step follow-on roadmap in `docs/ODIN_SAFE_UPDATES_AND_ROADMAP.md`.
+- No automatic service restart, arbitrary shell, new daemon, boot persistence,
+  or ChatGPT thread integration was introduced.
+- The physical Odin will remain on its previous revision until a safe initial
+  fast-forward is performed and the updater is enabled on-device.
