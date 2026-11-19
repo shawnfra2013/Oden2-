@@ -247,3 +247,8 @@ than raw exception text. The phone displays an explanation without
 exposing private credentials or provider responses through GitHub.
 No key migration, new service or automatic service restart was added.
 See docs/ODIN_SAFE_UPDATES_AND_ROADMAP.md for acceptance steps.
+
+On an opted-in synchronized Termux checkout, Git sync installs the
+`odin-stage5` runit service if the service path and port 8765 are free.
+The local browser's **Check connection** control renews the session after
+a server restart. **New chat** starts another conversation in this tab.

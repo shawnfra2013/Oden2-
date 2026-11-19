@@ -251,3 +251,7 @@ Remaining limitations:
 
 - Odin health now reports worker heartbeat and private relay poll age,
   alongside pending and running task counts.
+
+- Stage 5 gains supervised loopback startup on opted-in synchronized Termux
+  installs, tab-scoped conversation continuity, and connection recovery.
+  The mobile status indicator accepts fresh aggregate health receipts.
