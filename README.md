@@ -190,3 +190,26 @@ Keep configuration, credentials, and runtime data on the device. Restart
 the Stage 5 server if it was already running, then open its localhost
 page and use the menu to reach AI Chat, Tasks, System, and Session.
 Verify that System reports backend readiness and Tasks shows queue counts.
+
+## 2026-11-19 — Safe autonomous source updates and device tasks
+
+The existing Odin Git-sync service can now **optionally** keep the local
+source checkout current with the latest CI-passing GitHub `main` revision.
+It requires explicit one-time activation in Termux; it never resets files,
+installs packages or restarts agents automatically. It keeps private data,
+existing conversations and the five untracked files intact. The exact
+reviewed CI SHA must match the fast-forward target. See
+[`docs/ODIN_SAFE_UPDATES_AND_ROADMAP.md`](docs/ODIN_SAFE_UPDATES_AND_ROADMAP.md)
+for activation, status, rollback boundaries and the next five priorities.
+
+The existing private iPhone relay now supports multiple independent messages,
+reports per-poll failures in a private status file, and accepts fixed read-only
+`/status`, `/task git-status`, and `/task queue-status` requests. These
+are bounded verifiable tasks, not arbitrary shell or unreviewed code execution.
+The mobile interface offers shortcuts that fill the composer; the user still
+presses Send. Cloud AI messages are separate from this ChatGPT conversation.
+
+**Verification distinction:** GitHub green CI and a Vercel READY deployment do
+not prove that Odin has installed/restarted the new revision or that a fresh
+private iPhone message received a live reply. Those are separate acceptance
+gates documented in the roadmap.
