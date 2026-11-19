@@ -89,13 +89,29 @@
         <h1>Talk to <span class="muted-title">Odin.</span></h1>
         <p class="intro">A place for the conversation relay—grounded in what the device has actually returned.</p>
         <div class="panel secure-connect">
-          <div class="secure-heading"><span class="lock-icon">⌁</span><div><strong>Private controls</strong><p>Your access token stays in this browser tab and is never stored in GitHub.</p></div></div>
+          <div class="secure-heading"><span class="lock-icon">⌁</span><div><strong>Private controls</strong><p>Connect once with your access token. Optionally save it encrypted on this device and unlock with your password next time.</p></div></div>
+          <form id="vaultUnlockForm" class="connect-row" hidden>
+            <input id="vaultUnlockPassword" type="password" autocomplete="current-password" spellcheck="false" placeholder="Your unlock password" aria-label="Unlock saved Odin access" required>
+            <button type="submit" id="vaultUnlockButton">Unlock</button>
+          </form>
           <form id="accessForm" class="connect-row">
-            <input id="accessToken" type="password" autocomplete="off" spellcheck="false" placeholder="Vercel access token" minlength="32" aria-label="Odin Control access token" required>
+            <input id="accessToken" type="password" autocomplete="off" spellcheck="false" placeholder="Existing long access token" minlength="32" aria-label="Odin Control access token" required>
             <button type="submit" id="accessButton">Connect</button>
           </form>
-          <div class="connect-state" id="accessState">Not connected. Set up the server secrets first.</div>
-          <button class="text-link" id="disconnectButton" type="button" disabled>Disconnect private session</button>
+          <form id="vaultSaveForm" class="vault-save-form" hidden>
+            <label for="vaultSavePassword">Save encrypted access with a new unlock password (12+ characters)</label>
+            <div class="connect-row">
+              <input id="vaultSavePassword" type="password" autocomplete="new-password" minlength="12" maxlength="256" spellcheck="false" placeholder="Choose a strong password" required>
+              <button type="submit" id="vaultSaveButton">Save</button>
+            </div>
+            <p class="vault-info">Your password never leaves this device. The saved token is encrypted locally; clearing browser data removes it. A password does not replace your server token.</p>
+          </form>
+          <div class="vault-actions" id="vaultManagement" hidden>
+            <button class="text-link" type="button" id="vaultUseToken">Use access token instead</button>
+            <button class="text-link" type="button" id="vaultForget">Forget saved access on this device</button>
+          </div>
+          <div class="connect-state" id="accessState" role="status">Not connected. Set up the server secrets first.</div>
+          <button class="text-link" id="disconnectButton" type="button" disabled>Lock private session</button>
         </div>
         <div class="panel relay-panel">
           <div class="relay-header">
@@ -178,6 +194,7 @@
     </nav>
   </div>
 
+  <script src="/vault.js" defer></script>
   <script src="/app.js" defer></script>
 </body>
 </html>
