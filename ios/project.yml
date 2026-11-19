@@ -1,0 +1,40 @@
+name: OdinControl
+options:
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+targets:
+  OdinControl:
+    type: application
+    platform: iOS
+    sources: [OdinControl]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.odincontrol.ios
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Odin Control
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+  OdinControlUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [OdinControlUITests]
+    dependencies:
+      - target: OdinControl
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.odincontrol.ios.uitests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  OdinControl:
+    build:
+      targets:
+        OdinControl: all
+    test:
+      config: Debug
+      targets:
+        - OdinControlUITests
