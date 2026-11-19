@@ -16,7 +16,7 @@ test("chat and System share the same authenticated private relay",()=>{
   assert.match(html,/data-relay-quick="\/restart-services"/);
   assert.match(app,/queuePrivateRelayMessage\("\/restart-services"\)/);
   assert.match(app,/queuePrivateRelayMessage\(text\)/);
-  assert.match(app,/authenticatedPost\("\/api\/relay",\{type:"message",text\}/);
+  assert.match(app,/authenticatedPost\("\/api\/relay",\{type:"message",text,id\}/);
   assert.match(app,/if\(isRestartCommand\(text\)&&!confirmRestart\(restartTarget\(text\)\)\)return/);
   assert.match(app,/if\(!confirmRestart\(\)\)return/);
   assert.match(app,/privateState\.paired/);
