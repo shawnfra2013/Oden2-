@@ -60,3 +60,6 @@ venv/
 
 audits/*
 !audits/.gitkeep
+
+# Runtime supervision state written by runit beside service run scripts.
+services/*/supervise/
