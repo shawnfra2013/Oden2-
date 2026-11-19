@@ -1,0 +1,7 @@
+{
+  "event": "task-progress",
+  "timestamp": "2026-11-19T05:18:56.369911+00:00",
+  "source": "odin-agent",
+  "git_status_exit": 0,
+  "git_status": "?? ):\n?? e\n?? main\n?? services/odin-github-bridge/supervise/\n?? \"tatus --shortq\"\n?? ubprocess\n"
+}
