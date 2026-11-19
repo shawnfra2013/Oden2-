@@ -5,6 +5,14 @@ ROOT="${HOME}/odin-workspace"
 SYNC="${ROOT}/scripts/git-sync.sh"
 
 while true; do
-    "$SYNC" || true
+    if "$SYNC"; then
+        :
+    else
+        result=$?
+        # git-sync.sh writes the precise reason to logs/git-sync.log.
+        # Also emit a concise supervised-process signal rather than hiding it.
+        printf '%s git-sync check exit=%s; inspect %s/logs/git-sync.log\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$result" "$ROOT" >&2
+    fi
     sleep 300
 done
