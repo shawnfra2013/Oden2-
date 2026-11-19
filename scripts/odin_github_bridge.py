@@ -13,8 +13,9 @@ import subprocess
 import sys
 import time
 from datetime import UTC, datetime, timedelta
+from errno import ECONNREFUSED
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -188,11 +189,13 @@ def health_summary():
     except (OSError, ValueError):
         result = {}
     reason = result.get("reason") if isinstance(result, dict) else None
+    stage5 = status_action("stage5_health")
     return {
         **status_action("repo_status"),
         "services": services,
         "sync_reason": reason if isinstance(reason, str) and reason in SYNC_REASONS else "unknown",
-        "stage5_reachable": status_action("stage5_health")["reachable"],
+        "stage5_reachable": stage5["reachable"],
+        "stage5_health": stage5,
     }
 
 
@@ -227,13 +230,26 @@ def status_action(action, request=None):
         try:
             with urlopen("http://127.0.0.1:8765/api/health", timeout=4) as response:
                 data = json.loads(response.read(4096))
+            if not isinstance(data, dict) or not isinstance(data.get("status"), str):
+                return {"reachable": False, "reason": "invalid_response"}
             return {
                 "reachable": True,
                 "ready": data.get("status") == "ready",
                 "ai_enabled": data.get("ai_enabled") is True,
             }
-        except (OSError, ValueError, URLError):
-            return {"reachable": False}
+        except HTTPError as exc:
+            return {"reachable": False, "reason": "http_error", "http_status": exc.code}
+        except ValueError:
+            return {"reachable": False, "reason": "invalid_response"}
+        except OSError as exc:
+            cause = exc.reason if isinstance(exc, URLError) else exc
+            if isinstance(cause, TimeoutError):
+                reason = "timeout"
+            elif isinstance(cause, OSError) and cause.errno == ECONNREFUSED:
+                reason = "connection_refused"
+            else:
+                reason = "connection_error"
+            return {"reachable": False, "reason": reason}
 
     if action == "preflight_release":
         if request is None:
