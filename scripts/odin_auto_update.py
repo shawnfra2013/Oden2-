@@ -1,7 +1,7 @@
 """Opt-in, CI-gated, fast-forward-only Odin source updater.
 
 Runs within the existing Git sync loop. Does not delete private state,
-reset branches, force-push, or restart live agent processes.
+reset branches, or force-push. A verified pull reloads active Odin services.
 """
 import argparse
 import json
@@ -27,7 +27,7 @@ SHA = re.compile(r"[0-9a-f]{40}\Z")
 WORKFLOWS_URL = (
     "https://api.github.com/repos/" + REPO
     + "/actions/workflows/odin-checks.yml/runs?"
-    "branch=main&event=push&per_page=25"
+    "branch=main&event=push&per_page=3"
 )
 
 
@@ -114,8 +114,10 @@ def ci_has_passed(target, payload):
     )
 
 
-def read_ci_payload():
-    request = Request(WORKFLOWS_URL, headers={
+def read_ci_payload(target):
+    if not SHA.fullmatch(target):
+        raise ValueError("Invalid CI target revision")
+    request = Request(WORKFLOWS_URL + "&head_sha=" + target, headers={
         "Accept": "application/vnd.github+json",
         "User-Agent": "Odin-Safe-Auto-Update",
         "X-GitHub-Api-Version": "2022-11-28",
@@ -151,7 +153,7 @@ def update_once(root=ROOT, fetch_ci=None, git_cmd=None, run_cmd=None):
             return result_record("current", "already_up_to_date", old, target, old)
         if git_cmd("merge-base", old, target) != old:
             return result_record("blocked", "diverged", old, target)
-        payload = fetch_ci() if fetch_ci else read_ci_payload()
+        payload = fetch_ci(target) if fetch_ci else read_ci_payload(target)
         if not ci_has_passed(target, payload):
             return result_record("waiting", "ci_not_passed", old, target)
         completed = run_cmd(
