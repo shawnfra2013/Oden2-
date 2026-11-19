@@ -38,6 +38,16 @@ if [[ "$BRANCH" != "main" ]]; then
     exit 1
 fi
 
+# Reuse the existing five-minute supervisor. Updates are disabled unless the
+# owner deliberately enables the 0600 state/auto-update.enabled flag.
+# Any failed gated update stays visible in logs and status JSON.
+if [[ -f "${ROOT}/state/auto-update.enabled" ]]; then
+    if ! python -B "${ROOT}/scripts/odin_auto_update.py" --once >>"$LOG" 2>&1; then
+        log "ALERT: CI-gated auto-update failed; refusing further sync"
+        exit 1
+    fi
+fi
+
 git fetch origin main >>"$LOG" 2>&1
 
 read -r BEHIND AHEAD < <(
@@ -57,14 +67,21 @@ then
     exit 1
 fi
 
-if ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
-    log "INFO: repository contains local changes; automatic commits are intentionally disabled"
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    log "REFUSED: tracked changes exist; automatic commits disabled"
     exit 2
 fi
 
 if (( AHEAD == 0 )); then
-    log "OK: already synchronized"
+    # Preserve harmless user-owned untracked files without producing
+    # a false sync failure every five minutes.
+    log "OK: already synchronized (untracked files preserved)"
     exit 0
+fi
+
+if [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
+    log "REFUSED: local untracked files present before push; no automatic commits"
+    exit 2
 fi
 
 git push origin main >>"$LOG" 2>&1
