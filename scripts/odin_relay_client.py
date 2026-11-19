@@ -123,8 +123,14 @@ def handle_message(token, msg, seen, answer_fn):
 def respond_with_odin(text):
     # The existing local CLI reuses the existing bounded model and SQLite
     # history. No model output is executed as a command.
-    from odin_chat import SESSION_FILE, ConversationStore, DB_FILE
-    from odin_chat import load_session, reply, save_session
+    from odin_chat import (
+        DB_FILE,
+        SESSION_FILE,
+        ConversationStore,
+        load_session,
+        reply,
+        save_session,
+    )
 
     store = ConversationStore(DB_FILE)
     previous = load_session(store, SESSION_FILE)
