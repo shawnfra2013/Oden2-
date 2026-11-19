@@ -19,11 +19,13 @@
 <main>
 <section class="card" id="system">
 <h2>System</h2><p id="health">Checking backend...</p>
+<button id="reconnect">Check connection</button>
 </section>
 <section class="card" id="chat">
 <h2>AI Chat</h2>
 <textarea id="message" maxlength="4000" placeholder="Ask Odin..."></textarea>
 <button id="send" disabled>Send</button>
+<button id="newChat">New chat</button>
 <p id="chatStatus" class="muted">Checking AI availability...</p>
 <pre id="answer"></pre>
 </section>
@@ -34,8 +36,7 @@
 </section>
 <section class="card" id="session">
 <h2>Session Status</h2>
-<p class="muted">Conversation persistence is not enabled yet.
-Do not use this prototype for important information.</p>
+<p class="muted">Completed turns are saved on Odin. Refresh this tab to continue the same conversation. Choose New chat to start another.</p>
 </section>
 </main>
 <script src="/app.js" defer></script>

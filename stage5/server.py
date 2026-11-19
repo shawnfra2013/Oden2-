@@ -62,7 +62,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", kind)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
-        if kind.startswith("text/html"):
+        if kind.startswith("text/html") or (status == 200 and self.path == "/api/health"):
             token = getattr(self.server, "session_token", None)
             if token:
                 self.send_header(

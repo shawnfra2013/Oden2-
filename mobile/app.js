@@ -127,10 +127,13 @@ function renderMetrics() {
   $("workerState").textContent =
     services["odin-task-worker"] === true ? "Running" :
     services["odin-task-worker"] === false ? "Stopped" : "Unknown";
-  const health = latest("stage5_health")?.result || {};
+  const probe = state.data?.receipts?.find(item => item.status === "complete" &&
+    ((item.action === "stage5_health" && typeof item.result?.reachable === "boolean") ||
+     (item.action === "odin_health" && typeof item.result?.stage5_reachable === "boolean")));
+  const reachable = probe?.result?.reachable ?? probe?.result?.stage5_reachable;
   $("stage5State").textContent =
-    health.reachable === true ? "Reachable" :
-    health.reachable === false ? "Unreachable" : "Unknown";
+    reachable === true ? "Reachable" :
+    reachable === false ? "Unreachable" : "Unknown";
   $("snapshotTime").textContent = state.data
     ? "Updated " + time(state.data.server_time) : "Waiting for update";
 }

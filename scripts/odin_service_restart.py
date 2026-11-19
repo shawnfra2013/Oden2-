@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUEST_DIR = ROOT / "state" / "odin-relay" / "restarts"
 ID_RE = re.compile(r"[0-9a-f]{32}\Z")
 SERVICES = ("odin-git-sync", "odin-task-worker", "odin-github-bridge",
-            "odin-private-relay")
+            "odin-stage5", "odin-private-relay")
 MANDATORY = frozenset({"odin-git-sync", "odin-task-worker",
                        "odin-private-relay"})
 COOLDOWN_SECONDS = 600

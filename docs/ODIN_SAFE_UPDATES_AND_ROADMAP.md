@@ -283,3 +283,28 @@ After the heartbeat release, request Odin health with the worker and private
 relay active. Confirm both ages and both queue counts. The worker records
 its heartbeat before starting a queue cycle, so age can increase while a
 task runs. Use service state and running count alongside heartbeat age.
+
+### November 19 connection and acceptance audit
+
+The managed task worker already executes local queue items. Stage 5 has
+its own loopback-only runit service so a browser-server failure can be
+recovered independently. On an opted-in Termux checkout, an idle,
+synchronized git-sync cycle installs the new service only when the
+service path and local port are both free. A separate existing listener
+is preserved. Verify both service status and HTTP reachability in a
+fresh device health receipt. Boot automation and launcher changes remain
+deferred.
+
+The Stage 5 tab retains the selected SQLite conversation ID across
+refresh and offers New chat. It checks health on returning to a tab
+or coming online, and retries a failed health check without resending
+a chat message. The hosted dashboard uses the newest applicable health
+receipt for the Stage 5 indicator.
+
+Before hardening, collect evidence for the signed production wake path
+(including wake versus timer provenance and a reconnect), iPhone private
+model reply, both bulk restart entry points and a single-service restart,
+and a proposal created and tested on Odin. Record rollout evidence after
+a later idle sync. The historical 5.6/5.7 lab command transcript remains
+incomplete. Private SSH and the operator-deferred boot flow are separate
+milestones. The Friday read-only report is already scheduled.

@@ -150,7 +150,7 @@ def fetch_inbox():
         timeout=90)
 
 
-HEALTH_SERVICES = ("odin-git-sync", "odin-task-worker", "odin-github-bridge", "odin-private-relay")
+HEALTH_SERVICES = ("odin-git-sync", "odin-task-worker", "odin-github-bridge", "odin-stage5", "odin-private-relay")
 RUN_STATUS = re.compile(r"^run: .*: \(pid ([0-9]{1,9})\) ([0-9]{1,9})s(?:,|$)")
 SYNC_REASONS = frozenset({
     "already_up_to_date", "source_updated", "source_updated_restart_not_automatic",

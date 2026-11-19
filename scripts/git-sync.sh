@@ -70,6 +70,16 @@ fi
 if (( AHEAD == 0 )); then
     # Preserve harmless user-owned untracked files without producing
     # a false sync failure every five minutes.
+    # Install the local HTTP service once on opted-in Termux installations.
+    # Existing services and independently running listeners retain ownership.
+    service_root="${PREFIX:-/data/data/com.termux/files/usr}/var/service"
+    stage_service="$service_root/odin-stage5"
+    if [[ -f "$ROOT/state/auto-update.enabled" && -d "$service_root/odin-git-sync" &&
+          ! -e "$stage_service" && ! -L "$stage_service" ]] &&
+       ! (exec 3<>/dev/tcp/127.0.0.1/8765) 2>/dev/null; then
+        ln -sT "$ROOT/services/stage5" "$stage_service"
+        log "Installed supervised Stage 5 loopback listener"
+    fi
     log "OK: already synchronized (untracked files preserved)"
     exit 0
 fi

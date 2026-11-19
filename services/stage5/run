@@ -1,0 +1,5 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -eu
+umask 077
+cd "$HOME/odin-workspace"
+exec python -u -B stage5/server.py
