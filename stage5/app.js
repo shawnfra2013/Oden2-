@@ -6,7 +6,7 @@ async function getJSON(path){
  if(!response.ok)throw Error("HTTP "+response.status);
  return response.json();
 }
-async function refresh(){
+async function refreshHealth(){
  try{
   const health=await getJSON("/api/health");
   el("health").textContent="Backend: "+health.status+
@@ -15,11 +15,10 @@ async function refresh(){
   el("chatStatus").textContent=health.ai_enabled?
     "AI available. Responses are not independently verified.":
     "AI disabled during isolated testing.";
-  const tasks=await getJSON("/api/tasks");
-  el("tasks").textContent=JSON.stringify(tasks.counts,null,2);
  }catch(e){
   el("health").textContent="Backend unavailable: "+e.message;
   el("send").disabled=true;
+  el("chatStatus").textContent="AI availability could not be checked.";
  }
 }
 el("send").addEventListener("click",async()=>{
@@ -51,4 +50,13 @@ el("send").addEventListener("click",async()=>{
   el("send").disabled=false;
  }
 });
-refresh();
+async function refreshTasks(){
+ try{
+  const tasks=await getJSON("/api/tasks");
+  el("tasks").textContent=JSON.stringify(tasks.counts,null,2);
+ }catch(e){
+  el("tasks").textContent="Task counts unavailable: "+e.message;
+ }
+}
+refreshHealth();
+refreshTasks();
