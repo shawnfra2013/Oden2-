@@ -60,6 +60,25 @@ class OdinServiceRestartTests(unittest.TestCase):
             self.assertEqual(restart.run_restarts(
                 self.MID, state_dir=state_dir, prefix=prefix, call=fake_call), 2)
 
+    def test_only_requested_service_is_restarted(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            state = root / "state"
+            service = "odin-private-relay"
+            for name in restart.SERVICES:
+                path = root / "var" / "service" / name
+                path.mkdir(parents=True)
+                (path / "run").touch()
+            self.assertTrue(restart.reserve_restart(self.MID, state_dir=state, service=service))
+            with self.assertRaises(ValueError):
+                restart.reserve_restart("ef" * 16, state_dir=state, service="sshd")
+            def call(action, path):
+                self.assertEqual(path.name, service)
+                return SimpleNamespace(returncode=0, stdout="run: ok")
+            self.assertEqual(restart.run_restarts(self.MID, state_dir=state, prefix=root, call=call), 0)
+            self.assertEqual(relay.restart_target("/restart-service odin-private-relay"), service)
+            self.assertIsNone(relay.restart_target("/restart-service sshd"))
+
     def test_runit_symlink_service_entry_is_supported(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

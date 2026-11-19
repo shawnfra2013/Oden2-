@@ -61,8 +61,10 @@ def save_record(path, record):
             os.unlink(name)
 
 
-def reserve_restart(message_id, *, state_dir=REQUEST_DIR, clock=now):
+def reserve_restart(message_id, *, state_dir=REQUEST_DIR, clock=now, service=None):
     """Create an idempotent durable intent. Return False for rate-limited."""
+    if service is not None and service not in SERVICES:
+        raise ValueError("Invalid restart service")
     path = state_dir / (message_id + ".json")
     if not ID_RE.fullmatch(message_id):
         raise ValueError("Invalid private restart request ID")
@@ -87,7 +89,7 @@ def reserve_restart(message_id, *, state_dir=REQUEST_DIR, clock=now):
         claim = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         with os.fdopen(claim, "w", encoding="utf-8") as file:
             json.dump({"id": message_id, "phase": "queued",
-                       "created_at": instant}, file)
+                       "created_at": instant, "service": service}, file)
             file.flush()
             os.fsync(file.fileno())
         return True
@@ -95,9 +97,9 @@ def reserve_restart(message_id, *, state_dir=REQUEST_DIR, clock=now):
         os.close(fd)
 
 
-def start_restart(message_id):
+def start_restart(message_id, *, service=None):
     """Schedule in a detached process; no token or secret in argv."""
-    if not reserve_restart(message_id):
+    if not reserve_restart(message_id, service=service):
         return False
     try:
         subprocess.Popen(
@@ -125,7 +127,10 @@ def svc_call(cmd, path, *, timeout=25):
 
 
 def restart_configured(*, state_dir=REQUEST_DIR, prefix=None, call=svc_call,
-                       after_update=False):
+                       after_update=False, service=None):
+    if service is not None and (service not in SERVICES or after_update):
+        raise ValueError("Invalid restart service")
+    targets = SERVICES if service is None else (service,)
     state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     fd = os.open(state_dir / "execution.lock",
                  os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
@@ -134,14 +139,14 @@ def restart_configured(*, state_dir=REQUEST_DIR, prefix=None, call=svc_call,
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return "ODIN_SERVICES_RESTART_RESULT verified=false reason=restart_in_progress", False
-        return restart_under_lock(prefix, call, after_update)
+        return restart_under_lock(prefix, call, after_update, targets)
 
 
-def restart_under_lock(prefix, call, after_update):
+def restart_under_lock(prefix, call, after_update, targets):
     base = Path(prefix or os.environ.get(
         "PREFIX", "/data/data/com.termux/files/usr")) / "var" / "service"
     outcome = {}
-    for name in SERVICES:
+    for name in targets:
         if after_update and name == "odin-git-sync":
             outcome[name] = "next_sync_cycle"
             continue
@@ -149,7 +154,7 @@ def restart_under_lock(prefix, call, after_update):
         # Runit service entries may legitimately be symlinks to their
         # source definitions; the service name itself remains allowlisted.
         if not service.is_dir() or not (service / "run").is_file():
-            outcome[name] = "missing" if name in MANDATORY else "not_configured"
+            outcome[name] = "missing" if name in MANDATORY or len(targets) == 1 else "not_configured"
             continue
         try:
             if after_update:
@@ -179,10 +184,10 @@ def restart_under_lock(prefix, call, after_update):
     healthy = all(outcome[name] == "running" for name in configured)
     status = "true" if healthy else "false"
     # Fixed allowlist and bounded status strings, no diagnostics or secrets.
-    summary = ",".join(name + ":" + outcome[name] for name in SERVICES)
+    summary = ",".join(name + ":" + outcome[name] for name in targets)
     reply = ("ODIN_SERVICES_RESTART_RESULT verified=" + status
              + " managed=" + str(len(configured))
-             + " running=" + str(sum(outcome[n] == "running" for n in SERVICES))
+             + " running=" + str(sum(outcome[n] == "running" for n in targets))
              + " services=" + summary)
     return reply, healthy
 
@@ -197,7 +202,7 @@ def run_restarts(message_id, *, root=ROOT, state_dir=REQUEST_DIR,
     data["phase"] = "running"
     save_record(path, data)
     data["reply"], healthy = restart_configured(
-        state_dir=state_dir, prefix=prefix, call=call)
+        state_dir=state_dir, prefix=prefix, call=call, service=data.get("service"))
     data["phase"] = "finished"
     data["completed_at"] = now()
     save_record(path, data)

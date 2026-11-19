@@ -680,8 +680,14 @@ const RESTART_COMMANDS=new Set([
   "/restart-services", "/restart-all-services", "restart all services",
   "restart odin services", "restart odin"
 ]);
+function restartTarget(text){
+  const command=text.trim().toLowerCase().replace(/\s+/g," ");
+  if(RESTART_COMMANDS.has(command))return "all managed Odin services";
+  const match=command.match(/^\/restart-service (odin-(?:git-sync|task-worker|github-bridge|private-relay))$/);
+  return match ? match[1] : null;
+}
 function isRestartCommand(text){
-  return RESTART_COMMANDS.has(text.trim().toLowerCase().replace(/\s+/g," "));
+  return restartTarget(text)!==null;
 }
 const RELAY_FAILURE_LABELS=Object.freeze({
   ai_disabled:"AI is disabled on Odin; enable the local provider",
@@ -823,15 +829,15 @@ async function queuePrivateRelayMessage(text){
     renderRelay();
   }
 }
-function confirmRestart(){
-  return window.confirm("Restart all managed Odin services now? "+
+function confirmRestart(target="all managed Odin services"){
+  return window.confirm("Restart "+target+" now? "+
     "This may interrupt active work and temporarily disconnect messages. "+
     "Odin will report service health after reconnecting.");
 }
 $("relaySendForm").addEventListener("submit",async event=>{
   event.preventDefault();
   const text=$("relayMessage").value.trim();
-  if(isRestartCommand(text)&&!confirmRestart())return;
+  if(isRestartCommand(text)&&!confirmRestart(restartTarget(text)))return;
   await queuePrivateRelayMessage(text);
 });
 $("restartAllButton").addEventListener("click",async()=>{
