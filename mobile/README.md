@@ -23,9 +23,28 @@ Environment Variables for Production, then redeploy:
 
 The server never ships the OpenAI API key or GitHub token to the browser.
 The app access token is entered in the **Chat** tab (Private controls).
-It is held only in this open browser tab's JavaScript memory. Closing or
-reloading the tab requires entering it again. Never share it in GitHub,
-screenshots, or AI conversation messages.
+By default, the token is held only in the open tab's JavaScript memory.
+On this device, the owner can explicitly opt in to **Save encrypted access**:
+choose a new local unlock password of at least 12 characters. The browser
+encrypts the existing bearer token with Web Crypto PBKDF2-SHA-256 (310,000
+iterations) and AES-256-GCM, using a random salt and nonce per save. Only the
+encrypted vault is saved to this browser's local storage. The unlock password
+is never saved, logged, or sent to Vercel; after unlock the original token
+still authenticates the HTTPS API. The server credentials and Odin pairing
+are not changed.
+
+The next time the app opens **in the same browser/storage context**, enter
+the shorter password instead of copying the long token. "Use access token
+instead" remains available if the browser loses the saved vault. "Forget
+saved access" removes the encrypted local copy. "Lock private session" clears
+the in-memory token but leaves the optional encrypted copy for future
+unlocks. Safari and an iPhone Home Screen web app may use different storage;
+a different device or cleared website data requires the original token.
+
+Choose a strong, unique multi-word password: a short PIN is not supported.
+Encryption helps protect a saved token at rest but does not make an
+untrusted or compromised browser safe. Never share the token or unlock
+password in GitHub, screenshots, or AI messages.
 
 Cloud AI chat uses OpenAI's HTTPS Responses API with `store: false`
 and a bounded per-tab history. It is a **separate API conversation**:
@@ -54,9 +73,11 @@ Do not send conversations through the public GitHub inbox. See
   bearer token, stored in sensitive server-side environment variables.
 - No credentials are hardcoded, exposed through `/api/capabilities`,
   included in GitHub, or returned in browser responses.
-- The UI does not persist the access token in localStorage, cookies or
-  GitHub branches. Changing environment variables requires a deployment
-  for running instances to use new values.
+- By default the browser stores no token. The optional password vault
+  stores **encrypted ciphertext only** under a namespaced localStorage key;
+  no plaintext token, unlock password, or session cookie is stored. GitHub
+  never receives any credential. Changing the server token invalidates an
+  old saved vault until reconnected with the new token and re-saved.
 - This small personal gateway uses one shared secret, **not multi-user
   sign-in**. Rate limiting, revocation, per-device session identities,
   encrypted private relay, and audit logs will be necessary before

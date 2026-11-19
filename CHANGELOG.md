@@ -175,3 +175,18 @@ Remaining limitations:
   or ChatGPT thread integration was introduced.
 - The physical Odin will remain on its previous revision until a safe initial
   fast-forward is performed and the updater is enabled on-device.
+
+## 2026-11-19 — Optional password unlock for Odin Control
+
+- Added an owner-controlled local encrypted vault for the existing iPhone
+  access token. New unlock password is used locally; the server still
+  authenticates the original bearer token.
+- Password is not sent to the server, stored in the app, or committed to
+  GitHub. Token is encrypted with PBKDF2/AES-GCM before opting into
+  browser storage. Existing no-save login remains available.
+- Added unlock, forget saved access, and lock session UI. It protects
+  against accidental exposure of plaintext saved credentials, but not
+  against malicious code running in the browser.
+- Added offline encryption, password rejection, tamper and browser-wiring
+  tests. Does not change the physical Odin's device token, background
+  services, or AI-provider configuration.

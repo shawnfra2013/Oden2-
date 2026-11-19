@@ -61,3 +61,14 @@ main{padding:14px 0 128px}.page{display:none;animation:appear .22s ease}.page.ac
 .relay-shortcuts{display:flex;gap:8px;overflow-x:auto;padding:0 16px 12px}
 .relay-shortcuts button{flex:none;border:1px solid rgba(167,155,232,.2);background:rgba(110,96,176,.10);border-radius:20px;padding:9px 12px;font-size:10px;font-weight:700;color:#cbc2f4}
 .relay-shortcuts button:focus-visible{outline:2px solid #baadfb;outline-offset:2px}
+
+
+/* Optional encrypted local access; never unhide password fields via layout CSS. */
+#accessForm[hidden],#vaultUnlockForm[hidden],#vaultSaveForm[hidden],
+#vaultManagement[hidden],#vaultUseToken[hidden]{display:none!important}
+.vault-save-form{margin:12px 0 8px}
+.vault-save-form label{display:block;color:#cbd2e8;font-size:11px;font-weight:700;margin:0 0 8px}
+.vault-save-form .connect-row{margin:0}
+.vault-info{font-size:10px;line-height:1.55;color:#9aa6bd;margin:9px 0 0}
+.vault-actions{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 12px}
+.vault-actions button{text-align:left}
