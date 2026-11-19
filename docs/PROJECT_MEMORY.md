@@ -250,3 +250,46 @@ Remaining limitations:
   still missing. Before publishing the functionality, review those
   boundaries and verify persistence, bounded history, and per-conversation
   isolation against the exact GitHub revision being reviewed.
+
+## Hosted iPhone relay stabilization — 2026-11-19 (latest checkpoint)
+
+- Repository: `shawnfra2013/Oden2-`. Relay repair PR #13 merged to
+  `main` as `1e8f73f10958cc66159861c05a9d9e4ee80ce77b`.
+- GitHub Actions PR validation `44478622727` passed, including Python,
+  Stage 5, Node module syntax and authenticated relay handler tests.
+- Vercel existing project: `odin-control`, domain
+  `https://odin-control.vercel.app/`. Production deploy
+  `dpl_Ana2JCHZFYEimuv2ztbQ9u2wgjtS` reported READY.
+  Verified public `/`, `/api/capabilities`, and `/api/status` returned
+  HTTP 200. Unauthenticated `/api/relay` returned HTTP 403 as expected.
+  A **new authenticated end-to-end phone ↔ Odin `/ping` round-trip remains
+  unverified**; never substitute offline tests for that proof.
+- Root cause of observed private inbox failure: `mobile/api/relay.js`
+  called `validOrigin`, but `mobile/lib/access.js` did not export it.
+  Vercel runtime errors showed five `TypeError: validOrigin is not a
+  function` failures. Export fixed; CI now tests the full protected
+  handler and refusal paths. Sanitized storage failure stages added.
+- Existing production Vercel environment configuration checked:
+  `ODIN_CONTROL_ACCESS_TOKEN`, `ODIN_DEVICE_RELAY_TOKEN`,
+  `BLOB_READ_WRITE_TOKEN`, and `ODIN_OPENAI_MODEL` exist.
+  `OPENAI_API_KEY` and `ODIN_GITHUB_TOKEN` do not exist; therefore
+  hosted cloud AI chat and app-originated GitHub diagnostic writes remain
+  disabled. Do not publish any token values. Private Blob store connected.
+- Vercel project feature flags: no active flags and no Flags settings
+  configured; no new feature flag platform or monitoring service created.
+- User's last on-device Termux output showed `main` at `12e861d`,
+  `odin-private-relay` runit PID 4646 and successful zero-message
+  private poll at that time. This does **not** verify the later live
+  iPhone-to-Odin test or continued background uptime.
+- Device checkout had five preserved untracked files; no reset, deletion,
+  or forced update approved or performed.
+- Existing `odin-git-sync` fetches and conditionally pushes; it **does not**
+  automatically pull/restart latest code. Existing read-only log is
+  `logs/git-sync.log`; wrapper now emits nonzero exit status rather than
+  `|| true`. Safe reviewed manual update remains
+  `scripts/odin-safe-pull.sh`.
+- Odin-side source and any running Python service do not update solely
+  because GitHub `main` was merged. Autopull with CI gates and boot
+  persistence remain separate work, deferred to avoid unsafe hot updates.
+- Current architecture source-of-truth: `docs/architecture.md`;
+  private pairing and test instructions: `docs/ODIN_PRIVATE_RELAY.md`.
