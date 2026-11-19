@@ -14,8 +14,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "stage5"))
 
-from chat_provider import ask_model, provider_name  # noqa: E402
-from conversation_store import ConversationStore  # noqa: E402
+from chat_provider import ask_model, provider_name
+from conversation_store import ConversationStore
 
 STATE = ROOT / "state" / "odin-chat-cli"
 SESSION_FILE = STATE / "conversation_id"
