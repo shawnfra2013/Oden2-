@@ -51,8 +51,8 @@ def setup():
             pass
 
 
-def save(path, data):
-    pipeline.publish(ROOT, path.relative_to(ROOT).parts, pipeline.json_bytes(data))
+def save(path, data, *, replace=False):
+    pipeline.publish(ROOT, path.relative_to(ROOT).parts, pipeline.json_bytes(data), replace=replace)
 
 
 def submit(goal):
@@ -407,7 +407,15 @@ def main():
             print("Worker already running")
             return
         recover()
+        next_heartbeat = 0
         while True:
+            if time.monotonic() >= next_heartbeat:
+                try:
+                    save(BASE / "worker-status.json", {"checked_at": datetime.now(UTC).isoformat()},
+                         replace=True)
+                except (OSError, RuntimeError, ValueError):
+                    print("Worker heartbeat write failed", file=sys.stderr, flush=True)
+                next_heartbeat = time.monotonic() + 30
             cycle()
             if "--once" in sys.argv:
                 break

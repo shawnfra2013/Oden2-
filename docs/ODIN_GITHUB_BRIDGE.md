@@ -199,3 +199,8 @@ HTTP probe and does not depend on the worker process state.
 The health receipt can include the last recorded automatic rollout's exact
 revision, timestamp, and reload status. The checkout revision still reports
 the current checkout. Older installations may have no saved rollout.
+
+Odin health also reports worker heartbeat age, the age of the last completed
+private relay poll, and queue counts for pending and running tasks. Missing
+data stays unknown. Long tasks can delay worker heartbeats. Queue counts
+reflect a moment in time and contain no task names or contents.
