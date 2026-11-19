@@ -61,7 +61,7 @@ def validate_request(raw, expected_id, now=None):
         raise ValueError("Invalid ID")
     payload = json.loads(raw)
     if not isinstance(payload, dict):
-        raise ValueError("Invalid request object")
+        raise TypeError("Invalid request object")
     required = REQUEST_KEYS | ({"expected_sha"} if payload.get("action") == "verify_release" else set())
     if set(payload) != required:
         raise ValueError("Invalid request fields")
