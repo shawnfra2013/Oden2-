@@ -41,10 +41,12 @@ results to `odin-bridge-outbox`. Read receipts remain visible in the
 Activity tab. **No user-supplied arbitrary commands, remote shell,
 service restarts, dependency installs, or deployments** are supported.
 
-This is **not a secure end-to-end private conversation relay to Odin**.
-The public GitHub inbox must never transport private messages. Natural
-language conversations with Odin's local agent will need a separate
-private, authenticated, consented pairing channel.
+The **separate authenticated private relay** at `/api/relay` carries iPhone ↔
+Odin messages in the project's private Blob store. It requires the distinct
+`ODIN_DEVICE_RELAY_TOKEN` on the device. This is a basic shared-secret personal
+relay, **not** end-to-end encryption or a connection to this ChatGPT thread.
+Do not send conversations through the public GitHub inbox. See
+[`docs/ODIN_PRIVATE_RELAY.md`](../docs/ODIN_PRIVATE_RELAY.md).
 
 ## Security design
 
@@ -76,3 +78,13 @@ files from the canonical GitHub `main` commit and be verified separately.
 
 GitHub CI runs Node syntax and security tests plus the original Stage 4,
 Stage 5 and Ruff regression suites.
+
+## Stabilization and operational verification (2026-11-19)
+
+- The shared access module must export `validOrigin` used by `/api/relay`. A previous missing export caused 500 errors. The full authenticated iPhone → Odin → reply handler flow is now covered by regression tests.
+- `/api/relay` returns HTTP 503 and a nonsensitive failing stage if the private store fails. No messages or tokens appear in server logs. The browser keeps an error visible instead of overwriting it during render.
+- A successful `/api/session` means app access succeeded; it does **not** prove the device is online. A `queued` message is not considered delivered until an actual device receipt arrives.
+- `odin-git-sync` is already runit-supervised and logs to `logs/git-sync.log`. It fetches/pushes local commits under safety checks; **it is not an automatic pull/deploy service**. Use `scripts/odin-safe-pull.sh` for reviewed fast-forward-only updates; never silently force/reset an existing checkout.
+- `odin-private-relay` is a separate, existing device poller. Its runtime may be stopped by Android battery management or after reboot; a supervisor PID alone does not prove an end-to-end reply.
+- Public GitHub monitoring and private message delivery are different systems; an old public GitHub receipt must not be reported as live private relay health.
+- Vercel deployment is manual (source-file deployment). CI green is necessary but cannot prove a deployed function or Odin service is operating until a live route and `/ping` are checked.

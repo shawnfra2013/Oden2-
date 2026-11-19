@@ -43,4 +43,4 @@ function protect(req,res) {
   }
   return true;
 }
-module.exports={ORIGIN,configureResponse,authorized,validBody,protect};
+module.exports={ORIGIN,configureResponse,authorized,validOrigin,validBody,protect};

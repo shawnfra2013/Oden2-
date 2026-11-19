@@ -16,6 +16,8 @@ module.exports=async function handler(req,res){
   }
   if(req.method==="POST"&&!validBody(req,6000))
     return res.status(400).json({error:"Invalid message format"});
+  // Report the failing stage without logging message text or credentials.
+  let stage="load";
   try {
     if(req.method==="GET"){
       const all=await relay.loadEvents();
@@ -29,16 +31,19 @@ module.exports=async function handler(req,res){
     }
     const body=req.body;
     if(owner&&!device&&relay.validMessage(body)){
+      stage="queue";
       const entry=await relay.recordEvent({
         kind:"message",sender:"iphone",to:"odin",text:body.text.trim()
       });
       return res.status(202).json({id:entry.id,status:"queued",at:entry.at});
     }
     if(owner&&!device&&relay.validReceipt(body) &&
+
        ["delivered","read"].includes(body.state)){
       const all=await relay.loadEvents();
       if(!all.some(x=>x.kind==="message"&&x.id===body.for&&x.to==="iphone"))
         return res.status(404).json({error:"Original message unavailable"});
+      stage="iphone_read_receipt";
       const entry=await relay.recordEvent({
         kind:"receipt",sender:"iphone",for:body.for,state:body.state
       });
@@ -48,6 +53,7 @@ module.exports=async function handler(req,res){
       const all=await relay.loadEvents();
       if(!all.some(x=>x.kind==="message"&&x.id===body.for&&x.to==="odin"))
         return res.status(404).json({error:"Original message unavailable"});
+      stage="odin_receipt";
       const entry=await relay.recordEvent({
         kind:"receipt",sender:"odin",for:body.for,state:body.state
       });
@@ -59,6 +65,7 @@ module.exports=async function handler(req,res){
         return res.status(404).json({error:"Original message unavailable"});
       if(all.some(x=>x.kind==="message"&&x.reply_to===body.for&&x.sender==="odin"))
         return res.status(409).json({error:"Already replied"});
+      stage="odin_reply";
       const entry=await relay.recordEvent({
         kind:"message",sender:"odin",to:"iphone",reply_to:body.for,
         text:body.text.trim()
@@ -66,7 +73,14 @@ module.exports=async function handler(req,res){
       return res.status(201).json({id:entry.id,status:"replied",at:entry.at});
     }
     return res.status(400).json({error:"Message action not allowed"});
-  }catch{
-    return res.status(503).json({error:"Private relay storage temporarily unavailable"});
+  }catch(error){
+    // Structured operational signal, excluding sensitive request data.
+    console.error("ODIN_RELAY_FAILURE", JSON.stringify({
+      stage, type:typeof error?.name==="string" ? error.name.slice(0,60) : "Error"
+    }));
+    return res.status(503).json({
+      error:"Private relay unavailable at "+stage+". No response was confirmed.",
+      stage
+    });
   }
 };
