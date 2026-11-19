@@ -1,6 +1,5 @@
 """Wait for an authenticated work hint, preserving the normal reconciliation timer."""
 import json
-import sys
 import time
 from urllib.request import Request, urlopen
 
