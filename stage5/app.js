@@ -1,5 +1,6 @@
 "use strict";
 const el=id=>document.getElementById(id);
+let conversationId;
 async function getJSON(path){
  const response=await fetch(path,{cache:"no-store"});
  if(!response.ok)throw Error("HTTP "+response.status);
@@ -30,12 +31,20 @@ el("send").addEventListener("click",async()=>{
   const response=await fetch("/api/chat",{
    method:"POST",
    headers:{"Content-Type":"application/json","X-Odin-Request":"chat"},
-   body:JSON.stringify({message})
+   body:JSON.stringify({message,conversation_id:conversationId})
   });
   const result=await response.json();
-  if(!response.ok)throw Error(result.error||"Request failed");
+  if(!response.ok){
+   if(response.status===404&&conversationId){
+    conversationId=undefined;
+    throw Error("Conversation expired. Send again to start a new chat.");
+   }
+   throw Error(result.error||"Request failed");
+  }
+  conversationId=result.conversation_id;
   el("answer").textContent=result.answer;
-  el("chatStatus").textContent="Response received · Unverified · Not saved";
+  el("chatStatus").textContent="Response received · Unverified · "+
+   (result.persisted?"Saved":"Not saved");
  }catch(e){
   el("chatStatus").textContent=e.message;
  }finally{
