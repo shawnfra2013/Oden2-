@@ -353,3 +353,19 @@ cloud API/device sources.
 `docs/ODIN_SAFE_UPDATES_AND_ROADMAP.md`. Earlier checkpoints remain
 historical; the release above supersedes earlier source-head claims only
 for checks explicitly verified here.
+
+## Bridge expansion checkpoint — 2026-11-19
+
+The physical Odin was manually verified at
+`539ca3e7a791c5ff54106827f32b17432789c93d`. Termux preserved all five
+untracked files and confirmed all four runit services after a local restart.
+Odin subsequently returned an exact-revision receipt with Stage 4, Stage 5,
+and Ruff passing. The hosted dashboard displayed that receipt.
+
+The expanded bridge shipped in PRs #25 and #26. Main commit
+`206ccdd142ff6b177611a068cfd079dcb739d40f` passed GitHub Actions run
+`44544616441`. The combined diagnostics action reads the actual runit
+process state and updater result. The authenticated inbox can request a
+fixed named service restart, with the existing cooldown and durable result.
+A direct Codex-to-Termux SSH session has not been established. See the
+release roadmap for live acceptance and the next expansion.

@@ -233,3 +233,13 @@ Remaining limitations:
 - Existing keys, private messages, Git history, user files and
   CI-gated source update policy are preserved. A one-time relay
   reload is required for the initial version activation.
+
+## 2026-11-19 — Expanded device diagnostics
+
+- Added the combined read-only Odin health receipt and its iPhone dashboard
+  action. It distinguishes service supervision, updater state, and Stage 5
+  HTTP reachability.
+- Added private confirmation and result delivery for restarting a single
+  managed Odin service. Existing all-service commands remain available.
+- The updater's GitHub Actions query is pinned to the target SHA and bounded
+  to prevent a long workflow history from blocking a release pull.

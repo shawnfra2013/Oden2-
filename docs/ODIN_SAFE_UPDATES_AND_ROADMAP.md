@@ -247,3 +247,25 @@ The new updater uses that exact-HEAD record on its next cycle to perform
 the initial reload. For a manual pull, use
 `python -B scripts/odin_service_restart.py --local` in the Odin checkout.
 The local command and authenticated relay share a single execution lock.
+
+## Bridge expansion sequence
+
+1. **Close live acceptance.** After an unattended pull, record the
+   before/after revisions and reload result from the device. Request
+   `odin_health` and `verify_release` for the exact release. In the paired
+   app, test `/ai-status`, a real model reply, and one single-service restart
+   with its verified receipt. Stage 5 test success and a running Stage 5
+   HTTP listener are separate checks.
+2. **Preserve deployment evidence.** Persist the last successful update and
+   reload independently of the latest no-op sync. Expose the revision,
+   timestamp, reload outcome, and fixed reason codes in health receipts.
+   Show receipt age and the distinction between GitHub CI and device tests.
+3. **Diagnose common failures with structured actions.** Add worker and
+   relay heartbeat age, queue depth, and bounded failure categories. For
+   each action, verify permissions, retries, timeouts, and that credentials
+   and raw logs stay out of GitHub. Use private diagnostics for sensitive
+   detail.
+4. **Add private interactive access for deeper debugging.** Use a reachable
+   private network path and a revocable, dedicated Termux SSH identity.
+   Acceptance requires an authenticated read-only shell probe from the
+   intended session and confirmation that removing the key revokes access.
