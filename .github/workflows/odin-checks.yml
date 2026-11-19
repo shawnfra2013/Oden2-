@@ -51,6 +51,15 @@ jobs:
       - name: Stage 5 offline regression
         run: python -B -m unittest discover -s stage5 -p 'test_*.py' -v
 
+      - name: Verify Odin iPhone dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check mobile/app.js
+          node --check mobile/api/status.js
+          node --check mobile/tests/status.test.js
+          node --test mobile/tests/status.test.js
+
       - name: Lint Python
         run: ruff check .
 
