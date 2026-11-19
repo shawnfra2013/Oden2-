@@ -23,7 +23,7 @@ INBOX_BRANCH = "odin-bridge-inbox"
 OUTBOX_BRANCH = "odin-bridge-outbox"
 ACTIONS = frozenset({
     "ping", "repo_status", "services", "stage5_health",
-    "checks", "verify_release", "preflight_release", "odin_health",
+    "checks", "verify_release", "preflight_release", "odin_health", "worker_probe",
 })
 REVISION_ACTIONS = frozenset({"verify_release", "preflight_release"})
 ID_PATTERN = re.compile(r"[0-9a-f]{32}\Z")
@@ -244,6 +244,12 @@ def health_summary():
 
 
 def status_action(action, request=None):
+    if action == "worker_probe":
+        try:
+            from .odin_worker_probe import probe
+        except ImportError:
+            from odin_worker_probe import probe
+        return probe(ROOT, request["id"])
     if action == "odin_health":
         return health_summary()
     if action == "ping":
@@ -438,6 +444,8 @@ def process_locked():
             request = validate_request(raw, request_id)
             action = request["action"]
             details = status_action(action, request)
+            if action == "worker_probe" and details is None:
+                continue
             status = "complete"
         except ExpiredRequest:
             details, status = {}, "expired"
