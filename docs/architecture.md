@@ -16,7 +16,7 @@ completed a real messaging round-trip.
 | `scripts/odin_github_bridge.py` | Public **sanitized** diagnostic requests/receipts on dedicated GitHub inbox/outbox branches | Existing runit `odin-github-bridge` (when enabled) |
 | `scripts/odin_relay_client.py` | Private phone ↔ Odin message polling, local-model reply and acknowledgment | Existing `odin-private-relay` runit service (when enabled) |
 | `mobile/` | iPhone web UI, Vercel API routes, private authentication, status timeline | `index.html`, `app.js`, `api/`, `lib/` |
-| `mobile/lib/relay.js` | Bounded private message journal in Vercel Blob using optimistic concurrency | `mobile/api/relay.js` |
+| `mobile/lib/relay.js` | Bounded read view over immutable private Blob events, retaining legacy journal read-only | `mobile/api/relay.js` |
 | `scripts/git-sync.sh` | Existing supervised Git **fetch/push** loop with logs; does **not** automatically install GitHub changes | `services/git-sync/run` and device's `odin-git-sync` service |
 | `scripts/odin-safe-pull.sh` | Guarded, explicit fast-forward-only source update protecting tracked and untracked files | Run from Termux after review |
 | `.github/workflows/odin-checks.yml` | Python, shell, Node, secret-pattern and regression CI gates | GitHub Actions |

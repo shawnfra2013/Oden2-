@@ -111,11 +111,18 @@ from this ChatGPT app thread.
   returned HTTP 503; Vercel logs identified stage `odin_receipt`.
   This is a **server-side private journal write error**, not evidence
   that the physical Odin failed to poll.
-- Vercel Blob keeps the conversation in the existing private journal;
-  it must never overwrite a newer version or replace it with an empty
-  journal during recovery. Writes now require a confirmed ETag for an
-  existing journal, retry bounded optimistic-concurrency conflicts,
-  and return a sanitized storage failure category for diagnosis.
+- Vercel Blob kept the original private conversation in a mutable
+  `odin-relay/v1/private-messages.json` journal. Acknowledgment overwrites
+  continued to fail after authenticated reads succeeded. The repair
+  **preserves that entire original journal unchanged** and appends future
+  messages, receipts and replies as immutable private objects under
+  `odin-relay/v2/events/`. No automatic migration, deletion, or replacement
+  of existing conversations is performed. Reads merge legacy and new
+  events, with a bounded recent-message display and explicit failure
+  when the storage index cannot be read.
+- The existing personal relay requires only this module; no extra storage
+  service or new repository is added. Long-term high-volume retention and
+  search are not yet implemented.
 - The app's **Messages & responses** feed shows Odin device messages,
   iPhone messages, and cloud OpenAI API messages with source labels.
   Cloud API transcript additions are only kept in the current browser

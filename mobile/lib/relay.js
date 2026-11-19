@@ -1,7 +1,8 @@
 "use strict";
-const {put,get,head}=require("@vercel/blob");
+const {put,get,list}=require("@vercel/blob");
 const {randomBytes,timingSafeEqual,createHash}=require("node:crypto");
 const PATH="odin-relay/v1/private-messages.json";
+const EVENT_PREFIX="odin-relay/v2/events/";
 const ID=/^[0-9a-f]{32}$/;
 const MAX_EVENTS=120;
 function isText(value){return typeof value==="string" && value.trim().length>0 && value.length<=2000 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value);}
@@ -17,70 +18,94 @@ function deviceAuthorized(req) {
     && typeof auth==="string" && auth.startsWith("Bearer ")
     && safeCompare(auth.slice(7),token);
 }
-async function readState() {
+// Keep the original journal read-only so no preexisting queued messages
+// or private conversation history is discarded during the repair.
+async function readState(){
   const blob=await get(PATH,{access:"private",useCache:false});
-  if(!blob || blob.statusCode!==200)return {etag:null,events:[]};
+  if(!blob)return {events:[]};
+  if(blob.statusCode!==200)throw Error("Legacy private journal unreadable");
   const raw=await new Response(blob.stream).text();
-  if(raw.length>500000)throw Error("Relay state exceeds limit");
+  if(raw.length>500000)throw Error("Legacy journal exceeds read limit");
   const data=JSON.parse(raw);
-  if(!data || data.version!==1 || !Array.isArray(data.events))
-    throw Error("Invalid relay state");
-  // No mutation is attempted without an ETag for an existing journal.
-  // Private Blob reads bypass CDN cache so a previous write cannot be lost.
-  const etag=blob.blob?.etag || (await head(PATH))?.etag;
-  if(typeof etag!=="string" || !etag)
-    throw Object.assign(new Error("Missing journal ETag"),{code:"BLOB_ETAG_MISSING"});
-  return {etag,events:data.events.slice(-MAX_EVENTS)};
+  if(!data||data.version!==1||!Array.isArray(data.events))
+    throw Error("Invalid legacy journal format");
+  return {events:data.events};
 }
 function safeStorageCode(error){
-  const name=typeof error?.name==="string" ? error.name : "";
-  const message=typeof error?.message==="string" ? error.message : "";
-  const status=Number(error?.statusCode || error?.status || error?.response?.status);
-  if(error?.code==="BLOB_ETAG_MISSING")return "etag_missing";
-  if(name==="BlobPreconditionFailedError" || status===412 ||
+  const name=typeof error?.name==="string"?error.name:"";
+  const message=typeof error?.message==="string"?error.message:"";
+  const status=Number(error?.statusCode||error?.status||error?.response?.status);
+  if(name==="BlobPreconditionFailedError"||status===412||
       /precondition|etag|if.match/i.test(message))return "etag_conflict";
-  if(/already exists|overwrite/i.test(message) || status===409)return "already_exists";
-  if(status===401 || status===403 || /unauthorized|invalid token|forbidden/i.test(message))
+  if(/already exists|overwrite/i.test(message)||status===409)return "already_exists";
+  if(status===401||status===403||/unauthorized|invalid token|forbidden/i.test(message))
     return "storage_auth";
-  if(status===404 || /not found/i.test(message))return "storage_not_found";
-  if(status===429 || /rate.limit/i.test(message))return "storage_rate_limit";
-  if(status>=500 && status<=599)return "storage_server_error";
+  if(status===404||/not found/i.test(message))return "storage_not_found";
+  if(status===429||/rate.limit/i.test(message))return "storage_rate_limit";
+  if(status>=500&&status<=599)return "storage_server_error";
+  if(name==="TypeError")return "storage_api_error";
   return "storage_error";
 }
-async function recordEvent(event,backend={readState,put}){
+async function recordEvent(event,backend={put}){
+  // Each message, receipt and reply is written only once at a unique private
+  // pathname. No ETag/overwrite operations, concurrency conflicts, or
+  // replacement of another event's content.
   const id=randomBytes(16).toString("hex");
   const at=new Date().toISOString();
   const entry={version:1,id,at,...event};
-  for(let attempt=0;attempt<6;attempt++){
-    const {etag,events}=await backend.readState();
-    const next={version:1,events:[...events,entry].slice(-MAX_EVENTS)};
-    try {
-      await backend.put(PATH,JSON.stringify(next),{
-        access:"private",addRandomSuffix:false,contentType:"application/json",
-        cacheControlMaxAge:60,
-        ...(etag?{allowOverwrite:true,ifMatch:etag}:{allowOverwrite:false})
-      });
-      return entry;
-    }catch(err){
-      const kind=safeStorageCode(err);
-      if(!["etag_conflict","already_exists"].includes(kind) || attempt===5){
-        const failure=new Error("Private journal update failed");
-        failure.code=kind;
-        throw failure;
-      }
-      // A competing writer can commit between read and CAS. Re-read rather
-      // than overwriting a receipt or dropping an already queued message.
-      await new Promise(resolve=>setTimeout(resolve,150*(attempt+1)));
-    }
-  }
-  throw Object.assign(new Error("Journal attempts exhausted"),{code:"write_failed"});
+  const path=EVENT_PREFIX+at.replace(/[-:.TZ]/g,"")+"-"+id+".json";
+  await backend.put(path,JSON.stringify(entry),{
+    access:"private",addRandomSuffix:false,contentType:"application/json",
+    cacheControlMaxAge:60
+  });
+  return entry;
 }
-async function loadEvents(){
-  const {events}=await readState();
-  return events.filter(e=>e&&e.version===1&&ID.test(e.id)
-    &&Number.isFinite(Date.parse(e.at))
-    &&["message","receipt"].includes(e.kind))
-    .sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
+async function readPrivateEvent(pathname,backend){
+  const blob=await backend.get(pathname,{access:"private",useCache:false});
+  if(!blob||blob.statusCode!==200)throw Error("Private relay event unreadable");
+  const raw=await new Response(blob.stream).text();
+  if(raw.length>10000)throw Error("Private relay event too large");
+  const data=JSON.parse(raw);
+  if(!data||data.version!==1||!ID.test(data.id)||
+    !Number.isFinite(Date.parse(data.at))||
+    !["message","receipt"].includes(data.kind))
+    throw Error("Invalid private relay event");
+  return data;
+}
+async function loadEvents(backend={list,get,readState}){
+  const blobs=[];
+  let cursor=null;
+  let hasMore=false;
+  for(let page=0;page<20;page++){
+    const result=await backend.list({
+      prefix:EVENT_PREFIX,limit:100,...(cursor?{cursor}:{})
+    });
+    if(!result||!Array.isArray(result.blobs))
+      throw Error("Private relay listing unavailable");
+    blobs.push(...result.blobs.filter(x=>typeof x.pathname==="string"&&
+      x.pathname.startsWith(EVENT_PREFIX)));
+    hasMore=result.hasMore===true;
+    if(!hasMore)break;
+    if(!result.cursor)throw Error("Private relay listing cursor unavailable");
+    cursor=result.cursor;
+  }
+  // Do not claim a complete history if the storage scan was incomplete.
+  if(hasMore)throw Error("Private relay event listing exceeded limit");
+  // New objects have sortable timestamp-based names; bound the number of
+  // private reads while retaining every object in storage for future export.
+  const latest=blobs.sort((a,b)=>b.pathname.localeCompare(a.pathname))
+    .slice(0,MAX_EVENTS);
+  const [legacy,events]=await Promise.all([
+    backend.readState(),
+    Promise.all(latest.map(x=>readPrivateEvent(x.pathname,backend)))
+  ]);
+  const merged=[...(legacy.events||[]),...events];
+  const seen=new Set();
+  return merged.filter(e=>e&&e.version===1&&ID.test(e.id)&&
+    Number.isFinite(Date.parse(e.at))&&["message","receipt"].includes(e.kind))
+    .sort((a,b)=>Date.parse(a.at)-Date.parse(b.at))
+    .filter(e=>seen.has(e.id)?false:(seen.add(e.id),true))
+    .slice(-MAX_EVENTS);
 }
 function view(events,viewer) {
   const messages=events.filter(e=>e.kind==="message"&&ID.test(e.id)&&
@@ -91,8 +116,11 @@ function view(events,viewer) {
   return messages.filter(m=>viewer==="iphone"||m.to==="odin"||m.sender==="odin").map(m=>{
     const related=receipts.filter(r=>r.for===m.id && r.sender===m.to);
     const reply=messages.find(x=>x.sender===m.to && x.reply_to===m.id);
-    const states=["delivered","read","failed"];
-    let status=reply?"replied":related.findLast(r=>states.includes(r.state))?.state||"queued";
+    const states={delivered:1,read:2,failed:3};
+    const last=related.filter(r=>Object.hasOwn(states,r.state))
+      .sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)||
+        states[a.state]-states[b.state]||a.id.localeCompare(b.id)).at(-1);
+    const status=reply?"replied":last?.state||"queued";
     return {id:m.id,at:m.at,sender:m.sender,to:m.to,
       text:m.text,reply_to:m.reply_to||null,status,
       last_activity:reply?.at||related[related.length-1]?.at||m.at};
@@ -116,4 +144,4 @@ function validReply(body){
 }
 module.exports={ID,isText,deviceAuthorized,safeCompare,recordEvent,loadEvents,
   view,validMessage,validReceipt,validReply,safeStorageCode,
-  _test:{readState}};
+  _test:{readState,readPrivateEvent,EVENT_PREFIX}};
