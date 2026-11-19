@@ -1,5 +1,8 @@
 # Odin 2 — Safe self-update and useful device tasks
 
+For the November 19 device receipts, production AI and relay blockers, and remaining acceptance work, see the [current device checkpoint](PROJECT_MEMORY.md). Earlier dated sections describe the state at their capture time.
+
+
 Date: 2026-11-19
 Source authority: GitHub repository shawnfra2013/Oden2-, branch main.
 
