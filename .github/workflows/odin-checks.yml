@@ -57,8 +57,14 @@ jobs:
           set -euo pipefail
           node --check mobile/app.js
           node --check mobile/api/status.js
+          node --check mobile/api/session.js
+          node --check mobile/api/command.js
+          node --check mobile/api/chat.js
+          node --check mobile/api/capabilities.js
+          node --check mobile/lib/access.js
           node --check mobile/tests/status.test.js
-          node --test mobile/tests/status.test.js
+          node --check mobile/tests/control.test.js
+          node --test mobile/tests/*.test.js
 
       - name: Lint Python
         run: ruff check .
