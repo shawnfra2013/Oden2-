@@ -55,7 +55,8 @@ module.exports=async function handler(req,res){
         return res.status(404).json({error:"Original message unavailable"});
       stage="odin_receipt";
       const entry=await relay.recordEvent({
-        kind:"receipt",sender:"odin",for:body.for,state:body.state
+        kind:"receipt",sender:"odin",for:body.for,state:body.state,
+        ...(body.state==="failed" && body.reason?{reason:body.reason}:{})
       });
       return res.status(201).json({id:entry.id,status:body.state,at:entry.at});
     }
