@@ -150,7 +150,7 @@ struct InboxView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .defaultScrollAnchor(.bottom, for: .initialOffset)
-            .scrollDismissesKeyboard(.interactively)
+            .scrollDismissesKeyboard(.never)
             .accessibilityIdentifier("transcript")
             .onChange(of: model.agent) {
                 bottomVisible = true
@@ -234,6 +234,10 @@ struct InboxView: View {
                 }
                 .accessibilityAddTraits(model.thinkLonger ? [.isSelected] : [])
                 Spacer()
+                if editing {
+                    Button("Dismiss keyboard", systemImage: "keyboard.chevron.compact.down") { editing = false }
+                        .labelStyle(.iconOnly)
+                }
             }
             .font(.caption.weight(.medium))
             HStack(alignment: .bottom, spacing: 8) {
