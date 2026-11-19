@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """GitHub-backed, allowlisted Odin status bridge (no arbitrary shell requests).
 
 Inbox and outbox are separate branches, never the checked-out main branch.
@@ -12,7 +11,7 @@ import re
 import subprocess
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
@@ -37,7 +36,7 @@ class ExpiredRequest(ValueError):
 
 
 def utcnow():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def iso(value):
@@ -47,7 +46,7 @@ def iso(value):
 def parse_utc(value):
     if not isinstance(value, str) or not value.endswith("Z"):
         raise ValueError("Timestamp must be UTC")
-    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    dt = datetime.fromisoformat(value)
     if dt.tzinfo is None:
         raise ValueError("Timestamp needs timezone")
     return dt
@@ -80,8 +79,8 @@ def validate_request(raw, expected_id, now=None):
 
 def run(argv, *, cwd=ROOT, timeout=45, allow_failure=False):
     result = subprocess.run(
-        argv, cwd=cwd, text=True, stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE, timeout=timeout, check=False,
+        argv, cwd=cwd, text=True, capture_output=True,
+        timeout=timeout, check=False,
     )
     if result.returncode and not allow_failure:
         raise RuntimeError("Command failed: " + argv[0])
