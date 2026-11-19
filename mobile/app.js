@@ -795,6 +795,14 @@ for(const button of document.querySelectorAll("[data-relay-quick]")){
   button.addEventListener("click",()=>{
     if(!privateState.connected || !privateState.relay)return;
     $("relayMessage").value=button.dataset.relayQuick;
+    if(button.dataset.relayQuick==="/restart-services"){
+      if(window.confirm("Restart all Odin services? Odin may briefly stop responding.")){
+        $("relaySendButton").click();
+      }else{
+        $("relayMessage").value="";
+      }
+      return;
+    }
     $("relayMessage").focus();
   });
 }

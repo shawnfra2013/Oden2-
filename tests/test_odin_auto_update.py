@@ -1,9 +1,11 @@
 """Offline contract tests for Odin's CI-gated source updater."""
+import json
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from scripts import odin_auto_update as updater
 
@@ -69,7 +71,36 @@ class UpdateSafetyTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "updated")
         self.assertEqual(result["after"], self.TARGET)
-        self.assertIn("restart_not_automatic", result["reason"])
+        self.assertEqual(result["reason"], "source_updated")
+
+    def test_reload_only_after_saved_update_or_verified_transition(self):
+        legacy = updater.result_record("updated", "source_updated_restart_not_automatic",
+                                       self.OLD, self.TARGET, self.TARGET)
+        for status, revision, expected in (
+            ("updated", self.TARGET, True),
+            ("current", self.TARGET, True),
+            ("current", self.OLD, False),
+            ("waiting", self.TARGET, False),
+        ):
+            with self.subTest(status=status, revision=revision), tempfile.TemporaryDirectory() as directory:
+                result = Path(directory) / "update.json"
+                result.write_text(json.dumps(legacy))
+                current = updater.result_record(status, "test", self.OLD, self.TARGET, revision)
+
+                def reload_services(args, *, result=result, status=status, **kwargs):
+                    self.assertEqual(args[-1], "--after-update")
+                    self.assertEqual(json.loads(result.read_text())["status"], status)
+                    return SimpleNamespace(returncode=0)
+
+                with (
+                    patch.object(updater, "RESULT", result),
+                    patch.object(updater, "flag_is_enabled", return_value=True),
+                    patch.object(updater, "update_once", return_value=current),
+                    patch.object(updater, "save_result", side_effect=lambda data, result=result: result.write_text(json.dumps(data))),
+                    patch.object(updater.subprocess, "run", side_effect=reload_services) as launch,
+                ):
+                    updater.main(["--once"])
+                    self.assertEqual(launch.called, expected)
 
     def test_dirty_checkout_refused_before_fetch(self):
         result = updater.update_once(git_cmd=self.make_git(dirty=True))

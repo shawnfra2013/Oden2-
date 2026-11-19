@@ -165,8 +165,8 @@ def update_once(root=ROOT, fetch_ci=None, git_cmd=None, run_cmd=None):
         after = git_cmd("rev-parse", "HEAD")
         if after != target:
             return result_record("blocked", "revision_mismatch", old, target, after)
-        # The reviewed source has advanced; live processes were not restarted.
-        return result_record("updated", "source_updated_restart_not_automatic",
+        # The caller records this source result before attempting service reload.
+        return result_record("updated", "source_updated",
                              old, target, after)
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired,
             json.JSONDecodeError, TypeError):
@@ -183,7 +183,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.enable:
         change_flag(True)
-        print("Safe source updates enabled. Service restarts remain manual.")
+        print("Safe source updates and post-update service reload enabled.")
         return 0
     if args.disable:
         change_flag(False)
@@ -198,7 +198,18 @@ def main(argv=None):
         return 0
     if not flag_is_enabled():
         return 0
+    # The preceding version recorded a pull but could not reload services.
+    try:
+        previous = json.loads(RESULT.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        previous = None
     record = update_once()
+    needs_reload = record["status"] == "updated" or (
+        record["status"] == "current"
+        and isinstance(previous, dict)
+        and previous.get("reason") == "source_updated_restart_not_automatic"
+        and previous.get("after") == record["after"]
+    )
     try:
         save_result(record)
     except (OSError, RuntimeError):
@@ -206,6 +217,19 @@ def main(argv=None):
         return 1
     print("ODIN_UPDATE", record["status"], record["reason"],
           record["after"] or record["target"] or "", flush=True)
+    if needs_reload:
+        # Execute the newly installed helper after the exact revision passed CI.
+        # Keep the calling sync supervisor alive while it holds the sync lock.
+        try:
+            reloaded = subprocess.run(
+                [sys.executable, "-B", str(ROOT / "scripts" / "odin_restart_services.py"),
+                 "--after-update"],
+                cwd=ROOT, check=False, timeout=200,
+            )
+            if reloaded.returncode:
+                print("ODIN_UPDATE_RELOAD_UNVERIFIED", file=sys.stderr, flush=True)
+        except (OSError, subprocess.TimeoutExpired):
+            print("ODIN_UPDATE_RELOAD_UNVERIFIED", file=sys.stderr, flush=True)
     return 1 if record["status"] in {"blocked", "error"} else 0
 
 

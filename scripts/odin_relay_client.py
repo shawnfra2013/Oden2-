@@ -1,4 +1,4 @@
-"""Private, message-only Odin ↔ iPhone agent relay.
+"""Private Odin ↔ iPhone agent relay with fixed device actions.
 
 This daemon NEVER executes arbitrary instructions, installs packages or
 edits Git. It polls an authenticated HTTPS API, records delivery/read
@@ -27,6 +27,7 @@ TOKEN_FILE = STATE / "token"
 SEEN_FILE = STATE / "processed.json"
 LOCK_FILE = STATE / "poll.lock"
 STATUS_FILE = STATE / "relay-status.json"
+RESTART_RESULT = STATE / "restart-result.txt"
 API = "https://odin-control.vercel.app/api/relay"
 MAX_RESPONSE = 150000
 POLL_SECONDS = 45
@@ -153,7 +154,7 @@ def write_poll_status(handled, failed, count):
 
 
 def normalized_action(text):
-    """Recognize only exact read-only tasks; never parse free-form shell text."""
+    """Recognize only exact device actions; never parse free-form shell text."""
     command = " ".join(text.strip().lower().split())
     known = {
         "/ping": "ping",
@@ -174,10 +175,14 @@ def normalized_action(text):
         "ai status": "ai_status",
         "model status": "ai_status",
         "/ai-test": "ai_test",
+        "/restart-services": "restart_services",
+        "restart all services": "restart_services",
+        "restart all odin services": "restart_services",
+        "/restart-status": "restart_status",
     }
     if command in known:
         return known[command]
-    if command.startswith(("/task", "task ", "/ai-")):
+    if command.startswith(("/task", "task ", "/ai-", "/restart")):
         return "unsupported_command"
     return None
 
@@ -205,7 +210,7 @@ def ai_status_reply():
 
 def failure_code(error, action):
     """Return one fixed diagnostic code without leaking provider exceptions."""
-    if action in {"git_status", "git_status_summary", "queue_status"}:
+    if action in {"git_status", "git_status_summary", "queue_status", "restart_status"}:
         return "task_failed"
     if action == "ai_status":
         return "status_unavailable"
@@ -258,6 +263,14 @@ def handle_message(token, msg, seen, answer_fn):
             answer = status_reply("/task queue-status")
         elif action == "ai_status":
             answer = ai_status_reply()
+        elif action == "restart_services":
+            answer = ("ODIN_RESTART_REQUEST_RECEIVED. Send /restart-status "
+                      "after the relay reconnects to check the result.")
+        elif action == "restart_status":
+            try:
+                answer = RESTART_RESULT.read_text(encoding="utf-8")
+            except FileNotFoundError:
+                answer = "ODIN_RESTART_NO_RECORD"
         elif action == "unsupported_command":
             answer = ("ODIN_TASK_REJECTED: supported: /ping, /status, "
                       "/task git-status, /task queue-status, /ai-status, /ai-test")
@@ -288,6 +301,13 @@ def handle_message(token, msg, seen, answer_fn):
         return False
     seen.add(mid)
     save_seen(seen)
+    if action == "restart_services":
+        # The reply must reach the phone before runit stops this process.
+        subprocess.Popen(
+            [sys.executable, "-B", str(ROOT / "scripts" / "odin_restart_services.py")],
+            cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, start_new_session=True,
+        )
     return True
 
 
