@@ -499,6 +499,9 @@ $("disconnectButton").addEventListener("click",()=>{
   $("accessToken").value="";
   relayLocal.messages=[];
   relayLocal.acknowledged.clear();
+  relayLocal.error=null;
+  relayLocal.notice=null;
+  relayLocal.lastUpdated=null;
   clearPrivateChat();
   renderSecureState();
 });
@@ -565,7 +568,7 @@ checkCapabilities();
 // PRIVATE RELAY: phone <-> Odin, independent from the public GitHub mailbox.
 // Status values are based on server-stored receipts, never inferred from a
 // model prediction. No arbitrary device action can be transported here.
-const relayLocal = {messages:[], acknowledged:new Set(), loading:false};
+const relayLocal = {messages:[], acknowledged:new Set(), loading:false, error:null, notice:null, lastUpdated:null};
 function renderRelay(){
   const unlocked=privateState.connected && privateState.relay===true;
   $("relayMessage").disabled=!unlocked;
@@ -577,11 +580,12 @@ function renderRelay(){
   badge.lastChild.textContent=unlocked
     ? (count?count+" unread":"Private relay available")
     : "Not paired";
-  $("relayState").textContent=!privateState.connected
+  $("relayState").textContent=relayLocal.error || relayLocal.notice || (!privateState.connected
     ? "Connect your private session"
     : !privateState.relay?"Private storage unavailable"
     : !privateState.paired?"Odin has not been paired with its relay token"
-    : "Messages are polled while this app is open";
+    : relayLocal.lastUpdated ? "Last relay refresh "+time(relayLocal.lastUpdated)
+    : "Checking private message inbox…");
   replaceChildren("relayMessages",relayLocal.messages.length
     ? relayLocal.messages.slice(-35).map(m=>{
       const row=create("div","relay-entry "+(m.sender==="odin"?"odin":"iphone"));
@@ -607,6 +611,8 @@ async function refreshRelay(){
     if(!Array.isArray(payload.messages)||payload.source!=="private-odin-relay")
       throw Error("Unexpected relay response");
     relayLocal.messages=payload.messages;
+    relayLocal.error=null;
+    relayLocal.lastUpdated=new Date().toISOString();
     renderRelay();
     const activeChat=$("view-chat").classList.contains("active") &&
       document.visibilityState==="visible";
@@ -623,8 +629,9 @@ async function refreshRelay(){
         }
       }
     }
-  }catch{
-    $("relayState").textContent="Private messages unavailable; retry in a moment";
+  }catch(err){
+    relayLocal.error="Message sync failed: "+err.message;
+    renderRelay();
   }finally{relayLocal.loading=false;}
 }
 $("relaySendForm").addEventListener("submit",async e=>{
@@ -633,17 +640,20 @@ $("relaySendForm").addEventListener("submit",async e=>{
   const text=$("relayMessage").value.trim();
   if(!text||text.length>2000)return;
   $("relaySendButton").disabled=true;
-  $("relayState").textContent="Sending securely…";
+  relayLocal.error=null;
+  relayLocal.notice="Sending securely…";
+  renderRelay();
   try{
     const result=await authenticatedPost("/api/relay",{
       type:"message",text
     },privateState.token);
     if(typeof result.id!=="string")throw Error("Message not queued");
     $("relayMessage").value="";
-    $("relayState").textContent="Queued for Odin; waiting for a delivery receipt";
+    relayLocal.notice="Queued for Odin; waiting for a delivery receipt";
     await refreshRelay();
   }catch(err){
-    $("relayState").textContent="Could not send: "+err.message;
+    relayLocal.error="Could not send: "+err.message;
+    relayLocal.notice=null;
   }finally{renderRelay();}
 });
 $("relayRefresh").addEventListener("click",refreshRelay);
