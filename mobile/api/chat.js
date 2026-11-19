@@ -1,5 +1,6 @@
 "use strict";
 const {protect} = require("../lib/access");
+const {openAiApiKey} = require("../lib/openai-config");
 const MODEL = /^[a-zA-Z0-9._-]{1,100}$/;
 function validate(data) {
   if (Object.keys(data).some(k=>!["message","history"].includes(k))
@@ -18,7 +19,7 @@ function validate(data) {
 }
 module.exports=async function handler(req,res) {
   if (!protect(req,res)) return;
-  const key=process.env.OPENAI_API_KEY;
+  const key=openAiApiKey();
   const model=process.env.ODIN_OPENAI_MODEL;
   if (!key || !MODEL.test(model||"")) {
     return res.status(503).json({error:"Cloud chat not configured; add a fresh API key and model in Vercel settings"});
