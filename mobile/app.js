@@ -576,10 +576,13 @@ function renderRelay(){
   const count=relayLocal.messages.filter(m=>m.sender==="odin"&&
     !["read","replied"].includes(m.status)).length;
   const badge=$("relayBadge");
-  badge.className="live-pill "+(unlocked?"good":"warn");
-  badge.lastChild.textContent=unlocked
-    ? (count?count+" unread":"Private relay available")
-    : "Not paired";
+  const inboxConfirmed=unlocked && !relayLocal.error && relayLocal.lastUpdated &&
+    Date.now()-Date.parse(relayLocal.lastUpdated)<90000;
+  badge.className="live-pill "+(inboxConfirmed?"good":"warn");
+  badge.lastChild.textContent=!unlocked?"Private access locked"
+    : relayLocal.error?"Inbox sync failed"
+    : !inboxConfirmed?"Checking inbox"
+    : (count?count+" unread":"Inbox checked");
   $("relayState").textContent=relayLocal.error || relayLocal.notice || (!privateState.connected
     ? "Connect your private session"
     : !privateState.relay?"Private storage unavailable"
@@ -606,12 +609,14 @@ async function refreshRelay(){
         "Authorization":"Bearer "+privateState.token},
       cache:"no-store",signal:AbortSignal.timeout(12000)
     });
-    if(!resp.ok)throw Error("Relay messages unavailable");
-    const payload=await resp.json();
+    const payload=await resp.json().catch(()=>({}));
+    if(!resp.ok)throw Error(typeof payload.error==="string"
+      ? payload.error.slice(0,150) : "Relay HTTP "+resp.status);
     if(!Array.isArray(payload.messages)||payload.source!=="private-odin-relay")
       throw Error("Unexpected relay response");
     relayLocal.messages=payload.messages;
     relayLocal.error=null;
+    relayLocal.notice=null;
     relayLocal.lastUpdated=new Date().toISOString();
     renderRelay();
     const activeChat=$("view-chat").classList.contains("active") &&
