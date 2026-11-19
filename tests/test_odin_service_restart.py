@@ -60,6 +60,31 @@ class OdinServiceRestartTests(unittest.TestCase):
             self.assertEqual(restart.run_restarts(
                 self.MID, state_dir=state_dir, prefix=prefix, call=fake_call), 2)
 
+    def test_runit_symlink_service_entry_is_supported(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            state_dir = root / "state"
+            record = self.create(root)
+            prefix = root / "prefix"
+            base = prefix / "var" / "service"
+            base.mkdir(parents=True)
+            for name in restart.MANDATORY:
+                target = root / "service-definitions" / name
+                target.mkdir(parents=True)
+                (target / "run").write_text("#!/bin/sh\\n")
+                (base / name).symlink_to(target, target_is_directory=True)
+            invoked = []
+            def fake_call(action, path):
+                invoked.append((action, path.name))
+                return SimpleNamespace(returncode=0,
+                                       stdout="run: ok" if action == "status" else "")
+            result = restart.run_restarts(
+                self.MID, state_dir=state_dir, prefix=prefix, call=fake_call)
+            self.assertEqual(result, 0)
+            self.assertEqual(json.loads(record.read_text())["phase"], "finished")
+            self.assertEqual([n for a, n in invoked if a == "restart"],
+                             ["odin-git-sync", "odin-task-worker", "odin-private-relay"])
+
     def test_health_failure_cannot_claim_verified(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
