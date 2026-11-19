@@ -57,7 +57,11 @@ def request(token, payload=None):
             if len(content) > MAX_RESPONSE:
                 raise ValueError("Relay response exceeded limit")
             return json.loads(content)
-    except (HTTPError, URLError, TimeoutError, OSError):
+    except HTTPError as error:
+        # A status code is safe to log; do not print response bodies, tokens
+        # or message text in this supervised background process.
+        raise RuntimeError(f"Odin relay HTTP {error.code} on {req.get_method()}") from None
+    except (URLError, TimeoutError, OSError):
         raise RuntimeError("Odin relay transport unavailable") from None
 
 
@@ -169,8 +173,8 @@ def main(argv=None):
         while True:
             try:
                 poll_once(token)
-            except (RuntimeError, ValueError, OSError):
-                print("Private relay poll failed", file=sys.stderr, flush=True)
+            except (RuntimeError, ValueError, OSError) as error:
+                print(f"Private relay poll failed: {error}", file=sys.stderr, flush=True)
             time.sleep(POLL_SECONDS)
     else:
         print("Handled private messages:", poll_once(token))

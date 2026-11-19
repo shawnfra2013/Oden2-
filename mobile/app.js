@@ -378,19 +378,30 @@ refresh();
 // GitHub branch, localStorage, or analytics event.
 const privateState = {
   token:null, connected:false, cloud:false, diagnostics:false,
-  history:[], pending:null, capabilities:null, sending:false
+  history:[], cloudEvents:[], pending:null, capabilities:null, sending:false
 };
 
 function addChatLine(role,text) {
   const container=create("div","private-chat-line "+role);
-  const label=create("div","private-chat-label",role==="user" ? "YOU" : "CLOUD AI");
+  const label=create("div","private-chat-label",role==="user" ? "YOU → CLOUD AI"
+    : role==="error" ? "CLOUD AI ERROR" : "CLOUD AI (API)");
   const bubble=create("div","private-chat-bubble",text);
   container.append(label,bubble);
   $("chatLog").append(container);
   $("chatLog").scrollTop=$("chatLog").scrollHeight;
+  privateState.cloudEvents.push({
+    id:"cloud-"+privateState.cloudEvents.length,
+    sender:role==="user"?"you-cloud":role==="error"?"cloud-error":"cloud-ai",
+    text,at:new Date().toISOString(),
+    status:role==="user"?"Sent to cloud provider":
+      role==="error"?"Cloud AI failed":"Cloud AI replied"
+  });
+  renderRelay();
 }
 function clearPrivateChat() {
   privateState.history=[];
+  privateState.cloudEvents=[];
+  renderRelay();
   $("chatLog").replaceChildren(create("div","empty-state",
     "New local tab conversation. Nothing was sent to Odin."));
   $("chatSendStatus").textContent="Conversation cleared";
@@ -526,7 +537,7 @@ $("cloudChatForm").addEventListener("submit",async event=>{
     privateState.history=privateState.history.slice(-8);
     $("chatSendStatus").textContent="Cloud reply received · Not a device execution receipt";
   } catch(err){
-    addChatLine("assistant","Chat unavailable: "+err.message);
+    addChatLine("error","Chat unavailable: "+err.message);
     $("chatSendStatus").textContent="No validated AI response";
   } finally {
     privateState.sending=false;
@@ -589,15 +600,25 @@ function renderRelay(){
     : !privateState.paired?"Odin has not been paired with its relay token"
     : relayLocal.lastUpdated ? "Last relay refresh "+time(relayLocal.lastUpdated)
     : "Checking private message inbox…");
-  replaceChildren("relayMessages",relayLocal.messages.length
-    ? relayLocal.messages.slice(-35).map(m=>{
-      const row=create("div","relay-entry "+(m.sender==="odin"?"odin":"iphone"));
-      row.append(create("div","relay-entry-label",
-        (m.sender==="odin"?"ODIN":"IPHONE")+" · "+time(m.at)));
+  // Source labels prevent cloud API messages from being mistaken for
+  // physical Odin replies or this exact ChatGPT application conversation.
+  const events=[...relayLocal.messages,...privateState.cloudEvents]
+    .sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)).slice(-35);
+  replaceChildren("relayMessages",events.length
+    ? events.map(m=>{
+      const fromCloud=typeof m.sender==="string" &&
+        (m.sender==="cloud-ai"||m.sender==="cloud-error"||m.sender==="you-cloud");
+      const actor=m.sender==="odin"?"ODIN DEVICE":
+        m.sender==="cloud-ai"?"CLOUD AI (API)":
+        m.sender==="cloud-error"?"CLOUD AI ERROR":
+        m.sender==="you-cloud"?"YOU → CLOUD AI":"YOU → ODIN";
+      const row=create("div","relay-entry "+(fromCloud?"cloud":
+        m.sender==="odin"?"odin":"iphone"));
+      row.append(create("div","relay-entry-label",actor+" · "+time(m.at)));
       row.append(create("div","relay-entry-text",m.text));
       row.append(create("div","relay-entry-status",m.status));
       return row;
-    }) : [create("div","empty-state","No private messages yet")]);
+    }) : [create("div","empty-state","No messages or replies yet")]);
   document.title=count?"("+count+") Odin Control":"Odin — Control Center";
 }
 async function refreshRelay(){

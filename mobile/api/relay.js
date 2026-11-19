@@ -76,11 +76,13 @@ module.exports=async function handler(req,res){
   }catch(error){
     // Structured operational signal, excluding sensitive request data.
     console.error("ODIN_RELAY_FAILURE", JSON.stringify({
-      stage, type:typeof error?.name==="string" ? error.name.slice(0,60) : "Error"
+      stage, type:typeof error?.name==="string" ? error.name.slice(0,60) : "Error",
+      category:relay.safeStorageCode(error)
     }));
     return res.status(503).json({
       error:"Private relay unavailable at "+stage+". No response was confirmed.",
-      stage
+      stage,
+      code:relay.safeStorageCode(error)
     });
   }
 };
