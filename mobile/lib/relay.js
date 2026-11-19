@@ -1,5 +1,5 @@
 "use strict";
-const {put,get}=require("@vercel/blob");
+const {put,get,head}=require("@vercel/blob");
 const {randomBytes,timingSafeEqual,createHash}=require("node:crypto");
 const PATH="odin-relay/v1/private-messages.json";
 const ID=/^[0-9a-f]{32}$/;
@@ -25,27 +25,55 @@ async function readState() {
   const data=JSON.parse(raw);
   if(!data || data.version!==1 || !Array.isArray(data.events))
     throw Error("Invalid relay state");
-  return {etag:blob.blob?.etag||null,events:data.events.slice(-MAX_EVENTS)};
+  // No mutation is attempted without an ETag for an existing journal.
+  // Private Blob reads bypass CDN cache so a previous write cannot be lost.
+  const etag=blob.blob?.etag || (await head(PATH))?.etag;
+  if(typeof etag!=="string" || !etag)
+    throw Object.assign(new Error("Missing journal ETag"),{code:"BLOB_ETAG_MISSING"});
+  return {etag,events:data.events.slice(-MAX_EVENTS)};
 }
-async function recordEvent(event){
+function safeStorageCode(error){
+  const name=typeof error?.name==="string" ? error.name : "";
+  const message=typeof error?.message==="string" ? error.message : "";
+  const status=Number(error?.statusCode || error?.status || error?.response?.status);
+  if(error?.code==="BLOB_ETAG_MISSING")return "etag_missing";
+  if(name==="BlobPreconditionFailedError" || status===412 ||
+      /precondition|etag|if.match/i.test(message))return "etag_conflict";
+  if(/already exists|overwrite/i.test(message) || status===409)return "already_exists";
+  if(status===401 || status===403 || /unauthorized|invalid token|forbidden/i.test(message))
+    return "storage_auth";
+  if(status===404 || /not found/i.test(message))return "storage_not_found";
+  if(status===429 || /rate.limit/i.test(message))return "storage_rate_limit";
+  if(status>=500 && status<=599)return "storage_server_error";
+  return "storage_error";
+}
+async function recordEvent(event,backend={readState,put}){
   const id=randomBytes(16).toString("hex");
   const at=new Date().toISOString();
   const entry={version:1,id,at,...event};
-  for(let attempt=0;attempt<4;attempt++){
-    const {etag,events}=await readState();
+  for(let attempt=0;attempt<6;attempt++){
+    const {etag,events}=await backend.readState();
     const next={version:1,events:[...events,entry].slice(-MAX_EVENTS)};
     try {
-      await put(PATH,JSON.stringify(next),{
+      await backend.put(PATH,JSON.stringify(next),{
         access:"private",addRandomSuffix:false,contentType:"application/json",
         cacheControlMaxAge:60,
         ...(etag?{allowOverwrite:true,ifMatch:etag}:{allowOverwrite:false})
       });
       return entry;
     }catch(err){
-      if(attempt===3)throw err;
+      const kind=safeStorageCode(err);
+      if(!["etag_conflict","already_exists"].includes(kind) || attempt===5){
+        const failure=new Error("Private journal update failed");
+        failure.code=kind;
+        throw failure;
+      }
+      // A competing writer can commit between read and CAS. Re-read rather
+      // than overwriting a receipt or dropping an already queued message.
+      await new Promise(resolve=>setTimeout(resolve,150*(attempt+1)));
     }
   }
-  throw Error("Relay write could not commit");
+  throw Object.assign(new Error("Journal attempts exhausted"),{code:"write_failed"});
 }
 async function loadEvents(){
   const {events}=await readState();
@@ -87,4 +115,5 @@ function validReply(body){
     && body.type==="reply" && ID.test(body.for) && isText(body.text);
 }
 module.exports={ID,isText,deviceAuthorized,safeCompare,recordEvent,loadEvents,
-  view,validMessage,validReceipt,validReply};
+  view,validMessage,validReceipt,validReply,
+  _test:{safeStorageCode,readState}};
