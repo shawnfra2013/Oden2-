@@ -51,6 +51,14 @@ jobs:
       - name: Stage 5 offline regression
         run: python -B -m unittest discover -s stage5 -p 'test_*.py' -v
 
+      - name: Install private relay SDK for dashboard tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install mobile dependencies
+        run: npm install --prefix mobile --no-audit --no-fund --ignore-scripts
+
       - name: Verify Odin iPhone dashboard
         shell: bash
         run: |
@@ -61,9 +69,12 @@ jobs:
           node --check mobile/api/command.js
           node --check mobile/api/chat.js
           node --check mobile/api/capabilities.js
+          node --check mobile/api/relay.js
+          node --check mobile/lib/relay.js
           node --check mobile/lib/access.js
           node --check mobile/tests/status.test.js
           node --check mobile/tests/control.test.js
+          node --check mobile/tests/relay.test.js
           node --test mobile/tests/*.test.js
 
       - name: Lint Python
