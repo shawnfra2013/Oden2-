@@ -9,6 +9,7 @@ import fcntl
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from datetime import UTC, datetime, timedelta
@@ -34,6 +35,32 @@ ORIGINS = {
     "https://github.com/shawnfra2013/Oden2-.git",
 }
 POLL_SECONDS = 60
+PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health"})
+private_mailbox = False
+
+
+def mailbox_git_args():
+    if not private_mailbox:
+        return ["git"]
+    key = Path.home() / ".ssh" / "odin_private_bridge_ed25519"
+    ssh = shlex.join([
+        "ssh", "-i", str(key), "-o", "IdentitiesOnly=yes",
+        "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+        "-o", "StrictHostKeyChecking=yes",
+    ])
+    return ["git", "-c", "core.sshCommand=" + ssh]
+
+
+def outbox_git(*args, timeout=45):
+    return run([*mailbox_git_args(), *args], cwd=OUTBOX, timeout=timeout).stdout.strip()
+
+
+def enable_private_mailbox():
+    global private_mailbox, STATE, OUTBOX
+    private_mailbox = True
+    STATE = ROOT / "state" / "github-bridge-private"
+    OUTBOX = STATE / "outbox"
 
 
 class ExpiredRequest(ValueError):
@@ -126,7 +153,7 @@ def ensure_outbox(origin):
             raise RuntimeError("Outbox path exists but is not a Git clone")
         STATE.mkdir(parents=True, exist_ok=True)
         run(
-            ["git", "clone", "--quiet", "--single-branch", "--no-tags",
+            [*mailbox_git_args(), "clone", "--quiet", "--single-branch", "--no-tags",
              "--branch", OUTBOX_BRANCH, origin, str(OUTBOX)],
             timeout=90,
         )
@@ -138,13 +165,20 @@ def ensure_outbox(origin):
         raise RuntimeError("Unexpected outbox origin")
     if git("status", "--porcelain", cwd=OUTBOX):
         raise RuntimeError("Outbox has uncommitted changes; refusing edits")
-    git("pull", "--ff-only", "origin", OUTBOX_BRANCH, cwd=OUTBOX, timeout=90)
+    outbox_git("pull", "--ff-only", "origin", OUTBOX_BRANCH, timeout=90)
     ahead = int(git("rev-list", "--count", "origin/" + OUTBOX_BRANCH + "..HEAD", cwd=OUTBOX))
     if ahead:
-        git("push", "origin", "HEAD:refs/heads/" + OUTBOX_BRANCH, cwd=OUTBOX, timeout=90)
+        outbox_git("push", "origin", "HEAD:refs/heads/" + OUTBOX_BRANCH, timeout=90)
 
 
 def fetch_inbox():
+    if private_mailbox:
+        outbox_git(
+            "fetch", "--quiet", "origin",
+            "refs/heads/" + INBOX_BRANCH + ":refs/remotes/origin/" + INBOX_BRANCH,
+            timeout=90,
+        )
+        return
     git("fetch", "--quiet", "origin",
         "refs/heads/" + INBOX_BRANCH + ":refs/remotes/origin/" + INBOX_BRANCH,
         timeout=90)
@@ -405,7 +439,7 @@ def send_response(request_id, payload):
     )
     git("add", "--", relative.as_posix(), cwd=OUTBOX)
     git("commit", "-m", "Odin bridge response " + request_id, cwd=OUTBOX)
-    git("push", "origin", "HEAD:refs/heads/" + OUTBOX_BRANCH, cwd=OUTBOX, timeout=90)
+    outbox_git("push", "origin", "HEAD:refs/heads/" + OUTBOX_BRANCH, timeout=90)
 
 
 def process_once():
@@ -425,10 +459,11 @@ def process_once():
 
 def process_locked():
     origin = checked_origin()
-    ensure_outbox(origin)
+    ensure_outbox(PRIVATE_ORIGIN if private_mailbox else origin)
     fetch_inbox()
+    inbox_git = outbox_git if private_mailbox else git
     ref = "origin/" + INBOX_BRANCH
-    names = git("ls-tree", "-r", "--name-only", ref, "--", "bridge/requests")
+    names = inbox_git("ls-tree", "-r", "--name-only", ref, "--", "bridge/requests")
     processed = 0
     for name in names.splitlines():
         if processed >= 5:
@@ -443,12 +478,14 @@ def process_locked():
         action = "none"
         try:
             # Check blob size before reading content from an untrusted inbox.
-            blob_size = int(git("cat-file", "-s", ref + ":" + name))
+            blob_size = int(inbox_git("cat-file", "-s", ref + ":" + name))
             if blob_size > 4096:
                 raise ValueError("Oversized request blob")
-            raw = git("show", ref + ":" + name, timeout=20)
+            raw = inbox_git("show", ref + ":" + name, timeout=20)
             request = validate_request(raw, request_id)
             action = request["action"]
+            if private_mailbox and action not in PRIVATE_ACTIONS:
+                raise ValueError("Action unavailable in private pilot")
             details = status_action(action, request)
             if action == "worker_probe" and details is None:
                 continue
@@ -474,7 +511,10 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--once", action="store_true", help="Run one polling cycle")
     group.add_argument("--serve", action="store_true", help="Poll every 60 seconds")
+    parser.add_argument("--private-mailbox", action="store_true", help="Use the private pilot repository")
     args = parser.parse_args()
+    if args.private_mailbox:
+        enable_private_mailbox()
     if args.serve:
         try:
             from .odin_wake import wait_for_work
