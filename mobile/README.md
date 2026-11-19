@@ -1,21 +1,78 @@
-# Odin AI Control — iPhone hosted dashboard
+# Odin Control — Hosted iPhone UI
 
-iPhone-first installable web dashboard backed by **sanitized public** Odin GitHub telemetry. It uses no credentials and has no write controls or unrestricted CLI route.
+Source of truth: `shawnfra2013/Oden2-`, directory `mobile/`.
+Production: https://odin-control.vercel.app/
 
-## Live data
+## Existing public monitoring
 
-- `/api/status`: read-only Vercel function that retrieves the last 12 request and response records from the public `odin-bridge-inbox` / `odin-bridge-outbox` branches. Status values are schema-filtered and cannot include arbitrary logs or private messages.
-- The main GitHub revision and recent Actions results are retrieved live.
-- Workflow steps clearly distinguish GitHub submission, Odin receipts, exact revision verification, and remaining private conversation pairing.
-- Device state is a *last-reported observation*, not an assertion about continuous background availability. UI refreshes once per minute while visible.
-- ChatGPT in-app conversation is **not connected**: this dashboard never impersonates a ChatGPT session, and does not publish chat, API credentials, private keys or prompts into GitHub.
+The Overview, Activity, and System tabs read sanitized public bridge receipts,
+GitHub commits, and CI runs. They do not require credentials. These are
+last-known reports, not proof that the Odin remains online.
 
-## Source and deployment
+## Optional private controls (server-side credentials required)
 
-The Vercel Git project should use the existing public GitHub repository `shawnfra2013/Oden2-` with **Root Directory: `mobile`**. The repository's `main` is the canonical source of truth, not this app's deployment. The Vercel endpoint exposes public status data only. Do not add OPENAI_API_KEY or Github write tokens to this dashboard.
+On the **existing** Vercel project `odin-control`, configure these project
+Environment Variables for Production, then redeploy:
 
-From iPhone Safari, open the deployed URL and choose Share → Add to Home Screen to install as a standalone icon.
+| Key | Storage | Purpose |
+| --- | --- | --- |
+| `ODIN_CONTROL_ACCESS_TOKEN` | Sensitive | A unique, randomly generated bearer token (32+ chars) shared privately with the owner for access to protected endpoints. |
+| `ODIN_OPENAI_MODEL` | Plain | API model name, e.g. `gpt-5-mini`. |
+| `OPENAI_API_KEY` | Sensitive | A fresh OpenAI Platform API key. Do not use a previously exposed or revoked key. |
+| `ODIN_GITHUB_TOKEN` | Sensitive | Fine-grained GitHub token limited to **this repository**, Contents read/write; only needed for device diagnostics. |
 
-## Future private conversation and approved CLI controls
+The server never ships the OpenAI API key or GitHub token to the browser.
+The app access token is entered in the **Chat** tab (Private controls).
+It is held only in this open browser tab's JavaScript memory. Closing or
+reloading the tab requires entering it again. Never share it in GitHub,
+screenshots, or AI conversation messages.
 
-Not yet enabled. Future work requires a private authenticated transport; the public GitHub mailbox is unsuitable for chat content. Device actions must require scoped allowlists, explicit approval for mutations, tamper-evident receipts, and rollback checks. Until then UI presents request/response visibility and waiting states only.
+Cloud AI chat uses OpenAI's HTTPS Responses API with `store: false`
+and a bounded per-tab history. It is a **separate API conversation**:
+it does not synchronize the current ChatGPT app thread or private local
+Odin SQLite conversations. Users should not enter confidential secrets
+in prompts. The UI labels cloud model replies separately from device receipts.
+
+Diagnostics use a fixed allowlist of `ping`, `repo_status`, `services`,
+`stage5_health`, `checks`, `verify_release`, and `preflight_release`.
+The private Vercel endpoint writes fresh expiring requests into the public
+GitHub `odin-bridge-inbox` branch. Odin polls it and writes sanitized
+results to `odin-bridge-outbox`. Read receipts remain visible in the
+Activity tab. **No user-supplied arbitrary commands, remote shell,
+service restarts, dependency installs, or deployments** are supported.
+
+This is **not a secure end-to-end private conversation relay to Odin**.
+The public GitHub inbox must never transport private messages. Natural
+language conversations with Odin's local agent will need a separate
+private, authenticated, consented pairing channel.
+
+## Security design
+
+- All private routes require an exact production Origin and a fixed
+  bearer token, stored in sensitive server-side environment variables.
+- No credentials are hardcoded, exposed through `/api/capabilities`,
+  included in GitHub, or returned in browser responses.
+- The UI does not persist the access token in localStorage, cookies or
+  GitHub branches. Changing environment variables requires a deployment
+  for running instances to use new values.
+- This small personal gateway uses one shared secret, **not multi-user
+  sign-in**. Rate limiting, revocation, per-device session identities,
+  encrypted private relay, and audit logs will be necessary before
+  allowing broader file or shell actions.
+- The hosted UI's monitoring endpoints remain public, because the
+  underlying GitHub repository and mailbox are public.
+
+## iPhone installation
+
+Open https://odin-control.vercel.app/ in Safari; Share → Add to Home Screen.
+No new native app and no destructive migration are required.
+
+## Build and deploy notes
+
+The Vercel project currently uses a source-file deployment because the
+team's GitHub integration is not installed. Automatic Git-to-Vercel sync
+is **not** enabled. New deployments must use the reviewed `mobile/`
+files from the canonical GitHub `main` commit and be verified separately.
+
+GitHub CI runs Node syntax and security tests plus the original Stage 4,
+Stage 5 and Ruff regression suites.
