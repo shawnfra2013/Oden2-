@@ -1,8 +1,9 @@
-"""OpenAI backend tests use mocks only; no live requests or credentials."""
+"""Offline OpenAI backend tests; no live network or credentials."""
 import io
 import json
 import os
 import unittest
+from typing import ClassVar
 from unittest.mock import patch
 
 import chat_provider
@@ -10,7 +11,7 @@ import openai_adapter
 
 
 class OpenAIAdapterTests(unittest.TestCase):
-    SETTINGS = {
+    SETTINGS: ClassVar = {
         "ODIN_STAGE5_ENABLE_AI": "1",
         "ODIN_STAGE5_PROVIDER": "openai",
         "OPENAI_API_KEY": "test-only-value",
@@ -38,43 +39,51 @@ class OpenAIAdapterTests(unittest.TestCase):
             self.assertEqual(payload["input"][-1], {"role": "user", "content": "Hello"})
             return self.fake_response()
 
-        with patch.dict(os.environ, self.SETTINGS):
-            with patch.object(openai_adapter, "urlopen", side_effect=fake_urlopen):
-                self.assertEqual(openai_adapter.ask_openai("Hello"), "ODIN_OK")
+        with (
+            patch.dict(os.environ, self.SETTINGS),
+            patch.object(openai_adapter, "urlopen", side_effect=fake_urlopen),
+        ):
+            self.assertEqual(openai_adapter.ask_openai("Hello"), "ODIN_OK")
 
     def test_chat_provider_uses_openai_option(self):
-        with patch.dict(os.environ, self.SETTINGS):
-            with patch.object(chat_provider, "ask_openai", create=True):
-                with patch("openai_adapter.ask_openai", return_value="HI") as fn:
-                    self.assertEqual(chat_provider.ask_model("hi"), "HI")
-                    fn.assert_called_once_with("hi", None)
+        with (
+            patch.dict(os.environ, self.SETTINGS),
+            patch("openai_adapter.ask_openai", return_value="HI") as fn,
+        ):
+            self.assertEqual(chat_provider.ask_model("hi"), "HI")
+            fn.assert_called_once_with("hi", None)
 
     def test_groq_stays_default(self):
-        with patch.dict(os.environ, {"ODIN_STAGE5_PROVIDER": "groq"}):
-            with patch.object(chat_provider, "ask_bounded", return_value="GROQ") as fn:
-                self.assertEqual(chat_provider.ask_model("hello"), "GROQ")
-                fn.assert_called_once_with("hello", None)
+        with (
+            patch.dict(os.environ, {"ODIN_STAGE5_PROVIDER": "groq"}),
+            patch.object(chat_provider, "ask_bounded", return_value="GROQ") as fn,
+        ):
+            self.assertEqual(chat_provider.ask_model("hello"), "GROQ")
+            fn.assert_called_once_with("hello", None)
 
     def test_reject_missing_key_without_request(self):
         env = dict(self.SETTINGS)
         env["OPENAI_API_KEY"] = ""
-        with patch.dict(os.environ, env):
-            with patch.object(openai_adapter, "urlopen", side_effect=AssertionError):
-                with self.assertRaises(RuntimeError):
-                    openai_adapter.ask_openai("Hello")
+        with (
+            patch.dict(os.environ, env),
+            patch.object(openai_adapter, "urlopen", side_effect=AssertionError),
+            self.assertRaises(RuntimeError),
+        ):
+            openai_adapter.ask_openai("Hello")
 
     def test_reject_bad_model(self):
         env = dict(self.SETTINGS)
         env["ODIN_OPENAI_MODEL"] = ""
-        with patch.dict(os.environ, env):
-            with self.assertRaises(RuntimeError):
-                openai_adapter.ask_openai("Hello")
+        with patch.dict(os.environ, env), self.assertRaises(RuntimeError):
+            openai_adapter.ask_openai("Hello")
 
     def test_reject_malformed_response(self):
-        with patch.dict(os.environ, self.SETTINGS):
-            with patch.object(openai_adapter, "urlopen", return_value=io.BytesIO(b"{}")):
-                with self.assertRaises(ValueError):
-                    openai_adapter.ask_openai("Hello")
+        with (
+            patch.dict(os.environ, self.SETTINGS),
+            patch.object(openai_adapter, "urlopen", return_value=io.BytesIO(b"{}")),
+            self.assertRaises(ValueError),
+        ):
+            openai_adapter.ask_openai("Hello")
 
     def test_preserves_bounded_history(self):
         history = [
@@ -88,9 +97,11 @@ class OpenAIAdapterTests(unittest.TestCase):
             self.assertEqual(payload["input"][0]["content"], "Previous")
             return self.fake_response("next")
 
-        with patch.dict(os.environ, self.SETTINGS):
-            with patch.object(openai_adapter, "urlopen", side_effect=fake_urlopen):
-                self.assertEqual(openai_adapter.ask_openai("Next", history), "next")
+        with (
+            patch.dict(os.environ, self.SETTINGS),
+            patch.object(openai_adapter, "urlopen", side_effect=fake_urlopen),
+        ):
+            self.assertEqual(openai_adapter.ask_openai("Next", history), "next")
 
 
 if __name__ == "__main__":
