@@ -9,10 +9,14 @@ Requires a locally entered token in $HOME/odin-workspace/state/odin-relay/token
 ODIN_DEVICE_RELAY_TOKEN; it is not stored in GitHub or published in receipts.
 """
 import argparse
+import contextlib
+import fcntl
 import json
 import os
+import subprocess
 import sys
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -21,6 +25,8 @@ ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "state" / "odin-relay"
 TOKEN_FILE = STATE / "token"
 SEEN_FILE = STATE / "processed.json"
+LOCK_FILE = STATE / "poll.lock"
+STATUS_FILE = STATE / "relay-status.json"
 API = "https://odin-control.vercel.app/api/relay"
 MAX_RESPONSE = 150000
 POLL_SECONDS = 45
@@ -83,6 +89,69 @@ def save_seen(ids):
     temp.replace(SEEN_FILE)
 
 
+def status_reply(mode):
+    """Only fixed, bounded read-only device tasks; no model-generated commands."""
+    def command(*args, binary=False):
+        result = subprocess.run(
+            ["git", *args], cwd=ROOT, capture_output=True,
+            text=not binary, check=False, timeout=12
+        )
+        if result.returncode:
+            raise RuntimeError("Read-only Git status check failed")
+        return result.stdout
+
+    head = command("rev-parse", "HEAD").strip()
+    if len(head) != 40 or any(c not in "0123456789abcdef" for c in head):
+        raise RuntimeError("Invalid Git revision")
+    tracked = command("status", "--porcelain", "--untracked-files=no")
+    untracked = command("ls-files", "--others", "--exclude-standard", "-z", binary=True)
+    details = ("head=" + head[:12] + " tracked_clean=" + str(not bool(tracked.strip())).lower()
+               + " untracked_count=" + str(len([p for p in untracked.split(b"\0") if p])))
+    if mode == "/task git-status":
+        return "ODIN_TASK_COMPLETE verified=true task=git-status " + details
+    if mode == "/task queue-status":
+        queue = ROOT / "state" / "task-queue"
+        counts = {
+            key: sum(1 for _ in (queue / key).glob("*.json"))
+            for key in ("pending", "running", "done")
+        }
+        return ("ODIN_TASK_COMPLETE verified=true task=queue-status "
+                + " ".join(key + "=" + str(value) for key, value in counts.items())
+                + " " + details)
+    return "ODIN_STATUS_VERIFIED " + details
+
+
+@contextlib.contextmanager
+def exclusive_poll():
+    STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(STATE, 0o700)
+    fd = os.open(LOCK_FILE, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise RuntimeError("Another Odin relay poll is already active") from None
+        yield
+    finally:
+        os.close(fd)
+
+
+def write_poll_status(handled, failed, count):
+    """Keep private operational evidence without storing messages or keys."""
+    record = {
+        "checked_at": datetime.now(UTC).isoformat(),
+        "processed": handled, "failed": failed, "inbox_count": count,
+        "ok": failed == 0,
+    }
+    temp = STATE / ("relay-status-" + str(os.getpid()) + ".tmp")
+    with temp.open("x", encoding="utf-8") as handle:
+        os.chmod(temp, 0o600)
+        json.dump(record, handle)
+        handle.flush()
+        os.fsync(handle.fileno())
+    temp.replace(STATUS_FILE)
+
+
 def handle_message(token, msg, seen, answer_fn):
     mid = msg.get("id")
     if not isinstance(mid, str) or len(mid) != 32 or any(
@@ -107,11 +176,17 @@ def handle_message(token, msg, seen, answer_fn):
         # A transport test is deliberately not AI inference or a shell command.
         # It works when model credentials are unavailable, proving the real
         # Odin process received and replied to the authenticated message.
-        answer = (
-            "ODIN_RELAY_PONG — reply generated on the Odin device; "
-            "AI inference not used."
-            if text.strip() == "/ping" else answer_fn(text)
-        )
+        clean = text.strip()
+        if clean == "/ping":
+            answer = ("ODIN_RELAY_PONG — reply generated on the Odin device; "
+                      "AI inference not used.")
+        elif clean in ("/status", "/task git-status", "/task queue-status"):
+            answer = status_reply(clean)
+        elif clean.startswith("/task "):
+            answer = ("ODIN_TASK_REJECTED: allowed tasks: /task git-status, "
+                      "/task queue-status")
+        else:
+            answer = answer_fn(text)
         if not isinstance(answer, str) or not answer.strip():
             raise RuntimeError("No model response")
         answer = answer.strip()[:2000]
@@ -151,15 +226,41 @@ def respond_with_odin(text):
 
 
 def poll_once(token, answer_fn=respond_with_odin):
-    payload = request(token)
-    if payload.get("source") != "private-odin-relay":
-        raise RuntimeError("Unexpected relay response")
-    seen = load_seen()
-    processed = 0
-    for msg in payload.get("messages", [])[:30]:
-        if handle_message(token, msg, seen, answer_fn):
-            processed += 1
-    return processed
+    with exclusive_poll():
+        payload = request(token)
+        if payload.get("source") != "private-odin-relay":
+            raise RuntimeError("Unexpected relay response")
+        messages = payload.get("messages", [])
+        if not isinstance(messages, list) or len(messages) > 200:
+            raise RuntimeError("Unexpected private relay message count")
+        seen = load_seen()
+        processed, failed, inspected = 0, 0, 0
+        for msg in messages:
+            if not isinstance(msg, dict):
+                failed += 1
+                continue
+            if msg.get("sender") != "iphone" or msg.get("to") != "odin":
+                continue
+            if msg.get("id") in seen or msg.get("status") in ("replied", "failed"):
+                continue
+            if inspected >= 30:
+                break
+            inspected += 1
+            try:
+                if handle_message(token, msg, seen, answer_fn):
+                    processed += 1
+            except (RuntimeError, ValueError, OSError) as error:
+                failed += 1
+                # Never log a prompt, model response, private URL, or key.
+                print("ODIN_RELAY_MESSAGE_FAILURE id_tail="
+                      + str(msg.get("id", ""))[-6:] + " type="
+                      + type(error).__name__, file=sys.stderr, flush=True)
+                # Continue other independent messages instead of blocking the
+                # entire inbox behind one failed receipt.
+        write_poll_status(processed, failed, len(messages))
+        if failed:
+            raise RuntimeError(str(failed) + " private message(s) failed; see relay-status.json")
+        return processed
 
 
 def main(argv=None):
@@ -167,7 +268,15 @@ def main(argv=None):
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--once", action="store_true")
     mode.add_argument("--serve", action="store_true")
+    mode.add_argument("--status", action="store_true")
     args = parser.parse_args(argv)
+    if args.status:
+        try:
+            record = json.loads(STATUS_FILE.read_text(encoding="utf-8"))
+            print("Private relay status:", json.dumps(record, sort_keys=True))
+        except (FileNotFoundError, OSError, ValueError):
+            print("Private relay status: no completed poll record")
+        return
     token = read_token()
     if args.serve:
         while True:

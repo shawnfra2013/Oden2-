@@ -30,6 +30,15 @@ fi
 printf 'Starting commit: '
 git rev-parse HEAD
 git fetch origin main
+# A CI-gated unattended pull must not follow an unexpected new remote tip.
+# The check is repeated after fetch to prevent a branch-move race.
+if [[ -n "${ODIN_EXPECTED_SHA:-}" ]]; then
+  if [[ ! "${ODIN_EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]] ||
+     [[ "$(git rev-parse origin/main)" != "${ODIN_EXPECTED_SHA}" ]]; then
+    printf 'STOP: Remote revision differs from reviewed CI target.\n' >&2
+    exit 1
+  fi
+fi
 if ! git merge-base --is-ancestor HEAD origin/main; then
   printf 'STOP: Local main has diverged from GitHub.\n' >&2
   exit 1
