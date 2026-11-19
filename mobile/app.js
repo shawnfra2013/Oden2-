@@ -616,7 +616,16 @@ function renderRelay(){
         m.sender==="odin"?"odin":"iphone"));
       row.append(create("div","relay-entry-label",actor+" · "+time(m.at)));
       row.append(create("div","relay-entry-text",m.text));
-      row.append(create("div","relay-entry-status",m.status));
+      let stateLabel=m.status;
+      if(!fromCloud && m.sender==="iphone" &&
+         ["queued","delivered","read"].includes(m.status)){
+        const age=Date.now()-Date.parse(m.at);
+        if(m.status==="queued" && age>120000)stateLabel="Queued · Odin has not acknowledged (delayed)";
+        else if(m.status==="read" && age>90000)stateLabel="Read by Odin · awaiting response";
+        else if(m.status==="delivered")stateLabel="Delivered to Odin · awaiting processing";
+      }
+      if(m.status==="failed")stateLabel="Failed · review Odin relay status";
+      row.append(create("div","relay-entry-status",stateLabel));
       return row;
     }) : [create("div","empty-state","No messages or replies yet")]);
   document.title=count?"("+count+") Odin Control":"Odin — Control Center";
