@@ -269,3 +269,12 @@ The local command and authenticated relay share a single execution lock.
    private network path and a revocable, dedicated Termux SSH identity.
    Acceptance requires an authenticated read-only shell probe from the
    intended session and confirmation that removing the key revokes access.
+
+### Durable automatic rollout evidence
+
+The updater writes `state/last-auto-rollout.json` when an automatic pull
+reaches the service reload step. It records the exact revision, pull
+timestamp, and reload status (`pending`, `verified`, or `unverified`).
+Later no-op or failed syncs preserve that record. The first automatic
+pull performed by the new updater supplies the first record. Confirm it
+from an Odin health receipt after at least one subsequent no-op sync.

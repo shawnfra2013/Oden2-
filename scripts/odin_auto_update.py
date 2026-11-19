@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 FLAG = ROOT / "state" / "auto-update.enabled"
 RESULT = ROOT / "state" / "auto-update-result.json"
+ROLLOUT_RESULT = ROOT / "state" / "last-auto-rollout.json"
 SAFE_PULL = ROOT / "scripts" / "odin-safe-pull.sh"
 REPO = "shawnfra2013/Oden2-"
 ORIGINS = {
@@ -54,6 +55,13 @@ def save_result(record, destination=RESULT):
         handle.flush()
         os.fsync(handle.fileno())
     temp.replace(destination)
+
+
+def save_rollout(evidence, reload_status):
+    try:
+        save_result({**evidence, "reload_status": reload_status}, ROLLOUT_RESULT)
+    except (OSError, RuntimeError):
+        print("ODIN_UPDATE_ROLLOUT_EVIDENCE_WRITE_FAILED", file=sys.stderr, flush=True)
 
 
 def flag_is_enabled(path=FLAG):
@@ -220,6 +228,9 @@ def main(argv=None):
     print("ODIN_UPDATE", record["status"], record["reason"],
           record["after"] or record["target"] or "", flush=True)
     if needs_reload:
+        rollout = record if record["status"] == "updated" else previous
+        evidence = {"revision": rollout["after"], "checked_at": rollout["checked_at"]}
+        save_rollout(evidence, "pending")
         # Execute the newly installed helper after the exact revision passed CI.
         # Keep the calling sync supervisor alive while it holds the sync lock.
         try:
@@ -228,9 +239,11 @@ def main(argv=None):
                  "--after-update"],
                 cwd=ROOT, check=False, timeout=200,
             )
+            save_rollout(evidence, "unverified" if reloaded.returncode else "verified")
             if reloaded.returncode:
                 print("ODIN_UPDATE_RELOAD_UNVERIFIED", file=sys.stderr, flush=True)
         except (OSError, subprocess.TimeoutExpired):
+            save_rollout(evidence, "unverified")
             print("ODIN_UPDATE_RELOAD_UNVERIFIED", file=sys.stderr, flush=True)
     return 1 if record["status"] in {"blocked", "error"} else 0
 

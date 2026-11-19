@@ -195,3 +195,7 @@ GitHub outbox receipts contain only these structured fields and exclude
 raw logs, paths, environment values, and private conversations. An updater
 reason reflects its last recorded result. Stage 5 reachability is a separate
 HTTP probe and does not depend on the worker process state.
+
+The health receipt can include the last recorded automatic rollout's exact
+revision, timestamp, and reload status. The checkout revision still reports
+the current checkout. Older installations may have no saved rollout.

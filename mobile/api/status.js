@@ -27,7 +27,7 @@ const SAFE_KEYS = new Set([
   "expected_sha", "head_before", "head_after", "revision_matches",
   "branch_main", "tests_ran", "verified", "local_sha", "remote_main_sha",
   "fast_forward_possible", "target_matches", "untracked_collisions",
-  "safe_to_attempt_pull", "applied", "checks", "stage5_reachable", "services", "sync_reason"
+  "safe_to_attempt_pull", "applied", "checks", "stage5_reachable", "services", "sync_reason", "last_rollout"
 ]);
 
 const HEALTH_SERVICES = [
@@ -82,6 +82,14 @@ function sanitize(entry, expectedId) {
         services[name] = safe;
       }
       result.services = services;
+    } else if (key === "last_rollout") {
+      if (entry.action === "odin_health" && value && typeof value === "object"
+          && SHA.test(value.revision || "") && typeof value.revision === "string"
+          && typeof value.checked_at === "string" && Number.isFinite(Date.parse(value.checked_at))
+          && ["pending", "verified", "unverified"].includes(value.reload_status)) {
+        result.last_rollout = {revision: value.revision, checked_at: value.checked_at,
+          reload_status: value.reload_status};
+      }
     } else if (key === "sync_reason") {
       if (entry.action === "odin_health" && SYNC_REASONS.has(value)) result[key] = value;
     } else if (typeof value === "boolean") result[key] = value;

@@ -243,3 +243,8 @@ Remaining limitations:
   managed Odin service. Existing all-service commands remain available.
 - The updater's GitHub Actions query is pinned to the target SHA and bounded
   to prevent a long workflow history from blocking a release pull.
+
+## Unreleased — Automatic rollout evidence
+
+- Odin keeps the last automatic pull and reload outcome across no-op syncs.
+- Odin health reports the saved revision, timestamp, and reload result.
