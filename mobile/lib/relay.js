@@ -1,9 +1,9 @@
 "use strict";
-const {put,get,list}=require("@vercel/blob");
+const {put,get}=require("@vercel/blob");
 const {randomBytes,timingSafeEqual,createHash}=require("node:crypto");
-const PREFIX="odin-relay/v1/events/";
+const PATH="odin-relay/v1/private-messages.json";
 const ID=/^[0-9a-f]{32}$/;
-const MAX_EVENTS=150;
+const MAX_EVENTS=120;
 function isText(value){return typeof value==="string" && value.trim().length>0 && value.length<=2000 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value);}
 function safeCompare(a,b){
   if(typeof a!=="string"||typeof b!=="string"||a.length<32||b.length<32)return false;
@@ -17,37 +17,41 @@ function deviceAuthorized(req) {
     && typeof auth==="string" && auth.startsWith("Bearer ")
     && safeCompare(auth.slice(7),token);
 }
+async function readState() {
+  const blob=await get(PATH,{access:"private",useCache:false});
+  if(!blob || blob.statusCode!==200)return {etag:null,events:[]};
+  const raw=await new Response(blob.stream).text();
+  if(raw.length>500000)throw Error("Relay state exceeds limit");
+  const data=JSON.parse(raw);
+  if(!data || data.version!==1 || !Array.isArray(data.events))
+    throw Error("Invalid relay state");
+  return {etag:blob.blob?.etag||null,events:data.events.slice(-MAX_EVENTS)};
+}
 async function recordEvent(event){
   const id=randomBytes(16).toString("hex");
   const at=new Date().toISOString();
   const entry={version:1,id,at,...event};
-  const path=PREFIX+at.replace(/[-:.]/g,"")+"-"+id+".json";
-  await put(path,JSON.stringify(entry),{
-    access:"private",addRandomSuffix:false,contentType:"application/json",
-    cacheControlMaxAge:60,ttlDays:30
-  });
-  return entry;
-}
-async function readEvent(path){
-  const blob=await get(path,{access:"private",useCache:false});
-  if(!blob||blob.statusCode!==200)return null;
-  const data=await new Response(blob.stream).text();
-  if(data.length>8000)return null;
-  try{return JSON.parse(data);}catch{return null;}
+  for(let attempt=0;attempt<4;attempt++){
+    const {etag,events}=await readState();
+    const next={version:1,events:[...events,entry].slice(-MAX_EVENTS)};
+    try {
+      await put(PATH,JSON.stringify(next),{
+        access:"private",addRandomSuffix:false,contentType:"application/json",
+        cacheControlMaxAge:60,
+        ...(etag?{allowOverwrite:true,ifMatch:etag}:{allowOverwrite:false})
+      });
+      return entry;
+    }catch(err){
+      if(attempt===3)throw err;
+    }
+  }
+  throw Error("Relay write could not commit");
 }
 async function loadEvents(){
-  const files=[];let cursor=null;
-  for(let page=0;page<3;page++){
-    const result=await list({prefix:PREFIX,limit:100,...(cursor?{cursor}:{})});
-    files.push(...result.blobs.filter(x=>x.pathname.startsWith(PREFIX)));
-    if(!result.hasMore||!result.cursor)break;
-    cursor=result.cursor;
-  }
-  // Bounded to avoid unbounded serverless fan-out.
-  const ordered=files.sort((a,b)=>b.pathname.localeCompare(a.pathname)).slice(0,MAX_EVENTS);
-  const events=(await Promise.all(ordered.map(b=>readEvent(b.pathname)))).filter(Boolean);
-  return events.filter(e=>e.version===1 && ID.test(e.id)
-      && Number.isFinite(Date.parse(e.at)) && ["message","receipt"].includes(e.kind))
+  const {events}=await readState();
+  return events.filter(e=>e&&e.version===1&&ID.test(e.id)
+    &&Number.isFinite(Date.parse(e.at))
+    &&["message","receipt"].includes(e.kind))
     .sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
 }
 function view(events,viewer) {
