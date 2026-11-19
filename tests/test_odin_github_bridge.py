@@ -106,7 +106,7 @@ class BridgeRequestTests(unittest.TestCase):
         self.assertEqual(self.decode()["action"], "ping")
 
     def test_accept_only_declared_read_only_actions(self):
-        for action in bridge.ACTIONS - {"verify_release"}:
+        for action in bridge.ACTIONS - bridge.REVISION_ACTIONS:
             with self.subTest(action=action):
                 self.request["action"] = action
                 self.assertEqual(self.decode()["action"], action)
