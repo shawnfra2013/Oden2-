@@ -471,7 +471,7 @@ function renderSecureState() {
   } else {
     $("accessState").textContent="Authenticated for this tab. Cloud AI: "
       +(p.cloud?"ready":"needs server key")
-      +" · Odin diagnostics: "+(p.diagnostics?"ready":"needs GitHub token");
+      +" · Public diagnostics: "+(p.diagnostics?"ready":"needs GitHub token");
   }
   $("cloudChatBanner").textContent=ready&&p.cloud
     ? "Cloud AI available · Separate from this ChatGPT app thread"
@@ -516,7 +516,7 @@ async function connectPrivateAccess(token){
   privateState.connected=true;
   privateState.cloud=result.cloud_chat_configured===true;
   privateState.diagnostics=result.device_diagnostics_configured===true;
-  privateState.relay=result.private_relay_configured===true;
+  privateState.relay=result.legacy_relay_enabled===true && result.private_relay_configured===true;
   privateState.paired=result.odin_pairing_configured===true;
   $("accessToken").value="";
   refreshRelay();
@@ -722,6 +722,7 @@ const RELAY_FAILURE_LABELS=Object.freeze({
   status_unavailable:"Odin AI status could not be checked"
 });
 function renderRelay(){
+  for(const panel of document.querySelectorAll("[data-legacy-relay]"))panel.hidden=!privateState.relay;
   const unlocked=privateState.connected && privateState.relay===true;
   $("relayMessage").disabled=!unlocked;
   $("inferenceProof").disabled=!unlocked||!privateState.paired||relayLocal.sending;

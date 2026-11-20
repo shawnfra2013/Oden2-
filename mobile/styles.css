@@ -72,3 +72,5 @@ main{padding:14px 0 128px}.page{display:none;animation:appear .22s ease}.page.ac
 .vault-info{font-size:10px;line-height:1.55;color:#9aa6bd;margin:9px 0 0}
 .vault-actions{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 12px}
 .vault-actions button{text-align:left}
+
+[data-legacy-relay][hidden]{display:none!important}

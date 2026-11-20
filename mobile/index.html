@@ -87,7 +87,7 @@
       <section class="page" id="view-chat" aria-label="Chat">
         <div class="eyebrow">CHAT & DELEGATION</div>
         <h1>Talk to <span class="muted-title">Odin.</span></h1>
-        <p class="intro">A place for the conversation relay—grounded in what the device has actually returned.</p>
+        <p class="intro">Run device checks through the private GitHub mailbox or use cloud chat below.</p>
         <div class="panel secure-connect">
           <div class="secure-heading"><span class="lock-icon">⌁</span><div><strong>Private controls</strong><p>Remember this browser with one-time approval, or connect with an existing access token.</p></div></div>
           <button type="button" id="rememberBrowser" class="secondary-action">Remember this browser</button>
@@ -115,7 +115,13 @@
           <div class="connect-state" id="accessState" role="status">Not connected. Set up the server secrets first.</div>
           <button class="text-link" id="disconnectButton" type="button" disabled>Lock private session</button>
         </div>
-        <div class="panel relay-panel">
+        <section class="panel" aria-label="Private GitHub mailbox">
+          <strong>Odin private mailbox</strong>
+          <p>Choose Run workflow to send a device check. Ping uses no model credits. Each completed run links to its matching device receipt.</p>
+          <a class="secondary-action" href="https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml">Open private mailbox</a>
+          <a class="text-link" href="https://github.com/shawnfra2013/Odin-private-bridge/tree/odin-bridge-outbox/bridge/responses">View device receipts</a>
+        </section>
+        <div class="panel relay-panel" data-legacy-relay hidden>
           <div class="relay-header">
             <div><strong>Messages & responses</strong><p>iPhone ↔ Odin receipts and cloud AI replies, clearly identified by source</p></div>
             <span class="live-pill neutral" id="relayBadge"><span class="status-dot"></span> Not paired</span>
@@ -152,7 +158,7 @@
           <div class="chat-tools"><button class="text-link" id="clearChat" type="button">Clear this session</button><span id="chatSendStatus">No messages sent</span></div>
         </div>
         <div class="panel notice-panel"><div class="notice-icon">⌁</div><div><strong>Odin device messages are separate.</strong>
-          <p>This cloud assistant cannot secretly control Odin. Use the diagnostic controls in System for verified device actions. Private agent-to-phone conversation still needs its own secure relay.</p></div></div>
+          <p>The private mailbox accepts ping, Stage 5 health, staging verification and a fixed model challenge. Use cloud chat for open-ended questions.</p></div></div>
         <div class="panel chat-message-sample"><div class="speaker">LATEST VERIFIED ODIN RECEIPT</div>
           <div id="chatReceipt">Checking the latest device response…</div><div class="receipt-note">Device evidence, not a ChatGPT model reply.</div></div>
         <a class="secondary-action" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT <span aria-hidden="true">↗</span></a>
@@ -185,10 +191,10 @@
             <button data-odin-action="verify_release" disabled>Verify revision</button>
           </div>
           <div class="action-status" id="actionStatus">Connect your private session to submit read-only device requests.</div>
-          <div class="device-notice">These public GitHub diagnostics are read-only. Service restarts use the separately authenticated private control below. No arbitrary commands or package installation.</div>
+          <div class="device-notice">These public GitHub diagnostics are read-only. No arbitrary commands or package installation.</div>
         </div>
-        <div class="section-heading"><h2>Service controls</h2><span class="section-aside">PRIVATE DEVICE CONTROL</span></div>
-        <div class="panel controls-panel" id="restartControls">
+        <div class="section-heading" data-legacy-relay hidden><h2>Service controls</h2><span class="section-aside">PRIVATE DEVICE CONTROL</span></div>
+        <div class="panel controls-panel" id="restartControls" data-legacy-relay hidden>
           <div class="setting-row">
             <div><span class="setting-label">Restart all Odin services</span>
               <p>Restart the existing supervised Git sync, task worker, optional GitHub bridge and private relay. Odin stays powered on.</p>

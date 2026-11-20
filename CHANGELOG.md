@@ -1,6 +1,10 @@
+## November 20 · Direct private mailbox access
+
+The dashboard opens the private GitHub mailbox for bounded device checks. The legacy journal and restart controls require explicit server opt-in with `ODIN_ENABLE_LEGACY_RELAY=1`. Device agent and mailbox schema are unchanged.
+
 ## Verified private inference round trip
 
-On November 20 at 10:29 a.m. Central, the physical Odin completed the private GitHub mailbox → OpenAI → mailbox challenge. The receipt matched the submitted ID and expected answer, reported model `gpt-4.1-mini-2025-04-14`, included a provider response ID, and measured 2,320 ms on the device. The private outbox holds the full receipt. The production browser control is deployed; a separate authenticated iPhone relay receipt remains pending.
+On November 20 at 10:29 a.m. Central, the physical Odin completed the private GitHub mailbox → OpenAI → mailbox challenge. The receipt matched the submitted ID and expected answer, reported model `gpt-4.1-mini-2025-04-14`, included a provider response ID, and measured 2,320 ms on the device. The private outbox holds the full receipt.
 
 ## Termux installer and hosted device proof
 

@@ -1,5 +1,8 @@
 # Odin private message relay — phone ↔ device
 
+Historical runbook for the optional Blob journal. The active private device bridge and acceptance checks are documented in [the GitHub mailbox runbook](ODIN_GITHUB_BRIDGE.md). The dashboard hides the legacy controls unless the operator sets `ODIN_ENABLE_LEGACY_RELAY=1`.
+
+
 ## Simple transport test (no AI key required)
 
 The device relay recognizes exactly `/ping` as a bounded handshake. It returns

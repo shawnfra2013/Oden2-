@@ -9,6 +9,7 @@ module.exports=function handler(req,res){
     cloud_chat_configured:Boolean(openAiApiKey() && process.env.ODIN_OPENAI_MODEL),
     device_diagnostics_configured:Boolean(process.env.ODIN_GITHUB_TOKEN),
     private_odin_conversation_connected:false,
+    legacy_relay_enabled:process.env.ODIN_ENABLE_LEGACY_RELAY==="1",
     private_relay_configured:Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_OIDC_TOKEN),
     odin_pairing_configured:Boolean(process.env.ODIN_DEVICE_RELAY_TOKEN),
     exact_chatgpt_thread_connected:false,

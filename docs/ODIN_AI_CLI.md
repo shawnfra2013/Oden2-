@@ -1,6 +1,9 @@
 # Talk to Odin AI from Termux and Stage 5
 
-For the November 20 on-device OpenAI result and fixed private mailbox inference diagnostic, see [the private probe runbook](ODIN_GITHUB_BRIDGE.md#private-inference-probe). The private mailbox round trip passed on November 20; authenticated hosted relay acceptance is pending.
+Current device transport and November 20 verification are documented in [the private GitHub mailbox runbook](ODIN_GITHUB_BRIDGE.md). Use that mailbox for device checks.
+
+
+For the November 20 on-device OpenAI result and fixed private mailbox inference diagnostic, see [the private probe runbook](ODIN_GITHUB_BRIDGE.md#private-inference-probe). The physical mailbox inference check passed on November 20.
 
 ## What this actually connects
 

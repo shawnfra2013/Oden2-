@@ -1,6 +1,9 @@
 # ChatGPT / Claude -> GitHub -> Odin workflow
 
-For the November 20 on-device OpenAI result and fixed private mailbox inference diagnostic, see [the private probe runbook](ODIN_GITHUB_BRIDGE.md#private-inference-probe). The private mailbox round trip passed on November 20; authenticated hosted relay acceptance is pending.
+Current device transport and November 20 verification are documented in [the private GitHub mailbox runbook](ODIN_GITHUB_BRIDGE.md). Use that mailbox for device checks.
+
+
+For the November 20 on-device OpenAI result and fixed private mailbox inference diagnostic, see [the private probe runbook](ODIN_GITHUB_BRIDGE.md#private-inference-probe). The physical mailbox inference check passed on November 20.
 
 ## Purpose
 Use GitHub as the canonical source tree. ChatGPT or Claude may propose changes, run checks where their tools allow, and write to GitHub only through an explicitly authorized integration. Odin 2 (Android 10/Termux) pulls accepted changes into its existing checkout. This is a source-code delivery workflow, **not** a live remote terminal or an always-on AI agent.
