@@ -1,7 +1,16 @@
 <!-- ODIN_STAGE4_CHECKPOINT_2026-11-10 -->
 # Odin — Technical Project Memory
 
-## Current device checkpoint · November 19, 2026, 2:21 p.m. Central
+## November 20, 2026 · Private mailbox and OpenAI verification
+
+The physical Odin passed private staging readback before and after the mailbox
+service restarted on `bb9ea12`. A subsequent staging probe also returned
+52 bytes and the independently calculated SHA-256. In a separate interactive
+Termux test, the operator observed OpenAI HTTP 200 and an exact randomized
+challenge answer using `gpt-4.1-mini`. Those observations cover two paths.
+The combined mailbox-to-provider test requires a fresh private inference receipt.
+
+## Historical device checkpoint · November 19, 2026, 2:21 p.m. Central
 
 - The [release receipt](https://github.com/shawnfra2013/Oden2-/blob/odin-bridge-outbox/bridge/responses/4f975f6627818970040b447c2e50d51b.json) verifies on-device main `46e528c`, a clean tracked tree, and passing Stage 4, Stage 5 and Ruff. The [health receipt](https://github.com/shawnfra2013/Oden2-/blob/odin-bridge-outbox/bridge/responses/e0280260b3ae239ff33ccc6a75b02f40.json) confirms the verified rollout of the same revision, five running services, Stage 5 reachable, zero pending or running jobs, and a 23-second-old worker heartbeat.
 - The GitHub bridge runs fixed on-device commands and returns a receipt. Interactive SSH remains unverified. Reuse the receipts above for this revision.

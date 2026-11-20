@@ -1,6 +1,17 @@
+## November 20, 2026 · Private mailbox and OpenAI verification
+
+The physical Odin passed private staging readback before and after the mailbox
+service restarted on `bb9ea12`. A subsequent staging probe also returned
+52 bytes and the independently calculated SHA-256. In a separate interactive
+Termux test, the operator observed OpenAI HTTP 200 and an exact randomized
+challenge answer using `gpt-4.1-mini`. Those observations cover two paths.
+The combined mailbox-to-provider test requires a fresh private inference receipt.
+
+Added canonical request paths, a private opt-in inference challenge, durable attempt accounting, and a reversible Termux rollout. See [the runbook](docs/ODIN_GITHUB_BRIDGE.md#private-inference-probe).
+
 ## November 19, 2026 · Device verification and service status
 
-Recorded the on-device release and rollout receipts for `46e528c`, plus two production blockers. See the [current device checkpoint](docs/PROJECT_MEMORY.md#current-device-checkpoint--november-19-2026-221-pm-central).
+Recorded the on-device release and rollout receipts for `46e528c`, plus two production blockers. See the [current device checkpoint](docs/PROJECT_MEMORY.md#historical-device-checkpoint--november-19-2026-221-pm-central).
 
 
 <!-- odin-stage4-20261017 -->

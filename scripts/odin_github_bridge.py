@@ -39,7 +39,7 @@ ORIGINS = {
 }
 POLL_SECONDS = 60
 PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
-PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe"})
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe"})
 private_mailbox = False
 
 
@@ -295,6 +295,14 @@ def staging_probe(request_id):
 
 
 def status_action(action, request=None):
+    if action == "inference_probe":
+        if not private_mailbox:
+            raise ValueError("Private mailbox required")
+        if __package__:
+            from .odin_inference_probe import probe
+        else:
+            from odin_inference_probe import probe
+        return probe(request["id"])
     if action == "staging_probe":
         return staging_probe(request["id"])
     if action == "worker_probe":
@@ -508,7 +516,7 @@ def process_locked():
             details = status_action(action, request)
             if action == "worker_probe" and details is None:
                 continue
-            status = "complete"
+            status = "complete" if action != "inference_probe" or details["match"] else "unverified"
         except ExpiredRequest:
             details, status = {}, "expired"
         except (OSError, ValueError, TypeError, RuntimeError,

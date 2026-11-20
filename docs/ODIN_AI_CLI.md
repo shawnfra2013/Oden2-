@@ -1,5 +1,7 @@
 # Talk to Odin AI from Termux and Stage 5
 
+For the November 20 on-device OpenAI result and fixed private mailbox inference diagnostic, see [the private probe runbook](ODIN_GITHUB_BRIDGE.md#private-inference-probe). Live acceptance of the combined path requires its own matching receipt.
+
 ## What this actually connects
 
 `python -B scripts/odin_chat.py` opens a conversational AI assistant

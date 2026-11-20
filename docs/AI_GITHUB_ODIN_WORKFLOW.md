@@ -1,5 +1,7 @@
 # ChatGPT / Claude -> GitHub -> Odin workflow
 
+For the November 20 on-device OpenAI result and fixed private mailbox inference diagnostic, see [the private probe runbook](ODIN_GITHUB_BRIDGE.md#private-inference-probe). Live acceptance of the combined path requires its own matching receipt.
+
 ## Purpose
 Use GitHub as the canonical source tree. ChatGPT or Claude may propose changes, run checks where their tools allow, and write to GitHub only through an explicitly authorized integration. Odin 2 (Android 10/Termux) pulls accepted changes into its existing checkout. This is a source-code delivery workflow, **not** a live remote terminal or an always-on AI agent.
 

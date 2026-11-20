@@ -128,3 +128,24 @@ class PrivateMailboxIntegrationTests(unittest.TestCase):
         self.assertEqual(bridge.process_once(), 1)
         self.assertEqual(self.receipt(valid)["status"], "complete")
         self.assertFalse((bridge.OUTBOX / "bridge" / "responses" / f"{nested_id}.json").exists())
+
+    def test_private_inference_receipt_reaches_git_outbox(self):
+        from scripts import odin_inference_probe as inference
+        identifier = self.request(11, action="inference_probe")
+        self.publish()
+        (self.root / "key").write_text("test-only-value")
+        (self.root / "key").chmod(0o600)
+        response = (f"ODIN-{identifier}-63", {"id": "resp_fixture", "model": inference.MODEL,
+                                               "status": "completed"})
+        with patch.object(inference, "CONFIG", self.root), patch.object(
+            inference, "request_answer", return_value=response
+        ) as provider:
+            self.assertEqual(bridge.process_once(), 1)
+            self.assertEqual(bridge.process_once(), 0)
+            provider.assert_called_once()
+        receipt = self.receipt(identifier)
+        self.assertEqual(receipt["status"], "complete")
+        self.assertEqual(receipt["action"], "inference_probe")
+        self.assertTrue(receipt["result"]["match"])
+        self.assertIn("picked_up_at", receipt["timing"])
+        self.assertNotIn("test-only-value", json.dumps(receipt))

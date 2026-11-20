@@ -1,6 +1,6 @@
 # Browser-free GitHub ↔ Odin background bridge
 
-For the November 19 device receipts, production AI and relay blockers, and remaining acceptance work, see the [current device checkpoint](PROJECT_MEMORY.md). Earlier dated sections describe the state at their capture time.
+For the November 20 private mailbox and Termux inference evidence, November 19 device receipts, production AI and relay blockers, and remaining acceptance work, see the [current device checkpoint](PROJECT_MEMORY.md). Earlier dated sections describe the state at their capture time.
 
 
 ## Overview
@@ -250,3 +250,28 @@ The rejected-push test exercises a Git failure with a local remote.
    mailbox pickup and publication time.
 5. Verify per-check names, timings and failure categories for Ruff and
    regression checks on an exact revision before any expanded rollout.
+
+## Private inference probe
+
+Send the standard private request fields with action `inference_probe`.
+The physical device constructs the challenge from its validated request ID,
+uses the OpenAI Responses adapter with a fixed model and a 96-token output
+limit, and compares the complete reply. The public mailbox excludes this action.
+Service opt-in uses a device-owned mode-0600 file,
+`~/.config/odin-private-inference/key`, inside a mode-0700 directory.
+Move the key outside this directory to disable new calls. Keep the SQLite
+attempt journal there across checkouts and restarts. It reserves at most two
+paid attempts per UTC day, including timeouts and failed calls. A repeat
+with the same ID returns saved evidence or an unknown prior outcome.
+
+Run the pinned rollout script from a clean candidate checkout in Termux.
+It runs disposable tests, verifies the published old outbox, then switches
+the detached pilot checkout while its service is down. Startup failures
+restore the old revision. Only the private mailbox receives this capability.
+
+Live acceptance requires a newly submitted request ID, action
+`inference_probe`, status `complete`, provider `openai`, provider response
+ID, returned model, exact answer match and device timing. Retain the actual
+receipt in the private repository. Public documentation records the outcome
+only. A request from the handheld to this ChatGPT conversation remains a
+separate capability. Expansion waits for combined-path acceptance.
