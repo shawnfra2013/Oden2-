@@ -432,7 +432,7 @@ async function authenticatedPost(path, body, token) {
   const response=await fetch(path,{
     method:"POST",cache:"no-store",
     headers:{"Accept":"application/json","Content-Type":"application/json",
-      "Authorization":"Bearer "+token},
+      ...(token ? {"Authorization":"Bearer "+token} : {})},
     body:JSON.stringify(body),
     signal:AbortSignal.timeout(path==="/api/chat"?50000:20000)
   });
@@ -502,7 +502,8 @@ function renderVaultUI(){
   const connected=privateState.connected;
   $("accessForm").hidden=connected || (saved && !preferTokenForm);
   $("vaultUnlockForm").hidden=connected || !saved || preferTokenForm;
-  $("vaultSaveForm").hidden=!connected || (saved && !preferTokenForm);
+  $("rememberBrowser").hidden=connected;
+  $("vaultSaveForm").hidden=!privateState.token || !connected || (saved && !preferTokenForm);
   $("vaultManagement").hidden=!saved;
   $("vaultUseToken").hidden=connected;
   $("vaultUseToken").textContent=preferTokenForm
@@ -620,7 +621,11 @@ $("vaultForget").addEventListener("click",()=>{
     $("accessState").textContent="Could not clear saved access in this browser.";
   }
 });
-$("disconnectButton").addEventListener("click",()=>{
+$("disconnectButton").addEventListener("click",async()=>{
+  if (!privateState.token) {
+    try { await authenticatedPost("/api/browser-device",{action:"forget"},null); }
+    catch { $("accessState").textContent="Could not clear browser sign-in. Retry locking."; return; }
+  }
   lockPrivateAccess();
   preferTokenForm=false;
   renderSecureState();
@@ -789,7 +794,7 @@ async function refreshRelay(){
   try{
     const resp=await fetch("/api/relay",{
       headers:{"Accept":"application/json",
-        "Authorization":"Bearer "+privateState.token},
+        ...(privateState.token ? {"Authorization":"Bearer "+privateState.token} : {})},
       cache:"no-store",signal:AbortSignal.timeout(12000)
     });
     const payload=await resp.json().catch(()=>({}));
@@ -882,3 +887,20 @@ setInterval(()=>{
 },15000);
 renderVaultUI();
 renderRelay();
+
+$("rememberBrowser").addEventListener("click",async()=>{
+  const button=$("rememberBrowser");
+  button.disabled=true;
+  try {
+    const result=await authenticatedPost("/api/browser-device",{action:"register"},null);
+    if (!/^[0-9a-f]{32}$/.test(result.browser_id)) throw Error("Invalid browser ID");
+    $("browserPairState").textContent="Send this browser ID to your Odin project chat for approval: "+result.browser_id;
+  } catch {
+    $("browserPairState").textContent="Could not register this browser. Open Odin Control in a regular Chrome tab and retry.";
+  } finally { button.disabled=false; }
+});
+connectPrivateAccess(null).then(()=>{
+  renderSecureState();
+  renderVaultUI();
+  renderRelay();
+}).catch(()=>{});

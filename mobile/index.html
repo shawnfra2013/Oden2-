@@ -89,7 +89,9 @@
         <h1>Talk to <span class="muted-title">Odin.</span></h1>
         <p class="intro">A place for the conversation relay—grounded in what the device has actually returned.</p>
         <div class="panel secure-connect">
-          <div class="secure-heading"><span class="lock-icon">⌁</span><div><strong>Private controls</strong><p>Connect once with your access token. Optionally save it encrypted on this device and unlock with your password next time.</p></div></div>
+          <div class="secure-heading"><span class="lock-icon">⌁</span><div><strong>Private controls</strong><p>Remember this browser with one-time approval, or connect with an existing access token.</p></div></div>
+          <button type="button" id="rememberBrowser" class="secondary-action">Remember this browser</button>
+          <p class="fine-print" id="browserPairState" role="status"></p>
           <form id="vaultUnlockForm" class="connect-row" hidden>
             <input id="vaultUnlockPassword" type="password" autocomplete="current-password" spellcheck="false" placeholder="Your unlock password" aria-label="Unlock saved Odin access" required>
             <button type="submit" id="vaultUnlockButton">Unlock</button>
