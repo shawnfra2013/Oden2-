@@ -3,6 +3,15 @@
 set -euo pipefail
 umask 077
 target=$(git rev-parse HEAD)
+if [[ "${1:-}" == "--after-update" ]]; then
+  [[ "$(git branch --show-current)" == main && "$(git rev-parse origin/main)" == "$target" ]] ||
+    { echo 'Unattended rollout requires the synchronized main revision.' >&2; exit 1; }
+  [[ -z "$(git status --porcelain --untracked-files=no)" ]] ||
+    { echo 'Unattended rollout requires clean tracked source.' >&2; exit 1; }
+elif [[ "$#" != 0 ]]; then
+  echo 'Unknown rollout option.' >&2
+  exit 2
+fi
 
 service="${PREFIX:?}/var/service/odin-private-mailbox"
 pid_of_service() {
@@ -17,7 +26,7 @@ case "$(git -C "$active" remote get-url origin)" in
 esac
 [[ "$active" == "$HOME/"* && "$active" != "$HOME/odin-workspace" ]] ||
   { echo 'Expected an isolated service checkout.' >&2; exit 1; }
-if git -C "$active" symbolic-ref -q HEAD >/dev/null; then exit 1; fi
+if git -C "$active" symbolic-ref -q HEAD >/dev/null; then echo "Active service checkout must be detached." >&2; exit 1; fi
 [ -z "$(git -C "$active" status --porcelain)" ]
 python -B -m unittest discover -s tests -p 'test_private*.py' -v
 python -B -m unittest discover -s stage5 -p test_openai_adapter.py -v
@@ -26,7 +35,7 @@ git -C "$active" merge-base --is-ancestor "$old" "$target" || { echo "Target mus
 config="$HOME/.config/odin-private-inference"
 mkdir -p -m 700 "$config"
 [ ! -L "$config" ] && [ "$(stat -c %a "$config")" = 700 ] || exit 1
-if [ ! -e "$config/key" ]; then
+if [[ ! -e "$config/key" && "${1:-}" != "--after-update" ]]; then
   python -B - <<'PY'
 import fcntl
 import getpass
@@ -51,7 +60,9 @@ finally:
     Path(temp).unlink(missing_ok=True)
 PY
 fi
-python -B -c 'from scripts.odin_inference_probe import load_key; load_key()'
+if [[ -e "$config/key" ]]; then
+  python -B -c 'from scripts.odin_inference_probe import load_key; load_key()'
+fi
 if [[ "$old" == "$target" ]]; then echo "Already running target $target"; exit 0; fi
 rollback() {
   rc=$?
