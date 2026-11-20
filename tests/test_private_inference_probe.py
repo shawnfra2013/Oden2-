@@ -14,6 +14,7 @@ class PrivateInferenceTests(unittest.TestCase):
     def setUp(self):
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.enterContext(patch.object(inference, "CONFIG", root))
+        self.enterContext(patch("pathlib.Path.home", return_value=root))
         self.key = root / "key"
         self.key.write_text("fixture-value")
         self.key.chmod(0o600)
@@ -38,6 +39,13 @@ class PrivateInferenceTests(unittest.TestCase):
                 self.assertEqual(result["response_id"], "resp_fixture")
                 self.assertEqual(inference.probe(self.identifier), result)
                 call.assert_called_once()
+
+    def test_offline_profile_blocks_paid_probe(self):
+        marker = self.key.parent / ".config/odin-offline/enabled"
+        marker.parent.mkdir(parents=True)
+        marker.touch()
+        with patch.object(inference, "request_answer", side_effect=AssertionError):
+            self.assertEqual(inference.probe(self.identifier)["reason"], "local_only_profile")
 
     def test_opt_in_and_failure_budget(self):
         with patch.object(inference, "request_answer", side_effect=ValueError) as call:

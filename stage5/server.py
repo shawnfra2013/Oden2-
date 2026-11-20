@@ -250,6 +250,8 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 def main():
+    from offline_profile import activate
+    activate(os.environ)
     from conversation_store import ConversationStore
 
     db_path = Path(os.environ.get("ODIN_STAGE5_DB", Path(__file__).resolve().parent.parent / "state" / "conversations.db"))

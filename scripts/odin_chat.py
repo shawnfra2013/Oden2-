@@ -62,6 +62,8 @@ def reply(store, question, identifier=None):
 
 
 def main(argv=None):
+    from offline_profile import activate
+    activate(os.environ)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--once", metavar="MESSAGE", help="Send one question")
     parser.add_argument("--new", action="store_true", help="Start a fresh chat")

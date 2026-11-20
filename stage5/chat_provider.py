@@ -29,6 +29,10 @@ def provider_status(environ=None):
     It checks the environment *visible to the process asking*.
     """
     env = os.environ if environ is None else environ
+    if environ is None:
+        from offline_profile import activate
+        env = dict(env)
+        activate(env)
     name = str(env.get("ODIN_STAGE5_PROVIDER", "groq")).strip().lower()
     enabled = env.get("ODIN_STAGE5_ENABLE_AI") == "1"
     if name == "local":

@@ -35,7 +35,7 @@ async function refreshHealth(){
  try{
   const health=await getJSON("/api/health");
   el("health").textContent="Backend: "+health.status+
-    " | AI: "+(health.ai_enabled?"enabled":"disabled");
+    " | "+(health.provider==="local"?"On-device model · zero OpenAI usage":health.provider)+" | AI: "+(health.ai_enabled?"enabled":"disabled");
   aiReady=health.ai_enabled===true;
   el("send").disabled=sending||!aiReady;
   if(!sending)el("chatStatus").textContent=health.ai_enabled?

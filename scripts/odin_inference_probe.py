@@ -36,6 +36,9 @@ def failure(reason):
 def probe(request_id):
     if not re.fullmatch(r"[0-9a-f]{32}", request_id):
         raise ValueError("Invalid probe ID")
+    from stage5.offline_profile import enabled
+    if enabled():
+        return failure("local_only_profile")
     try:
         key = load_key()
     except (OSError, ValueError):
