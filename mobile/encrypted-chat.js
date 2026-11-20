@@ -33,6 +33,25 @@
       status("Browser paired");
     } catch (e) { status(e.message); }
   };
+  let fileVersion = 0;
+  window.addEventListener("odin-session-lock", () => { fileVersion++; });
+  el("sealedFile").onchange = async event => {
+    const version = ++fileVersion;
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      if (!privateState.connected) throw Error("Unlock private access first");
+      if (file.size > 1600) throw Error("Choose a text excerpt of up to 1,600 UTF-8 bytes");
+      const excerpt = new TextDecoder("utf-8", {fatal:true}).decode(await file.arrayBuffer());
+      if (version !== fileVersion || !privateState.connected) return;
+      const box = el("sealedQuestion");
+      const draft = [box.value.trim(), "File excerpt:", excerpt].filter(Boolean).join("\n");
+      if (draft.length > box.maxLength) throw Error("Shorten the question before attaching the excerpt");
+      box.value = draft;
+      status("File loaded locally. Review the question before sending.");
+    } catch (e) { status(e.message); }
+    finally { if (version === fileVersion) event.target.value = ""; }
+  };
   let locked = false;
   async function deliver() {
     if (locked) return;

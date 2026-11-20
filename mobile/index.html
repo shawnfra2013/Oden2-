@@ -127,9 +127,17 @@
           <label>Odin pairing code <input id="sealedCode" type="password" autocomplete="off"></label>
           <button id="sealedPair" type="button">Remember pairing</button></details>
           <label>Question <textarea id="sealedQuestion" maxlength="4000"></textarea></label>
+          <label>Load a small text file into the question <input type="file" id="sealedFile" accept="text/*,.md,.py,.js,.json,.csv"></label>
           <button id="sealedSend" type="button">Send or check reply</button>
           <button id="sealedDismiss" type="button">Dismiss pending reply</button>
           <p id="sealedStatus" role="status"></p><pre id="sealedAnswer"></pre>
+<details id="localTools" data-question="sealedQuestion" data-answer="sealedAnswer"><summary>Voice and webpage excerpts</summary>
+ <button type="button" id="dictateLocal">Dictate locally</button>
+ <button type="button" id="readLocal">Read reply aloud</button>
+ <button type="button" id="stopVoice">Stop voice</button>
+ <p id="localToolsStatus" role="status"></p>
+ <p>Save this link as a bookmark. Open a page, select text and activate the bookmark to copy an excerpt for Odin. You can also copy selected text directly.</p>
+ <a id="clipBookmark">Clip for Odin</a></details>
         </section>
         <div class="panel relay-panel" data-legacy-relay hidden>
           <div class="relay-header">
@@ -231,5 +239,6 @@
   <script src="/vault.js" defer></script>
   <script src="/app.js" defer></script>
   <script src="/encrypted-chat.js" defer></script>
+<script src="/local-tools.js" defer></script>
 </body>
 </html>

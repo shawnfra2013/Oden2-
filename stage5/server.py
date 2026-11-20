@@ -120,6 +120,9 @@ class Handler(BaseHTTPRequestHandler):
                 200, (ROOT / "style.css").read_bytes(),
                 "text/css; charset=utf-8"
             )
+        elif path == "/local-tools.js":
+            self.send_body(200, (ROOT.parent / "mobile/local-tools.js").read_bytes(),
+                           "text/javascript; charset=utf-8")
         elif path == "/app.js":
             self.send_body(
                 200, (ROOT / "app.js").read_bytes(),
