@@ -1,6 +1,6 @@
 # Odin 2 — Safe self-update and useful device tasks
 
-For the November 20 on-device OpenAI result and fixed private mailbox inference diagnostic, see [the private probe runbook](ODIN_GITHUB_BRIDGE.md#private-inference-probe). Live acceptance of the combined path requires its own matching receipt.
+For the November 20 on-device OpenAI result and fixed private mailbox inference diagnostic, see [the private probe runbook](ODIN_GITHUB_BRIDGE.md#private-inference-probe). The private mailbox round trip passed on November 20; authenticated hosted relay acceptance is pending.
 
 For the November 19 device receipts, production AI and relay blockers, and remaining acceptance work, see the [current device checkpoint](PROJECT_MEMORY.md). Earlier dated sections describe the state at their capture time.
 

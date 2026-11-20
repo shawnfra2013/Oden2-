@@ -1,5 +1,7 @@
 # Browser-free GitHub ↔ Odin background bridge
 
+On November 20 at 10:29 a.m. Central, the physical Odin completed the private GitHub mailbox → OpenAI → mailbox challenge. The receipt matched the submitted ID and expected answer, reported model `gpt-4.1-mini-2025-04-14`, included a provider response ID, and measured 2,320 ms on the device. The private outbox holds the full receipt. The production browser control is deployed; a separate authenticated iPhone relay receipt remains pending.
+
 For the November 20 private mailbox and Termux inference evidence, November 19 device receipts, production AI and relay blockers, and remaining acceptance work, see the [current device checkpoint](PROJECT_MEMORY.md). Earlier dated sections describe the state at their capture time.
 
 

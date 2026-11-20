@@ -1,16 +1,18 @@
 <!-- ODIN_STAGE4_CHECKPOINT_2026-11-10 -->
 # Odin — Technical Project Memory
 
+On November 20 at 10:29 a.m. Central, the physical Odin completed the private GitHub mailbox → OpenAI → mailbox challenge. The receipt matched the submitted ID and expected answer, reported model `gpt-4.1-mini-2025-04-14`, included a provider response ID, and measured 2,320 ms on the device. The private outbox holds the full receipt. The production browser control is deployed; a separate authenticated iPhone relay receipt remains pending.
+
 ## November 20, 2026 · Private mailbox and OpenAI verification
 
-The first live inference installer attempt passed both sets of seven device tests, then stopped before service cutover because Android Python lacked `os.link`. A second attempt stopped at empty or invalid credential input. The corrected installer and new hosted control await physical acceptance.
+The first live inference installer attempt passed both sets of seven device tests, then stopped before service cutover because Android Python lacked `os.link`. A second attempt stopped at empty or invalid credential input. The subsequent mailbox inference receipt confirms device operation. Hosted relay acceptance remains pending.
 
 The physical Odin passed private staging readback before and after the mailbox
 service restarted on `bb9ea12`. A subsequent staging probe also returned
 52 bytes and the independently calculated SHA-256. In a separate interactive
 Termux test, the operator observed OpenAI HTTP 200 and an exact randomized
 challenge answer using `gpt-4.1-mini`. Those observations cover two paths.
-The combined mailbox-to-provider test requires a fresh private inference receipt.
+The later live acceptance result is recorded above.
 
 ## Historical device checkpoint · November 19, 2026, 2:21 p.m. Central
 
