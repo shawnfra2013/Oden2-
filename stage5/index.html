@@ -46,6 +46,13 @@
 <button id="newChat">New chat</button>
 <p id="chatStatus" class="muted">Checking AI availability...</p>
 <pre id="answer"></pre>
+<details id="localTools" data-question="message" data-answer="answer"><summary>Voice and webpage excerpts</summary>
+ <button type="button" id="dictateLocal">Dictate locally</button>
+ <button type="button" id="readLocal">Read reply aloud</button>
+ <button type="button" id="stopVoice">Stop voice</button>
+ <p id="localToolsStatus" role="status"></p>
+ <p>Save this link as a bookmark. Open a page, select text and activate the bookmark to copy an excerpt for Odin. You can also copy selected text directly.</p>
+ <a id="clipBookmark">Clip for Odin</a></details>
 </section>
 <section class="card" id="tasks-panel">
 <h2>Task Dashboard</h2>
@@ -58,5 +65,6 @@
 </section>
 </main>
 <script src="/app.js" defer></script>
+<script src="/local-tools.js" defer></script>
 </body>
 </html>

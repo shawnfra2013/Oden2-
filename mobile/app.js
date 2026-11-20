@@ -524,6 +524,8 @@ async function connectPrivateAccess(token){
   refreshRelay();
 }
 function lockPrivateAccess(){
+  window.dispatchEvent(new Event("odin-session-lock"));
+  $("sealedFile").value="";
   for(const id of ["sealedAnswer","sealedStatus"]) $(id).textContent="";
   for(const id of ["sealedQuestion","sealedCode"]) $(id).value="";
   privateState.token=null;

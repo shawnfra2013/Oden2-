@@ -48,6 +48,13 @@ with sync_playwright() as w:
     browser = w.chromium.launch(executable_path=os.environ.get('ODIN_TEST_CHROMIUM'), args=['--no-sandbox'])
     page = browser.new_page()
     page.set_default_timeout(6000)
+    page.add_init_script("""
+      Object.defineProperty(window, "speechSynthesis", {value: {
+        getVoices: () => [{localService:false,lang:"en-US"}, {localService:true,lang:"en-US"}],
+        cancel: () => {}, speak: utterance => {window.spoken = utterance;}
+      }});
+      window.SpeechSynthesisUtterance = class {constructor(text) {this.text = text;}};
+    """)
     answers = {}
 
     def api(r):
@@ -73,9 +80,17 @@ with sync_playwright() as w:
     page.reload()
     page.click('[data-tab=chat]')
     page.evaluate("connectPrivateAccess('browser-test-credential-only-1234567890')")
+    page.locator("#sealedFile").set_input_files({"name":"note.txt", "mimeType":"text/plain", "buffer":b"private test"})
+    page.locator("#sealedStatus").filter(has_text="File loaded locally").wait_for()
+    assert page.input_value("#sealedQuestion").endswith("private test")
+    assert not answers
     page.fill('#sealedQuestion', 'private test')
     page.click('#sealedSend')
     page.wait_for_function("document.querySelector('#sealedAnswer').textContent==='PRIVATE TEST'", timeout=8000)
+    page.locator("summary", has_text="Voice and webpage excerpts").click()
+    assert page.locator("#clipBookmark").get_attribute("href").startswith("javascript:")
+    page.click('#readLocal')
+    assert page.evaluate('window.spoken.voice.localService && window.spoken.text === "PRIVATE TEST"')
     page.evaluate('lockPrivateAccess()')
     assert page.locator('#sealedAnswer').inner_text() == ''
     print('PASS four navigation tabs, pairing survives reload, WebCrypto → device decrypt → loopback HTTP fixture → device encrypt → browser decrypt, session lock clears answer.')
