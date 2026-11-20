@@ -1,7 +1,10 @@
 """Offline validation tests for the GitHub-backed Odin bridge."""
+import hashlib
 import json
+import tempfile
 import unittest
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -26,6 +29,28 @@ class BridgeRequestTests(unittest.TestCase):
             json.dumps(self.request), self.ID, now=self.now
         )
 
+
+    def test_staging_probe_is_private_only(self):
+        self.request["action"] = "staging_probe"
+        with self.assertRaises(ValueError):
+            self.decode()
+        with patch.object(bridge, "private_mailbox", True):
+            self.assertEqual(self.decode()["action"], "staging_probe")
+            self.request["path"] = "arbitrary.txt"
+            with self.assertRaises(ValueError):
+                self.decode()
+
+    def test_staging_probe_reports_checksum_and_cleans_up(self):
+        payload = f"odin-staging-probe:{self.ID}\n".encode("ascii")
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            with patch.object(bridge, "STATE", state), patch.object(bridge, "private_mailbox", True):
+                receipt = bridge.status_action("staging_probe", {"id": self.ID})
+            self.assertEqual(list(state.iterdir()), [])
+        self.assertEqual(receipt, {
+            "bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        })
 
     def test_accept_explicit_commit_verification(self):
         self.request["action"] = "verify_release"
