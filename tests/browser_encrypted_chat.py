@@ -91,7 +91,7 @@ with sync_playwright() as w:
     page.goto(f"http://127.0.0.1:{server.PORT}")
     page.locator("summary", has_text="Project note").click()
     page.locator("#noteFile").set_input_files({"name":"facts.md", "mimeType":"text/plain", "buffer":b"Sample fact"})
-    page.wait_for_function("document.querySelector('#note').value==='Sample fact'")
+    page.get_by_text('Loaded. Select Include to use this note.', exact=True).wait_for()
     page.click("#saveNote")
     page.reload()
     page.locator("summary", has_text="Project note").click()
@@ -100,7 +100,7 @@ with sync_playwright() as w:
     page.check("#quick")
     page.fill("#message", "use project note")
     page.click("#send")
-    page.wait_for_function("document.querySelector('#answer').textContent==='USE PROJECT NOTE'")
+    page.locator('#answer').filter(has_text='USE PROJECT NOTE').wait_for()
     page.click("#forgetNote")
     page.reload()
     assert page.input_value("#note") == ""
