@@ -22,8 +22,8 @@ def byte_count_proposal(answer):
     return proposal[:160], accepted
 
 
-def check(request_id, *, source=False, coding=False):
-    conn = HTTPConnection("127.0.0.1", 8765, timeout=190)
+def check(request_id, *, source=False, coding=False, port=8765):
+    conn = HTTPConnection("127.0.0.1", port, timeout=190)
     try:
         conn.request("GET", "/api/health")
         response = conn.getresponse()
@@ -53,18 +53,18 @@ def check(request_id, *, source=False, coding=False):
         if coding:
             payload = {"message": "Write one Python expression that returns the number of UTF-8 "
                        "bytes in the string named text. Reply only with the expression.",
-                       "local_options": {"quick": True}}
+                       "local_options": {"quick": True, "reference": ""}}
         if "odin_session" not in cookie:
             raise ValueError("Missing session")
         conn.request("POST", "/api/chat", json.dumps(payload), {
-            "Origin": "http://127.0.0.1:8765", "Content-Type": "application/json",
+            "Origin": f"http://127.0.0.1:{port}", "Content-Type": "application/json",
             "X-Odin-Request": "chat", "Cookie": "odin_session=" + cookie["odin_session"].value})
         response = conn.getresponse()
         data = json.loads(response.read(8192))
         if coding:
             proposal, accepted = byte_count_proposal(data.get("answer", ""))
             return {"match": response.status == 200 and accepted, "proposal": proposal,
-                    "review": "pending", "http_status": response.status,
+                    "review": "pending" if proposal else "no_proposal", "http_status": response.status,
                     "elapsed_ms": data.get("elapsed_ms")}
         return {"match": response.status == 200 and data.get("answer", "").strip() == marker,
                 **({"source_revision": revision} if source else {}),

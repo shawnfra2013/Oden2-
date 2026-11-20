@@ -27,7 +27,11 @@ class Model(BaseHTTPRequestHandler):
         prompt = payload["messages"][-1]["content"]
         if prompt == "use project note":
             assert payload["max_tokens"] == 128 and "Sample fact" in payload["messages"][0]["content"]
-        data = json.dumps({'choices': [{'message': {'content': prompt.upper()}}]}).encode()
+        answer = prompt.upper()
+        if prompt.startswith("Write one Python expression"):
+            assert payload["max_tokens"] == 128
+            answer = "len(text.encode())"
+        data = json.dumps({'choices': [{'message': {'content': answer}}]}).encode()
         self.send_response(200)
         self.end_headers()
         self.wfile.write(data)
@@ -102,6 +106,9 @@ with sync_playwright() as w:
     stage.session_token = secrets.token_urlsafe(32)
     stage.chat_lock = threading.BoundedSemaphore(1)
     threading.Thread(target=stage.serve_forever, daemon=True).start()
+    from scripts.odin_note_check import check
+    proposal = check("1" * 32, coding=True, port=server.PORT)
+    assert proposal["http_status"] == 200 and proposal["match"] and proposal["review"] == "pending"
     page.unroute("**/api/**")
     page.goto(f"http://127.0.0.1:{server.PORT}")
     page.locator("summary", has_text="Project note").click()
