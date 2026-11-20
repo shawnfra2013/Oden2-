@@ -198,6 +198,16 @@ class Handler(BaseHTTPRequestHandler):
         if os.environ.get("ODIN_STAGE5_ENABLE_AI") != "1":
             self.json_body(503, {"error": "AI not enabled yet"})
             return
+        options = data.get("local_options")
+        if "local_options" in data:
+            if os.environ.get("ODIN_STAGE5_PROVIDER") != "local":
+                self.json_body(409, {"error": "Local provider required"})
+                return
+            if (not isinstance(options, dict) or set(options) != {"reference", "quick"}
+                    or type(options["quick"]) is not bool or not isinstance(options["reference"], str)
+                    or len(options["reference"].encode("utf-8", "surrogatepass")) > 1600):
+                self.json_body(400, {"error": "Invalid local chat options"})
+                return
         lock = getattr(self.server, "chat_lock", None)
         if lock is None:
             self.json_body(503, {"error": "Chat concurrency unavailable"})
@@ -212,7 +222,13 @@ class Handler(BaseHTTPRequestHandler):
                     self.json_body(404, {"error": "Conversation not found"})
                     return
                 history = store.get_messages(conversation_id, limit=12) if conversation_id else None
-                answer = ask_ai(question) if history is None else ask_ai(question, history)
+                started = time.monotonic()
+                if options:
+                    from local_adapter import ask_local
+                    answer = ask_local(question, history, **options)
+                else:
+                    answer = ask_ai(question) if history is None else ask_ai(question, history)
+                elapsed_ms = round((time.monotonic() - started) * 1000)
                 if not isinstance(answer, str) or not answer.strip():
                     raise ValueError("Empty or invalid model response")
                 if store is not None:
@@ -239,6 +255,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.json_body(200, {
                 "answer": answer,
+                "elapsed_ms": elapsed_ms,
                 "verification": "unverified",
                 "persisted": store is not None,
                 **({"conversation_id": conversation_id} if store is not None else {})
