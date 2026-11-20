@@ -27,8 +27,13 @@
 <h2>AI Chat</h2>
 <textarea id="message" maxlength="4000" placeholder="Ask Odin..."></textarea>
 <div id="localOptions" hidden>
+<details><summary>Look up Odin code</summary>
+<label>Python function <input id="symbol" maxlength="80" placeholder="local_settings"></label>
+<button type="button" id="lookup">Find function</button>
+<p id="sourceStatus" role="status"></p><div id="sourceMatches"></div>
+</details>
 <label><input id="quick" type="checkbox"> Short reply (up to 128 tokens)</label>
-<details><summary>Project note</summary>
+<details id="notePanel"><summary>Project note</summary>
 <p>Paste or load a short excerpt (1,600 UTF-8 bytes). Save it in this browser to reuse it. Answers that quote it can appear in local conversation history.</p>
 <input type="file" id="noteFile" accept=".md,.txt,text/plain,text/markdown" aria-label="Load a small text file">
 <textarea id="note" aria-label="Project note" maxlength="1600"></textarea>
