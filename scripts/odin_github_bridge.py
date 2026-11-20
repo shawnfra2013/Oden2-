@@ -40,7 +40,7 @@ ORIGINS = {
 }
 POLL_SECONDS = 60
 PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
-PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat"})
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model"})
 private_mailbox = False
 
 
@@ -98,6 +98,10 @@ def validate_request(raw, expected_id, now=None):
     if not isinstance(payload, dict):
         raise TypeError("Invalid request object")
     required = REQUEST_KEYS | ({"expected_sha"} if payload.get("action") in REVISION_ACTIONS else set())
+    if private_mailbox and payload.get("action") == "install_offline_model":
+        required = required | {"expected_sha"}
+        if not isinstance(payload.get("expected_sha"), str) or not SHA_PATTERN.fullmatch(payload["expected_sha"]):
+            raise ValueError("Invalid installation revision")
     if private_mailbox and payload.get("action") == "encrypted_chat":
         required = required | {"sealed"}
         if not isinstance(payload.get("sealed"), str):
@@ -324,6 +328,39 @@ def model_capacity():
 
 
 def status_action(action, request=None):
+    if action == "install_offline_model":
+        if not private_mailbox:
+            raise ValueError("Private mailbox required")
+        canonical = Path.home() / "odin-workspace"
+        expected = request["expected_sha"]
+        for checkout in (ROOT, canonical):
+            if (git("rev-parse", "HEAD", cwd=checkout) != expected
+                    or git("status", "--porcelain", "--untracked-files=no", cwd=checkout)
+                    or git("remote", "get-url", "origin", cwd=checkout) not in ORIGINS):
+                raise ValueError("Unexpected installation checkout")
+        # Read executable content only from the reviewed Git object.
+        installer = git("show", expected + ":scripts/odin-install-offline.sh", cwd=canonical)
+        evidence = STATE / ("offline-install-" + request["id"])
+        if not evidence.exists():
+            atomic_state_file(evidence, b'{"state":"interrupted_or_running"}')
+            with (STATE / "offline-install.log").open("wb") as log_file:
+                proc = subprocess.run(["bash", "-eu", "-o", "pipefail", "-c", installer],
+                                      cwd=canonical, stdin=subprocess.DEVNULL,
+                                      stdout=log_file, stderr=subprocess.STDOUT,
+                                      timeout=3600, check=False)
+            result = {"state": "ready" if proc.returncode == 0 else "failed",
+                      "exit_code": proc.returncode, **model_capacity()}
+            with (STATE / "offline-install.log").open("rb") as handle:
+                handle.seek(max(0, os.fstat(handle.fileno()).st_size - 8192))
+                tail = handle.read().decode(errors="replace")
+            for label, pattern in (("package_unavailable", "Unable to locate package"),
+                                   ("package_error", "dpkg: error"), ("checksum", "checksum differs"),
+                                   ("download_error", "curl: ("), ("coding_check", "coding check did not match"),
+                                   ("startup", "readiness check"), ("ui", "Stage 5 local provider still unverified")):
+                if pattern in tail:
+                    result["detail"] = label
+            atomic_state_file(evidence, json.dumps(result).encode())
+        return json.loads(evidence.read_text())
     if action == "encrypted_chat":
         if not private_mailbox:
             raise ValueError("Private mailbox required")
@@ -599,6 +636,8 @@ def process_locked():
             if action == "worker_probe" and details is None:
                 continue
             status = "complete" if action != "inference_probe" or details["match"] else "unverified"
+            if action == "install_offline_model" and details.get("state") != "ready":
+                status = "unverified"
         except ExpiredRequest:
             details, status = {}, "expired"
         except (OSError, ValueError, TypeError, RuntimeError,

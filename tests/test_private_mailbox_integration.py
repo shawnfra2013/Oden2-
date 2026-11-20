@@ -54,6 +54,16 @@ class PrivateMailboxIntegrationTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
+    def test_private_installer_requires_reviewed_revision_and_rejects_command_fields(self):
+        mid = self.request(11, action="install_offline_model", expected_sha="a"*40)
+        request = json.loads((self.seed / "bridge/requests" / (mid + ".json")).read_text())
+        self.assertEqual(bridge.validate_request(json.dumps(request), mid), request)
+        for change in ({"expected_sha": "main"}, {"command": "pwd"}):
+            with self.assertRaises(ValueError):
+                bridge.validate_request(json.dumps(dict(request, **change)), mid)
+        with patch.object(bridge, "private_mailbox", False), self.assertRaises(ValueError):
+            bridge.validate_request(json.dumps(request), mid)
+
     def publish(self):
         git(self.seed, "add", ".")
         git(self.seed, "commit", "-m", "Requests")

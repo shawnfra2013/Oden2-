@@ -21,3 +21,5 @@ The browser encrypts the question and Odin encrypts its answer, binding both to 
 ## Verification
 
 The browser acceptance workflow runs Chromium with the real UI, WebCrypto, device decryption and local HTTP adapter. Model output and mailbox HTTP transport use deterministic fixtures. The Node tests exercise the authenticated API handler with a simulated GitHub service including retries and pending receipts. On-device acceptance requires measured memory and disk, installed model weights, and a real coding task with Wi-Fi off. Hosted acceptance also requires pairing and a decrypted reply on the chosen UI deployment.
+
+The private mailbox supports a fixed install_offline_model request carrying the exact reviewed source SHA. Both the running mailbox and canonical checkout must match that revision and have clean tracked files. The job runs the repository installer, records its result locally and returns a receipt. Re-reading a claimed request never starts the job again. During installation the private poller waits for completion. Public health checks remain available independently.
