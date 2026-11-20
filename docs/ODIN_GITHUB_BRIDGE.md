@@ -275,3 +275,7 @@ ID, returned model, exact answer match and device timing. Retain the actual
 receipt in the private repository. Public documentation records the outcome
 only. A request from the handheld to this ChatGPT conversation remains a
 separate capability. Expansion waits for combined-path acceptance.
+
+### Hosted device inference check
+
+Use **Chat → Odin Device Inbox → Verify Odin GPT** in a paired session. The UI sends the fixed `/ai-proof` request over the private relay and refreshes the inbox for the matching device reply. This requires the upgraded relay client, working private storage and the on-device private probe credential. Both device entry points share one attempt journal and budget.

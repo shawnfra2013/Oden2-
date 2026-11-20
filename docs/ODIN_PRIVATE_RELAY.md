@@ -160,3 +160,7 @@ delivery hold. Switch Odin Wi-Fi off during the countdown and restore it
 after the local monitor records a failed delivery. The server runs on the
 handheld, so that monitor works offline. If local status becomes unavailable,
 restore connectivity. Ordinary pings retain their usual delivery behavior.
+
+### Hosted device inference check
+
+Use **Chat → Odin Device Inbox → Verify Odin GPT** in a paired session. The UI sends the fixed `/ai-proof` request over the private relay and refreshes the inbox for the matching device reply. This requires the upgraded relay client, working private storage and the on-device private probe credential. Both device entry points share one attempt journal and budget.

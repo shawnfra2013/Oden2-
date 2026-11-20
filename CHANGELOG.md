@@ -1,3 +1,7 @@
+## Termux installer and hosted device proof
+
+The private credential installer uses locked atomic rename on Android. The hosted private inbox can request the same fixed inference check as the mailbox. Physical activation and authenticated hosted acceptance remain pending.
+
 ## November 20, 2026 · Private mailbox and OpenAI verification
 
 The physical Odin passed private staging readback before and after the mailbox

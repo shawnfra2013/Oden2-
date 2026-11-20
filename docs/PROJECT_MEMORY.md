@@ -3,6 +3,8 @@
 
 ## November 20, 2026 · Private mailbox and OpenAI verification
 
+The first live inference installer attempt passed both sets of seven device tests, then stopped before service cutover because Android Python lacked `os.link`. A second attempt stopped at empty or invalid credential input. The corrected installer and new hosted control await physical acceptance.
+
 The physical Odin passed private staging readback before and after the mailbox
 service restarted on `bb9ea12`. A subsequent staging probe also returned
 52 bytes and the independently calculated SHA-256. In a separate interactive

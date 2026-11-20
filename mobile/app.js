@@ -719,6 +719,7 @@ const RELAY_FAILURE_LABELS=Object.freeze({
 function renderRelay(){
   const unlocked=privateState.connected && privateState.relay===true;
   $("relayMessage").disabled=!unlocked;
+  $("inferenceProof").disabled=!unlocked||!privateState.paired||relayLocal.sending;
   $("relaySendButton").disabled=!unlocked||relayLocal.sending;
   $("restartAllButton").disabled=!unlocked||!privateState.paired||relayLocal.sending;
   let restartStatus=!unlocked?"Unlock private controls to restart Odin services.":
@@ -867,6 +868,7 @@ $("restartAllButton").addEventListener("click",async()=>{
   if(!confirmRestart())return;
   await queuePrivateRelayMessage("/restart-services");
 });
+$("inferenceProof").addEventListener("click",()=>queuePrivateRelayMessage("/ai-proof"));
 for(const button of document.querySelectorAll("[data-relay-quick]")){
   button.addEventListener("click",()=>{
     if(!privateState.connected || !privateState.relay)return;

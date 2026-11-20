@@ -66,6 +66,23 @@ class OdinRelayTests(unittest.TestCase):
             self.assertIn("ODIN_RELAY_PONG", calls[-1]["text"])
             self.assertIn(self.ID, seen)
 
+    def test_hosted_proof_returns_correlated_device_evidence(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(client, "STATE", Path(folder)),
+            patch.object(client, "SEEN_FILE", Path(folder) / "seen.json"),
+            patch.object(client, "request", return_value={"accepted": True}) as send,
+            patch.object(client.inference, "probe", return_value={
+                "match": True, "response_id": "resp_example", "model": "gpt-example"
+            }) as probe,
+        ):
+            message = {**self.message(), "text": "/ai-proof"}
+            self.assertTrue(client.handle_message("fixture", message, set(), None))
+            probe.assert_called_once_with(self.ID)
+            reply = send.call_args.args[1]
+            self.assertEqual(reply["for"], self.ID)
+            self.assertIn("resp_example", reply["text"])
+
     def test_does_not_repeat_processed_message(self):
         with patch.object(client, "request", side_effect=AssertionError):
             self.assertFalse(

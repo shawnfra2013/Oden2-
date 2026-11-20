@@ -22,6 +22,7 @@ mkdir -p -m 700 "$config"
 [ ! -L "$config" ] && [ "$(stat -c %a "$config")" = 700 ] || exit 1
 if [ ! -e "$config/key" ]; then
   python -B - <<'PY'
+import fcntl
 import getpass
 import os
 import tempfile
@@ -36,9 +37,12 @@ try:
         handle.write(key)
         handle.flush()
         os.fsync(handle.fileno())
-    os.link(temp, folder / "key")
+    with (folder / ".install.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if not os.path.lexists(folder / "key"):
+            os.replace(temp, folder / "key")
 finally:
-    os.unlink(temp)
+    Path(temp).unlink(missing_ok=True)
 PY
 fi
 python -B -c 'from scripts.odin_inference_probe import load_key; load_key()'
