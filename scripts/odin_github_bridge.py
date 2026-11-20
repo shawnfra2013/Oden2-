@@ -14,6 +14,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.error import URLError
@@ -98,7 +99,7 @@ def validate_request(raw, expected_id, now=None):
     required = REQUEST_KEYS | ({"expected_sha"} if payload.get("action") in REVISION_ACTIONS else set())
     if set(payload) != required:
         raise ValueError("Invalid request fields")
-    if payload["version"] != 1 or payload["id"] != expected_id:
+    if type(payload["version"]) is not int or payload["version"] != 1 or payload["id"] != expected_id:
         raise ValueError("Invalid version or ID")
     allowed = PRIVATE_ACTIONS if private_mailbox else ACTIONS
     if payload["action"] not in allowed:
@@ -502,6 +503,8 @@ def process_locked():
             raw = inbox_git("show", ref + ":" + name, timeout=20)
             request = validate_request(raw, request_id)
             action = request["action"]
+            picked_up_at = utcnow()
+            started = time.monotonic()
             details = status_action(action, request)
             if action == "worker_probe" and details is None:
                 continue
@@ -516,6 +519,11 @@ def process_locked():
             "status": status, "checked_at": iso(utcnow()),
             "result": details,
         }
+        if private_mailbox and status == "complete":
+            receipt["timing"] = {
+                "picked_up_at": picked_up_at.isoformat(timespec="milliseconds"),
+                "action_ms": round((time.monotonic() - started) * 1000),
+            }
         send_response(request_id, receipt)
         processed += 1
         log("Published " + request_id + " status=" + status)
