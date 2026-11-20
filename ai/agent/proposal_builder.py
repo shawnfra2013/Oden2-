@@ -12,7 +12,7 @@ else:
     import orchestrator
     import pipeline
 
-ROOT = Path.home() / "odin-workspace"
+ROOT = Path(__file__).resolve().parents[2]
 PROPOSALS = ROOT / "state" / "proposals"
 
 

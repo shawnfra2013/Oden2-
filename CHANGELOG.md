@@ -1,6 +1,33 @@
+## November 20 · Structure audit repairs
+
+Published the private workflow health and staging validations. The [hardening record](docs/STRUCTURE_HARDENING.md) tracks the 21 findings, browser-dispatched ping, staging digest, source changes and outstanding device cutover.
+
+## November 20 · Direct private mailbox access
+
+The dashboard opens the private GitHub mailbox for bounded device checks. The legacy journal and restart controls require explicit server opt-in with `ODIN_ENABLE_LEGACY_RELAY=1`. Device agent and mailbox schema are unchanged.
+
+## Verified private inference round trip
+
+On November 20 at 10:29 a.m. Central, the physical Odin completed the private GitHub mailbox → OpenAI → mailbox challenge. The receipt matched the submitted ID and expected answer, reported model `gpt-4.1-mini-2025-04-14`, included a provider response ID, and measured 2,320 ms on the device. The private outbox holds the full receipt.
+
+## Termux installer and hosted device proof
+
+The private credential installer uses locked atomic rename on Android. The hosted private inbox can request the same fixed inference check as the mailbox. Physical activation and authenticated hosted acceptance remain pending.
+
+## November 20, 2026 · Private mailbox and OpenAI verification
+
+The physical Odin passed private staging readback before and after the mailbox
+service restarted on `bb9ea12`. A subsequent staging probe also returned
+52 bytes and the independently calculated SHA-256. In a separate interactive
+Termux test, the operator observed OpenAI HTTP 200 and an exact randomized
+challenge answer using `gpt-4.1-mini`. Those observations cover two paths.
+The later live acceptance result is recorded above.
+
+Added canonical request paths, a private opt-in inference challenge, durable attempt accounting, and a reversible Termux rollout. See [the runbook](docs/ODIN_GITHUB_BRIDGE.md#private-inference-probe).
+
 ## November 19, 2026 · Device verification and service status
 
-Recorded the on-device release and rollout receipts for `46e528c`, plus two production blockers. See the [current device checkpoint](docs/PROJECT_MEMORY.md#current-device-checkpoint--november-19-2026-221-pm-central).
+Recorded the on-device release and rollout receipts for `46e528c`, plus two production blockers. See the [current device checkpoint](docs/PROJECT_MEMORY.md#historical-device-checkpoint--november-19-2026-221-pm-central).
 
 
 <!-- odin-stage4-20261017 -->

@@ -420,7 +420,9 @@ function addChatLine(role,text) {
   });
   renderRelay();
 }
+let pendingCloudTurn=null;
 function clearPrivateChat() {
+  pendingCloudTurn=null;
   privateState.history=[];
   privateState.cloudEvents=[];
   renderRelay();
@@ -432,7 +434,7 @@ async function authenticatedPost(path, body, token) {
   const response=await fetch(path,{
     method:"POST",cache:"no-store",
     headers:{"Accept":"application/json","Content-Type":"application/json",
-      "Authorization":"Bearer "+token},
+      ...(token ? {"Authorization":"Bearer "+token} : {})},
     body:JSON.stringify(body),
     signal:AbortSignal.timeout(path==="/api/chat"?50000:20000)
   });
@@ -470,8 +472,8 @@ function renderSecureState() {
       : "Private server token is not set. See setup instructions in GitHub.";
   } else {
     $("accessState").textContent="Authenticated for this tab. Cloud AI: "
-      +(p.cloud?"ready":"needs server key")
-      +" · Odin diagnostics: "+(p.diagnostics?"ready":"needs GitHub token");
+      +(p.cloud?"ready":"check model and budget configuration")
+      +" · Public diagnostics: "+(p.diagnostics?"ready":"needs GitHub token");
   }
   $("cloudChatBanner").textContent=ready&&p.cloud
     ? "Cloud AI available · Separate from this ChatGPT app thread"
@@ -502,7 +504,8 @@ function renderVaultUI(){
   const connected=privateState.connected;
   $("accessForm").hidden=connected || (saved && !preferTokenForm);
   $("vaultUnlockForm").hidden=connected || !saved || preferTokenForm;
-  $("vaultSaveForm").hidden=!connected || (saved && !preferTokenForm);
+  $("rememberBrowser").hidden=connected;
+  $("vaultSaveForm").hidden=!privateState.token || !connected || (saved && !preferTokenForm);
   $("vaultManagement").hidden=!saved;
   $("vaultUseToken").hidden=connected;
   $("vaultUseToken").textContent=preferTokenForm
@@ -515,7 +518,7 @@ async function connectPrivateAccess(token){
   privateState.connected=true;
   privateState.cloud=result.cloud_chat_configured===true;
   privateState.diagnostics=result.device_diagnostics_configured===true;
-  privateState.relay=result.private_relay_configured===true;
+  privateState.relay=result.legacy_relay_enabled===true && result.private_relay_configured===true;
   privateState.paired=result.odin_pairing_configured===true;
   $("accessToken").value="";
   refreshRelay();
@@ -620,7 +623,11 @@ $("vaultForget").addEventListener("click",()=>{
     $("accessState").textContent="Could not clear saved access in this browser.";
   }
 });
-$("disconnectButton").addEventListener("click",()=>{
+$("disconnectButton").addEventListener("click",async()=>{
+  if (!privateState.token) {
+    try { await authenticatedPost("/api/browser-device",{action:"forget"},null); }
+    catch { $("accessState").textContent="Could not clear browser sign-in. Retry locking."; return; }
+  }
   lockPrivateAccess();
   preferTokenForm=false;
   renderSecureState();
@@ -637,11 +644,17 @@ $("cloudChatForm").addEventListener("submit",async event=>{
   addChatLine("user",msg);
   renderSecureState();
   try {
+    if(!pendingCloudTurn || pendingCloudTurn.message!==msg){
+      const day=new Date().toISOString().slice(0,10);
+      pendingCloudTurn={message:msg,id:day+":"+crypto.randomUUID().replaceAll("-","")};
+    }
     const result=await authenticatedPost("/api/chat",{
+      request_id:pendingCloudTurn.id,
       message:msg,history:privateState.history.slice(-8)
     },privateState.token);
     if(typeof result.answer!=="string"||result.source!=="openai-api")
       throw Error("Unexpected AI response");
+    pendingCloudTurn=null;
     addChatLine("assistant",result.answer);
     privateState.history.push({role:"user",content:msg},{role:"assistant",content:result.answer});
     privateState.history=privateState.history.slice(-8);
@@ -717,8 +730,10 @@ const RELAY_FAILURE_LABELS=Object.freeze({
   status_unavailable:"Odin AI status could not be checked"
 });
 function renderRelay(){
+  for(const panel of document.querySelectorAll("[data-legacy-relay]"))panel.hidden=!privateState.relay;
   const unlocked=privateState.connected && privateState.relay===true;
   $("relayMessage").disabled=!unlocked;
+  $("inferenceProof").disabled=!unlocked||!privateState.paired||relayLocal.sending;
   $("relaySendButton").disabled=!unlocked||relayLocal.sending;
   $("restartAllButton").disabled=!unlocked||!privateState.paired||relayLocal.sending;
   let restartStatus=!unlocked?"Unlock private controls to restart Odin services.":
@@ -788,7 +803,7 @@ async function refreshRelay(){
   try{
     const resp=await fetch("/api/relay",{
       headers:{"Accept":"application/json",
-        "Authorization":"Bearer "+privateState.token},
+        ...(privateState.token ? {"Authorization":"Bearer "+privateState.token} : {})},
       cache:"no-store",signal:AbortSignal.timeout(12000)
     });
     const payload=await resp.json().catch(()=>({}));
@@ -867,6 +882,7 @@ $("restartAllButton").addEventListener("click",async()=>{
   if(!confirmRestart())return;
   await queuePrivateRelayMessage("/restart-services");
 });
+$("inferenceProof").addEventListener("click",()=>queuePrivateRelayMessage("/ai-proof"));
 for(const button of document.querySelectorAll("[data-relay-quick]")){
   button.addEventListener("click",()=>{
     if(!privateState.connected || !privateState.relay)return;
@@ -880,3 +896,20 @@ setInterval(()=>{
 },15000);
 renderVaultUI();
 renderRelay();
+
+$("rememberBrowser").addEventListener("click",async()=>{
+  const button=$("rememberBrowser");
+  button.disabled=true;
+  try {
+    const result=await authenticatedPost("/api/browser-device",{action:"register"},null);
+    if (!/^[0-9a-f]{32}$/.test(result.browser_id)) throw Error("Invalid browser ID");
+    $("browserPairState").textContent="Send this browser ID to your Odin project chat for approval: "+result.browser_id;
+  } catch {
+    $("browserPairState").textContent="Could not register this browser. Open Odin Control in a regular Chrome tab and retry.";
+  } finally { button.disabled=false; }
+});
+connectPrivateAccess(null).then(()=>{
+  renderSecureState();
+  renderVaultUI();
+  renderRelay();
+}).catch(()=>{});

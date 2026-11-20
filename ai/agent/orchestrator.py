@@ -11,7 +11,7 @@ else:
     import inference_receipt
     import pipeline
 
-ROOT = Path.home() / "odin-workspace"
+ROOT = Path(__file__).resolve().parents[2]
 API = "https://api.groq.com/openai/v1/chat/completions"
 MODEL = "openai/gpt-oss-120b"
 ROLES = {"research", "coder", "reviewer", "tester", "device"}

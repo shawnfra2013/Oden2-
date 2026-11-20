@@ -1,5 +1,12 @@
 # Odin Control — Hosted iPhone UI
 
+For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](../docs/STRUCTURE_HARDENING.md).
+
+The active device bridge is the private GitHub mailbox in `shawnfra2013/Odin-private-bridge`. Termux polls `odin-bridge-inbox` and publishes matching receipts on `odin-bridge-outbox`. Use the [private mailbox in a browser](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) or submit a request through the authorized GitHub integration. Browser submissions use GitHub sign-in and the workflow’s repository-scoped token.
+
+On November 20, a fresh [private ping receipt](https://github.com/shawnfra2013/Odin-private-bridge/blob/odin-bridge-outbox/bridge/responses/0cd4560ddc8e4b7183f172e2bef883fc.json) confirmed `alive: true` at 17:01:16 UTC. The mailbox accepts `ping`, `stage5_health`, `staging_probe` and `inference_probe`. Only the last check calls the model. Cloud chat and the older Blob-backed message journal are separate features. Restoring Blob storage is outside the mailbox acceptance criteria.
+
+
 Source of truth: `shawnfra2013/Oden2-`, directory `mobile/`.
 Production: https://odin-control.vercel.app/
 
@@ -190,3 +197,7 @@ before enabling. If the transport or network is unavailable the ordinary
 relay, diagnostic and sync checks continue. Android must allow Termux to run.
 To accept the rollout, send one private ping and one GitHub mailbox ping,
 compare each new ID and device receipt timestamp, then repeat after reconnect.
+
+### Hosted device inference check
+
+Use **Chat → Odin Device Inbox → Verify Odin GPT** in a paired session. The UI sends the fixed `/ai-proof` request over the private relay and refreshes the inbox for the matching device reply. This requires the upgraded relay client, working private storage and the on-device private probe credential. Both device entry points share one attempt journal and budget.

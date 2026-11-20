@@ -1,9 +1,18 @@
 # Browser-free GitHub ↔ Odin background bridge
 
-For the November 19 device receipts, production AI and relay blockers, and remaining acceptance work, see the [current device checkpoint](PROJECT_MEMORY.md). Earlier dated sections describe the state at their capture time.
+For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](STRUCTURE_HARDENING.md).
+
+The active device bridge is the private GitHub mailbox in `shawnfra2013/Odin-private-bridge`. Termux polls `odin-bridge-inbox` and publishes matching receipts on `odin-bridge-outbox`. Use the [private mailbox in a browser](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) or submit a request through the authorized GitHub integration. Browser submissions use GitHub sign-in and the workflow’s repository-scoped token.
+
+On November 20, a fresh [private ping receipt](https://github.com/shawnfra2013/Odin-private-bridge/blob/odin-bridge-outbox/bridge/responses/0cd4560ddc8e4b7183f172e2bef883fc.json) confirmed `alive: true` at 17:01:16 UTC. The mailbox accepts `ping`, `stage5_health`, `staging_probe` and `inference_probe`. Only the last check calls the model. Cloud chat and the older Blob-backed message journal are separate features. Restoring Blob storage is outside the mailbox acceptance criteria.
 
 
-## Overview
+On November 20 at 10:29 a.m. Central, the physical Odin completed the private GitHub mailbox → OpenAI → mailbox challenge. The receipt matched the submitted ID and expected answer, reported model `gpt-4.1-mini-2025-04-14`, included a provider response ID, and measured 2,320 ms on the device. The private outbox holds the full receipt.
+
+For the November 20 private mailbox and Termux inference evidence, November 19 device receipts, historical hosted-service observations, see the [current device checkpoint](PROJECT_MEMORY.md). Earlier dated sections describe the state at their capture time.
+
+
+## Historical public diagnostic mailbox
 
 This bridge uses GitHub repository branches as a mailbox. It does NOT need
 Desktop Commander, a web pairing page, GitHub API tokens in the repo, an
@@ -207,3 +216,75 @@ Odin health also reports worker heartbeat age, the age of the last completed
 private relay poll, and queue counts for pending and running tasks. Missing
 data stays unknown. Long tasks can delay worker heartbeats. Queue counts
 reflect a moment in time and contain no task names or contents.
+
+
+## Private mailbox hardening and rollout
+
+The private Termux service passed staging write/readback after a service
+restart. A separate physical test rejected the first push and published the
+same saved commit on retry. Keep those receipts in the private repository.
+Android reboot startup remains deferred.
+
+Private successful receipts now include `timing.picked_up_at` (UTC) and
+`timing.action_ms` (monotonic). Use the sender's request timestamp for
+submission, the receipt's `checked_at` for device completion, and the
+observer's first successful outbox read for a publication upper bound. Record
+observer poll cadence. Clock offset can affect cross-device measurements.
+Run timing comparisons with the same workload and poll cadence before
+changing the service interval.
+
+The disposable Git tests in `tests/test_private_mailbox_integration.py`
+run in the existing CI test discovery. They verify recovery of an identical
+committed receipt after a rejected push, repeated polling, invalid request
+rejection, and progress on valid work behind a batch of invalid requests.
+The rejected-push test exercises a Git failure with a local remote.
+
+### Rollout gates
+
+1. Review the PR and require green Odin Checks on its exact head. Test the
+   candidate with its own disposable mailbox state and branches before
+   switching the existing runit process. Keep the verified service checkout
+   and current outbox intact for rollback.
+2. Stop the previous poller before starting a replacement against the live
+   mailbox. Verify a fresh staging checksum and timing fields, restart the
+   service, and verify a second fresh receipt. For rollback, stop the
+   candidate, restart the prior pinned checkout, and verify a private probe.
+3. Verify a replacement deploy key against the private mailbox before
+   switching the service. Keep the old key during the rollback window.
+   Confirm with the owner before revocation and verify the replacement again.
+4. Capture an idle and queued latency baseline before tuning polling. Check
+   Stage 5 provider and model configuration with credentials redacted.
+   Benchmark fixed inference requests and recovery after a timeout only
+   after the intended backend is enabled. Keep inference time separate from
+   mailbox pickup and publication time.
+5. Verify per-check names, timings and failure categories for Ruff and
+   regression checks on an exact revision before any expanded rollout.
+
+## Private inference probe
+
+Send the standard private request fields with action `inference_probe`.
+The physical device constructs the challenge from its validated request ID,
+uses the OpenAI Responses adapter with a fixed model and a 96-token output
+limit, and compares the complete reply. The public mailbox excludes this action.
+Service opt-in uses a device-owned mode-0600 file,
+`~/.config/odin-private-inference/key`, inside a mode-0700 directory.
+Move the key outside this directory to disable new calls. Keep the SQLite
+attempt journal there across checkouts and restarts. It reserves at most two
+paid attempts per UTC day, including timeouts and failed calls. A repeat
+with the same ID returns saved evidence or an unknown prior outcome.
+
+Run the pinned rollout script from a clean candidate checkout in Termux.
+It runs disposable tests, verifies the published old outbox, then switches
+the detached pilot checkout while its service is down. Startup failures
+restore the old revision. Only the private mailbox receives this capability.
+
+Live acceptance requires a newly submitted request ID, action
+`inference_probe`, status `complete`, provider `openai`, provider response
+ID, returned model, exact answer match and device timing. Retain the actual
+receipt in the private repository. Public documentation records the outcome
+only. A request from the handheld to this ChatGPT conversation remains a
+separate capability. Expansion waits for combined-path acceptance.
+
+### Hosted device inference check
+
+Use **Chat → Odin Device Inbox → Verify Odin GPT** in a paired session. The UI sends the fixed `/ai-proof` request over the private relay and refreshes the inbox for the matching device reply. This requires the upgraded relay client, working private storage and the on-device private probe credential. Both device entry points share one attempt journal and budget.

@@ -1,5 +1,12 @@
 # Odin 2 / Termux system architecture
 
+For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](STRUCTURE_HARDENING.md).
+
+Current device transport and November 20 verification are documented in [the private GitHub mailbox runbook](ODIN_GITHUB_BRIDGE.md). Use that mailbox for device checks.
+
+
+For the November 20 on-device OpenAI result and fixed private mailbox inference diagnostic, see [the private probe runbook](ODIN_GITHUB_BRIDGE.md#private-inference-probe). The physical mailbox inference check passed on November 20.
+
 Updated: 2026-11-19. This describes the files **actually present** in the
 GitHub source tree. Dated checkpoints are kept in `docs/PROJECT_MEMORY.md`.
 GitHub CI passing does not mean an Odin device has updated, restarted, or

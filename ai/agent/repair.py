@@ -6,7 +6,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROOT = Path.home() / "odin-workspace"
+ROOT = Path(__file__).resolve().parents[2]
 PATCH = ROOT / "state" / "agent-proposal.diff"
 MODEL = "openai/gpt-oss-120b"
 API = "https://api.groq.com/openai/v1/chat/completions"
@@ -148,13 +148,17 @@ def main():
     PATCH.write_text(answer.rstrip() + "\n")
     PATCH.chmod(0o600)
 
-    check = run("git", "apply", "--check", str(PATCH))
+    approved = answer.rstrip() + "\n"
+    def apply_reviewed(*options):
+        return subprocess.run(["git", "apply", *options, "-"], input=approved, text=True,
+                              capture_output=True, cwd=ROOT, check=False)
+    check = apply_reviewed("--check")
     if check.returncode:
         print("REJECTED: Patch failed Git validation.")
         print(check.stderr[:1500])
         return 1
 
-    paths = run("git", "apply", "--numstat", str(PATCH))
+    paths = apply_reviewed("--numstat")
     tracked_names = set(tracked.stdout.splitlines())
 
     if paths.returncode:
@@ -178,14 +182,14 @@ def main():
             return 1
 
     print("\n=== PROPOSED PATCH ===\n")
-    print(answer[:25000])
+    print(answer)
 
     approval = input("\nApply this patch? Type APPLY: ").strip()
     if approval != "APPLY":
         print("CANCELLED: No changes applied.")
         return 0
 
-    applied = run("git", "apply", str(PATCH))
+    applied = apply_reviewed()
     if applied.returncode:
         print("ERROR: Patch application failed.")
         return 1
@@ -217,7 +221,7 @@ def main():
             failed = True
 
     if failed:
-        reverse = run("git", "apply", "-R", str(PATCH))
+        reverse = apply_reviewed("-R")
         print("SYNTAX FAILED. Rollback:",
               "SUCCESS" if reverse.returncode == 0 else "FAILED")
         return 1

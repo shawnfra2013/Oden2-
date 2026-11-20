@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path.home() / "odin-workspace"
+ROOT = Path(__file__).resolve().parents[2]
 MODEL = "openai/gpt-oss-120b"
 API = "https://api.groq.com/openai/v1/chat/completions"
 

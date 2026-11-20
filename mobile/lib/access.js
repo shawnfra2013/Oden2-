@@ -5,9 +5,10 @@ const ORIGIN = "https://odin-control.vercel.app";
 function configureResponse(res) {
   res.setHeader("Cache-Control", "no-store, private");
   res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("Vary", "Authorization, Origin");
+  res.setHeader("Vary", "Authorization, Origin, Cookie");
 }
 function authorized(req) {
+  if (!req.headers.authorization && require("./browser-device").approved(req)) return true;
   const secret = process.env.ODIN_CONTROL_ACCESS_TOKEN;
   if (typeof secret !== "string" || secret.length < 32 || secret.length > 256) return false;
   const header = req.headers.authorization;

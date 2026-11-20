@@ -15,12 +15,12 @@ module.exports = function handler(req,res) {
   return res.status(200).json({
     source:"odin-control-server",
     access_configured:access,
-    cloud_chat_configured:access && ai,
+    cloud_chat_configured:require("../lib/chat-budget").configured() && access && ai,
     device_diagnostics_configured:access && github,
     private_odin_conversation_connected:false,
     arbitrary_shell_enabled:false,
-    private_relay_configured:Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_OIDC_TOKEN),
-    odin_pairing_configured:Boolean(process.env.ODIN_DEVICE_RELAY_TOKEN),
+    private_relay_configured:process.env.ODIN_ENABLE_LEGACY_RELAY==="1" && Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_OIDC_TOKEN),
+    odin_pairing_configured:process.env.ODIN_ENABLE_LEGACY_RELAY==="1" && Boolean(process.env.ODIN_DEVICE_RELAY_TOKEN),
     exact_chatgpt_thread_connected:false
   });
 };

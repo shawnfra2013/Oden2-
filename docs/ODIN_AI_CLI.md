@@ -1,5 +1,12 @@
 # Talk to Odin AI from Termux and Stage 5
 
+For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](STRUCTURE_HARDENING.md).
+
+Current device transport and November 20 verification are documented in [the private GitHub mailbox runbook](ODIN_GITHUB_BRIDGE.md). Use that mailbox for device checks.
+
+
+For the November 20 on-device OpenAI result and fixed private mailbox inference diagnostic, see [the private probe runbook](ODIN_GITHUB_BRIDGE.md#private-inference-probe). The physical mailbox inference check passed on November 20.
+
 ## What this actually connects
 
 `python -B scripts/odin_chat.py` opens a conversational AI assistant

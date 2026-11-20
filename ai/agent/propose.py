@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path.home() / "odin-workspace"
+ROOT = Path(__file__).resolve().parents[2]
 TARGET = "docs/architecture.md"
 MODEL = "openai/gpt-oss-120b"
 

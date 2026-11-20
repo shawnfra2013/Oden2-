@@ -9,7 +9,6 @@ const FAILURE_CODES=new Set([
   "provider_unavailable","provider_timeout","model_response_invalid",
   "task_failed","status_unavailable"
 ]);
-const MAX_EVENTS=120;
 function isText(value){return typeof value==="string" && value.trim().length>0 && value.length<=2000 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value);}
 function safeCompare(a,b){
   if(typeof a!=="string"||typeof b!=="string"||a.length<32||b.length<32)return false;
@@ -107,45 +106,27 @@ async function readPrivateEvent(pathname,backend){
     throw Error("Invalid private relay event");
   return data;
 }
-function eventOrder(blob){
-  const uploaded=new Date(blob.uploadedAt ?? NaN);
-  if(Number.isFinite(uploaded.getTime()))return uploaded.toISOString().replace(/[-:.TZ]/g,"");
-  return /^\d{17}/.exec(blob.pathname.slice(EVENT_PREFIX.length))?.[0]||"";
-}
 async function loadEvents(backend={list,get,readState}){
-  const blobs=[];
-  let cursor=null;
-  let hasMore=false;
-  for(let page=0;page<20;page++){
-    const result=await backend.list({
-      prefix:EVENT_PREFIX,limit:100,...(cursor?{cursor}:{})
-    });
-    if(!result||!Array.isArray(result.blobs))
-      throw Error("Private relay listing unavailable");
-    blobs.push(...result.blobs.filter(x=>typeof x.pathname==="string"&&
-      x.pathname.startsWith(EVENT_PREFIX)));
-    hasMore=result.hasMore===true;
-    if(!hasMore)break;
-    if(!result.cursor)throw Error("Private relay listing cursor unavailable");
-    cursor=result.cursor;
-  }
-  // Do not claim a complete history if the storage scan was incomplete.
-  if(hasMore)throw Error("Private relay event listing exceeded limit");
-  // Fixed request paths use the upload time. Older paths also encode their time.
-  const latest=blobs.sort((a,b)=>eventOrder(b).localeCompare(eventOrder(a))||
-    b.pathname.localeCompare(a.pathname))
-    .slice(0,MAX_EVENTS);
-  const [legacy,events]=await Promise.all([
-    backend.readState(),
-    Promise.all(latest.map(x=>readPrivateEvent(x.pathname,backend)))
-  ]);
-  const merged=[...(legacy.events||[]),...events];
+  const legacy=await backend.readState();
+  const events=[...(legacy.events||[])];
+  let cursor;
+  const cursors=new Set();
+  do{
+    const page=await backend.list({prefix:EVENT_PREFIX,limit:100,...(cursor?{cursor}:{})});
+    if(!Array.isArray(page?.blobs))throw Error("Private relay listing unavailable");
+    const paths=page.blobs.map(blob=>blob.pathname).filter(path=>path?.startsWith(EVENT_PREFIX));
+    for(let offset=0;offset<paths.length;offset+=8){
+      events.push(...await Promise.all(paths.slice(offset,offset+8).map(path=>readPrivateEvent(path,backend))));
+    }
+    cursor=page.hasMore?page.cursor:null;
+    if(page.hasMore && (!cursor||cursors.has(cursor)))throw Error("Invalid private relay cursor");
+    if(cursor)cursors.add(cursor);
+  }while(cursor);
   const seen=new Set();
-  return merged.filter(e=>e&&e.version===1&&ID.test(e.id)&&
+  return events.filter(e=>e&&e.version===1&&ID.test(e.id)&&
     Number.isFinite(Date.parse(e.at))&&["message","receipt"].includes(e.kind))
     .sort((a,b)=>Date.parse(a.at)-Date.parse(b.at))
-    .filter(e=>seen.has(e.id)?false:(seen.add(e.id),true))
-    .slice(-MAX_EVENTS);
+    .filter(e=>seen.has(e.id)?false:(seen.add(e.id),true));
 }
 function view(events,viewer) {
   const messages=events.filter(e=>e.kind==="message"&&ID.test(e.id)&&

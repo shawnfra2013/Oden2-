@@ -36,7 +36,7 @@ fi
 # Reuse the existing five-minute supervisor. Updates are disabled unless the
 # owner deliberately enables the 0600 state/auto-update.enabled flag.
 # Any failed gated update stays visible in logs and status JSON.
-if [[ -f "${ROOT}/state/auto-update.enabled" ]]; then
+if python -B "${ROOT}/scripts/odin_auto_update.py" --is-enabled; then
     if ! python -B "${ROOT}/scripts/odin_auto_update.py" --once >>"$LOG" 2>&1; then
         log "ALERT: CI-gated auto-update failed; refusing further sync"
         exit 1
@@ -54,12 +54,15 @@ if (( BEHIND > 0 )); then
     exit 1
 fi
 
-if git grep -nEI \
+if git grep -qEI \
 '(gsk_[A-Za-z0-9_-]{20,}|csk-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|github_pat_[A-Za-z0-9_]+|ghp_[A-Za-z0-9]+|BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY)' \
--- . ':!*.md' >>"$LOG" 2>&1
+-- . >>"$LOG" 2>&1
 then
     log "REFUSED: possible secret detected in tracked content"
     exit 1
+else
+    scan_rc=$?
+    [[ "$scan_rc" == 1 ]] || { log "Secret check failed"; exit "$scan_rc"; }
 fi
 
 if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -74,7 +77,8 @@ if (( AHEAD == 0 )); then
     # Existing services and independently running listeners retain ownership.
     service_root="${PREFIX:-/data/data/com.termux/files/usr}/var/service"
     stage_service="$service_root/odin-stage5"
-    if [[ -f "$ROOT/state/auto-update.enabled" && -d "$service_root/odin-git-sync" &&
+    if python -B "$ROOT/scripts/odin_auto_update.py" --is-enabled &&
+       [[ -d "$service_root/odin-git-sync" &&
           ! -e "$stage_service" && ! -L "$stage_service" ]] &&
        ! (exec 3<>/dev/tcp/127.0.0.1/8765) 2>/dev/null; then
         ln -sT "$ROOT/services/stage5" "$stage_service"

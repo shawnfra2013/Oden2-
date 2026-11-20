@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-WORKSPACE = Path.home() / "odin-workspace"
+WORKSPACE = Path(__file__).resolve().parents[1]
 DEADLINE_SECONDS = 45
 
 CHILD_CODE = """

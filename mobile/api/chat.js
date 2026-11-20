@@ -1,9 +1,10 @@
 "use strict";
 const {protect} = require("../lib/access");
 const {openAiApiKey} = require("../lib/openai-config");
+const budget=require("../lib/chat-budget");
 const MODEL = /^[a-zA-Z0-9._-]{1,100}$/;
 function validate(data) {
-  if (Object.keys(data).some(k=>!["message","history"].includes(k))
+  if (Object.keys(data).some(k=>!["message","history","request_id"].includes(k))
       || typeof data.message!=="string"
       || !data.message.trim()
       || data.message.length>3000
@@ -31,14 +32,28 @@ module.exports=async function handler(req,res) {
     instructions:"You are the Odin Control cloud AI assistant. You are an independent API conversation, NOT the user's exact ChatGPT app conversation and NOT an active Odin device process. Guide the user about their AYN Odin 2 AI workstation and its public GitHub repository shawnfra2013/Oden2-. Never claim that you have connected to Odin, pushed code, tested, restarted services or approved a device action unless the user supplies a separate verified receipt. Never request API keys in the chat. Device operations require a separate explicitly confirmed diagnostic action."
   };
   try {
+    if(!budget.configured())return res.status(503).json({error:"Cloud chat budget unavailable"});
+    // Older clients lack a turn ID. Repeated identical payloads share one daily claim.
+    const day=new Date().toISOString().slice(0,10);
+    const legacyId=require("node:crypto").createHash("sha256").update(JSON.stringify(input)).digest("hex").slice(0,32);
+    const reserved=await budget.reserve(req.body.request_id ?? (day+":"+legacyId));
+    if(reserved!=="reserved")return res.status(reserved==="limit"?429:409).json({
+      error:reserved==="limit"?"Daily cloud chat limit reached":"Request already claimed or expired"
+    });
     const response=await fetch("https://api.openai.com/v1/responses",{
       method:"POST",
       headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
       body:JSON.stringify(payload),signal:AbortSignal.timeout(40000)
     });
     if(!response.ok)return res.status(502).json({error:"Model provider unavailable or account not configured"});
-    const raw=await response.text();
-    if(raw.length>1048576)return res.status(502).json({error:"Oversized provider response"});
+    const chunks=[];
+    let bytes=0;
+    for await(const chunk of response.body){
+      bytes+=chunk.length;
+      if(bytes>1048576)throw Error("Oversized provider response");
+      chunks.push(chunk);
+    }
+    const raw=Buffer.concat(chunks).toString("utf8");
     const data=JSON.parse(raw);
     const answer=(data.output||[]).flatMap(item=>
       item?.type==="message" && Array.isArray(item.content) ? item.content : [])

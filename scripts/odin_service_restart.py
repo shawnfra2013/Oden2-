@@ -154,9 +154,11 @@ def restart_under_lock(prefix, call, after_update, targets):
         # Runit service entries may legitimately be symlinks to their
         # source definitions; the service name itself remains allowlisted.
         if not service.is_dir() or not (service / "run").is_file():
-            outcome[name] = "missing" if name in MANDATORY or len(targets) == 1 else "not_configured"
+            required = name in MANDATORY and not (after_update and name == "odin-private-relay")
+            outcome[name] = "missing" if required or len(targets) == 1 else "not_configured"
             continue
         try:
+            previous_pid = None
             if after_update:
                 prior = call("status", service)
                 if prior.returncode or not prior.stdout.startswith(("run: ", "down: ")):
@@ -165,6 +167,11 @@ def restart_under_lock(prefix, call, after_update, targets):
                 if prior.stdout.startswith("down: "):
                     outcome[name] = "inactive"
                     continue
+                previous = re.search(r"\(pid (\d+)\)", prior.stdout)
+                if not previous:
+                    outcome[name] = "health_failed"
+                    continue
+                previous_pid = previous.group(1)
             result = call("restart", service)
             if result.returncode:
                 outcome[name] = "restart_failed"
@@ -174,6 +181,14 @@ def restart_under_lock(prefix, call, after_update, targets):
             for _ in range(4):
                 check = call("status", service)
                 running = check.returncode == 0 and check.stdout.startswith("run: ")
+                if running and after_update:
+                    current = re.search(r"\(pid (\d+)\)", check.stdout)
+                    running = bool(current and current.group(1) != previous_pid)
+                    if running:
+                        try:
+                            running = Path("/proc", current.group(1), "cwd").resolve(strict=True) == ROOT
+                        except OSError:
+                            running = False
                 if running:
                     break
                 time.sleep(0.5)
@@ -181,7 +196,7 @@ def restart_under_lock(prefix, call, after_update, targets):
         except (OSError, subprocess.TimeoutExpired):
             outcome[name] = "timeout_or_unavailable"
     configured = [name for name, state in outcome.items() if state not in {"not_configured", "next_sync_cycle", "inactive"}]
-    healthy = all(outcome[name] == "running" for name in configured)
+    healthy = bool(configured) and all(outcome[name] == "running" for name in configured)
     status = "true" if healthy else "false"
     # Fixed allowlist and bounded status strings, no diagnostics or secrets.
     summary = ",".join(name + ":" + outcome[name] for name in targets)
@@ -250,6 +265,21 @@ def publish_pending(token, send, *, state_dir=REQUEST_DIR):
     return count
 
 
+def update_active_private_mailbox():
+    prefix = Path(os.environ.get("PREFIX", "/data/data/com.termux/files/usr"))
+    service = prefix / "var/service/odin-private-mailbox"
+    if not (service / "run").is_file():
+        return True
+    status = svc_call("status", service)
+    if status.stdout.startswith("down: "):
+        return True
+    if status.returncode or not status.stdout.startswith("run: "):
+        return False
+    script = ROOT / "scripts/odin-private-inference-rollout.sh"
+    return subprocess.run(["bash", str(script), "--after-update"], cwd=ROOT,
+                          stdin=subprocess.DEVNULL, check=False).returncode == 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -260,6 +290,8 @@ def main(argv=None):
     if args.local or args.after_update:
         reply, healthy = restart_configured(after_update=args.after_update)
         print(reply, flush=True)
+        if args.after_update and healthy:
+            healthy = update_active_private_mailbox()
         return 0 if healthy else 1
     if not ID_RE.fullmatch(args.execute):
         parser.error("Invalid restart request ID")

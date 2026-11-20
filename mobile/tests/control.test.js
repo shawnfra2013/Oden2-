@@ -98,3 +98,27 @@ test("authorized session displays only readiness booleans",()=>{
     assert.equal(JSON.stringify(res.body).includes(TOKEN),false);
   });
 });
+
+test("a duplicate or unavailable budget cannot send a paid model request",async()=>{
+  const budget=require("../lib/chat-budget");
+  const oldReserve=budget.reserve, oldConfigured=budget.configured, oldFetch=global.fetch;
+  const names=["ODIN_CONTROL_ACCESS_TOKEN","OPENAI_API_KEY","ODIN_OPENAI_MODEL"];
+  const saved=names.map(k=>process.env[k]);
+  try{
+    const token="x".repeat(40);
+    process.env.ODIN_CONTROL_ACCESS_TOKEN=token;
+    process.env.OPENAI_API_KEY="test-only";
+    process.env.ODIN_OPENAI_MODEL="test-model";
+    budget.configured=()=>true;
+    global.fetch=()=>assert.fail("Unexpected provider call");
+    for(const [reservation,expected] of [["duplicate",409],["limit",429]]){
+      budget.reserve=async()=>reservation;
+      const res=response();
+      await chat(request(token,ORIGIN,{message:"Hi",history:[]}),res);
+      assert.equal(res.statusCode,expected);
+    }
+  }finally{
+    budget.reserve=oldReserve; budget.configured=oldConfigured; global.fetch=oldFetch;
+    names.forEach((k,i)=>{if(saved[i]===undefined)delete process.env[k];else process.env[k]=saved[i];});
+  }
+});

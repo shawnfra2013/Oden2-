@@ -9,7 +9,10 @@ import re
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from inference_adapter import bounded_history
+if __package__:
+    from .inference_adapter import bounded_history
+else:
+    from inference_adapter import bounded_history
 
 ENDPOINT = "https://api.openai.com/v1/responses"
 MAX_BYTES = 524288
@@ -26,11 +29,21 @@ INSTRUCTIONS = (
 )
 
 
+class ProviderError(RuntimeError):
+    def __init__(self, reason):
+        self.reason = reason
+        super().__init__("OpenAI request unavailable")
+
+
 def ask_openai(question, history=None):
     if os.environ.get("ODIN_STAGE5_ENABLE_AI") != "1":
         raise RuntimeError("AI is disabled")
     key = os.environ.get("OPENAI_API_KEY", "").strip()
     model = os.environ.get("ODIN_OPENAI_MODEL", "").strip()
+    return request_answer(question, history, key=key, model=model)[0]
+
+
+def request_answer(question, history, *, key, model, max_tokens=700):
     if not key:
         raise RuntimeError("OPENAI_API_KEY is not configured")
     if not MODEL_PATTERN.fullmatch(model):
@@ -46,7 +59,7 @@ def ask_openai(question, history=None):
         "model": model,
         "instructions": INSTRUCTIONS,
         "input": prompt,
-        "max_output_tokens": 700,
+        "max_output_tokens": max_tokens,
         "store": False,
     }
     request = Request(
@@ -61,9 +74,14 @@ def ask_openai(question, history=None):
     try:
         with urlopen(request, timeout=40) as response:
             body = response.read(MAX_BYTES + 1)
-    except (HTTPError, URLError, OSError, TimeoutError):
+    except HTTPError as exc:
+        exc.close()
+        reason = {401: "authentication", 403: "permission", 404: "model_unavailable",
+                  429: "quota_or_rate_limit"}.get(exc.code, "provider_http_error")
+        raise ProviderError(reason) from None
+    except (URLError, OSError, TimeoutError):
         # Do not expose API keys, provider body or raw network errors.
-        raise RuntimeError("OpenAI request unavailable") from None
+        raise ProviderError("network_error") from None
     if len(body) > MAX_BYTES:
         raise ValueError("OpenAI response exceeds size limit")
     try:
@@ -82,6 +100,6 @@ def ask_openai(question, history=None):
         answer = "\n".join(parts).strip()
         if not answer or len(answer) > 20000:
             raise ValueError("Empty or oversized model answer")
-        return answer
+        return answer, data
     except (ValueError, TypeError, KeyError) as exc:
         raise ValueError("Invalid OpenAI response") from exc

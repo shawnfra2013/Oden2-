@@ -14,6 +14,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.error import URLError
@@ -38,7 +39,7 @@ ORIGINS = {
 }
 POLL_SECONDS = 60
 PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
-PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe"})
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe"})
 private_mailbox = False
 
 
@@ -98,7 +99,7 @@ def validate_request(raw, expected_id, now=None):
     required = REQUEST_KEYS | ({"expected_sha"} if payload.get("action") in REVISION_ACTIONS else set())
     if set(payload) != required:
         raise ValueError("Invalid request fields")
-    if payload["version"] != 1 or payload["id"] != expected_id:
+    if type(payload["version"]) is not int or payload["version"] != 1 or payload["id"] != expected_id:
         raise ValueError("Invalid version or ID")
     allowed = PRIVATE_ACTIONS if private_mailbox else ACTIONS
     if payload["action"] not in allowed:
@@ -166,6 +167,7 @@ def ensure_outbox(origin):
         raise RuntimeError("Unexpected outbox branch")
     if git("remote", "get-url", "origin", cwd=OUTBOX) != origin:
         raise RuntimeError("Unexpected outbox origin")
+    recover_pending_receipt()
     if git("status", "--porcelain", cwd=OUTBOX):
         raise RuntimeError("Outbox has uncommitted changes; refusing edits")
     outbox_git("pull", "--ff-only", "origin", OUTBOX_BRANCH, timeout=90)
@@ -187,7 +189,7 @@ def fetch_inbox():
         timeout=90)
 
 
-HEALTH_SERVICES = ("odin-git-sync", "odin-task-worker", "odin-github-bridge", "odin-stage5", "odin-private-relay")
+HEALTH_SERVICES = ("odin-private-mailbox", "odin-git-sync", "odin-task-worker", "odin-github-bridge", "odin-stage5", "odin-private-relay")
 RUN_STATUS = re.compile(r"^run: .*: \(pid ([0-9]{1,9})\) ([0-9]{1,9})s(?:,|$)")
 SYNC_REASONS = frozenset({
     "already_up_to_date", "source_updated", "source_updated_restart_not_automatic",
@@ -294,6 +296,14 @@ def staging_probe(request_id):
 
 
 def status_action(action, request=None):
+    if action == "inference_probe":
+        if not private_mailbox:
+            raise ValueError("Private mailbox required")
+        if __package__:
+            from .odin_inference_probe import probe
+        else:
+            from odin_inference_probe import probe
+        return probe(request["id"])
     if action == "staging_probe":
         return staging_probe(request["id"])
     if action == "worker_probe":
@@ -305,7 +315,10 @@ def status_action(action, request=None):
     if action == "odin_health":
         return health_summary()
     if action == "ping":
-        return {"alive": True, "bridge_version": 1}
+        result = {"alive": True, "bridge_version": 1}
+        if private_mailbox:
+            result.update(revision=git("rev-parse", "HEAD"), pid=os.getpid())
+        return result
     if action == "repo_status":
         tracked_clean = (
             run(["git", "diff", "--quiet"], allow_failure=True).returncode == 0
@@ -368,11 +381,11 @@ def status_action(action, request=None):
             ).returncode == 0
         )
         incoming = run(
-            ["git", "diff", "--diff-filter=A", "--name-only", "-z",
+            ["git", "diff", "--no-renames", "--diff-filter=AMT", "--name-only", "-z",
              "HEAD", "origin/main"]
         ).stdout.split("\0")
         untracked = run(
-            ["git", "ls-files", "--others", "--exclude-standard", "-z"]
+            ["git", "ls-files", "--others", "-z"]
         ).stdout.split("\0")
         incoming = [p for p in incoming if p]
         untracked = [p for p in untracked if p]
@@ -445,18 +458,52 @@ def status_action(action, request=None):
     raise ValueError("Unsupported action")
 
 
-def send_response(request_id, payload):
-    relative = Path("bridge") / "responses" / (request_id + ".json")
-    destination = OUTBOX / relative
-    if destination.exists():
+def atomic_state_file(path, content):
+    with tempfile.NamedTemporaryFile(dir=STATE, delete=False) as tmp:
+        temp = Path(tmp.name)
+        try:
+            tmp.write(content)
+            tmp.flush()
+            os.fsync(tmp.fileno())
+            os.replace(temp, path)
+            parent_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(parent_fd)
+            finally:
+                os.close(parent_fd)
+        finally:
+            temp.unlink(missing_ok=True)
+
+
+def recover_pending_receipt():
+    intent = STATE / "pending-receipt.json"
+    if not intent.exists():
         return
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(
-        json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-    )
-    git("add", "--", relative.as_posix(), cwd=OUTBOX)
-    git("commit", "-m", "Odin bridge response " + request_id, cwd=OUTBOX)
+    content = intent.read_bytes()
+    request_id = json.loads(content)["id"]
+    if not isinstance(request_id, str) or not ID_PATTERN.fullmatch(request_id):
+        raise RuntimeError("Invalid pending receipt")
+    relative = f"bridge/responses/{request_id}.json"
+    path = OUTBOX / relative
+    if path.resolve() != path or path.is_symlink():
+        raise RuntimeError("Unexpected receipt path")
+    if path.exists() and path.read_bytes() != content:
+        raise RuntimeError("Conflicting local receipt")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        atomic_state_file(path, content)
+    git("add", "--", relative, cwd=OUTBOX)
+    if git("diff", "--cached", "--name-only", "--", relative, cwd=OUTBOX):
+        git("commit", "--only", "-m", "Odin bridge response " + request_id, "--", relative, cwd=OUTBOX)
+    intent.unlink()
+
+
+def send_response(request_id, payload):
+    if (OUTBOX / "bridge" / "responses" / (request_id + ".json")).exists():
+        return
+    content = (json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    atomic_state_file(STATE / "pending-receipt.json", content)
+    recover_pending_receipt()
     outbox_git("push", "origin", "HEAD:refs/heads/" + OUTBOX_BRANCH, timeout=90)
 
 
@@ -481,6 +528,11 @@ def process_locked():
     fetch_inbox()
     inbox_git = outbox_git if private_mailbox else git
     ref = "origin/" + INBOX_BRANCH
+    checkpoint = STATE / "completed-scan"
+    inbox_head = inbox_git("rev-parse", ref)
+    scan_key = inbox_head + ":" + outbox_git("rev-parse", "HEAD")
+    if checkpoint.is_file() and checkpoint.read_text() == scan_key:
+        return 0
     names = inbox_git("ls-tree", "-r", "--name-only", ref, "--", "bridge/requests")
     processed = 0
     for name in names.splitlines():
@@ -489,7 +541,7 @@ def process_locked():
         if not name.startswith("bridge/requests/") or not name.endswith(".json"):
             continue
         request_id = Path(name).stem
-        if not ID_PATTERN.fullmatch(request_id):
+        if not ID_PATTERN.fullmatch(request_id) or name != f"bridge/requests/{request_id}.json":
             continue
         if (OUTBOX / "bridge" / "responses" / (request_id + ".json")).exists():
             continue
@@ -502,10 +554,12 @@ def process_locked():
             raw = inbox_git("show", ref + ":" + name, timeout=20)
             request = validate_request(raw, request_id)
             action = request["action"]
+            picked_up_at = utcnow()
+            started = time.monotonic()
             details = status_action(action, request)
             if action == "worker_probe" and details is None:
                 continue
-            status = "complete"
+            status = "complete" if action != "inference_probe" or details["match"] else "unverified"
         except ExpiredRequest:
             details, status = {}, "expired"
         except (OSError, ValueError, TypeError, RuntimeError,
@@ -516,9 +570,16 @@ def process_locked():
             "status": status, "checked_at": iso(utcnow()),
             "result": details,
         }
+        if private_mailbox and status == "complete":
+            receipt["timing"] = {
+                "picked_up_at": picked_up_at.isoformat(timespec="milliseconds"),
+                "action_ms": round((time.monotonic() - started) * 1000),
+            }
         send_response(request_id, receipt)
         processed += 1
         log("Published " + request_id + " status=" + status)
+    if not processed and private_mailbox:
+        atomic_state_file(checkpoint, scan_key.encode())
     return processed
 
 
@@ -541,7 +602,10 @@ def main():
                 process_once()
             except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
                 log("Poll error: " + type(exc).__name__)
-            wait_for_work("bridge", POLL_SECONDS)
+            if private_mailbox:
+                time.sleep(POLL_SECONDS)
+            else:
+                wait_for_work("bridge", POLL_SECONDS)
     else:
         print("Processed requests:", process_once())
 

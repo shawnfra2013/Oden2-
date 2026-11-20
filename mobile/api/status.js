@@ -32,7 +32,7 @@ const SAFE_KEYS = new Set([
 ]);
 
 const HEALTH_SERVICES = [
-  "odin-git-sync", "odin-task-worker", "odin-github-bridge", "odin-stage5", "odin-private-relay"
+  "odin-private-mailbox", "odin-git-sync", "odin-task-worker", "odin-github-bridge", "odin-stage5", "odin-private-relay"
 ];
 const SERVICE_STATES = new Set(["running", "down", "unknown", "not_configured"]);
 const SYNC_REASONS = new Set([

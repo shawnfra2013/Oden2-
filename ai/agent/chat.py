@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 
-ROOT = Path.home() / "odin-workspace"
+ROOT = Path(__file__).resolve().parents[2]
 AGENT = ROOT / "ai/agent/agent.py"
 
 def main():

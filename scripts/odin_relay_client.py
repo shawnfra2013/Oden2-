@@ -23,9 +23,11 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 try:
+    from scripts import odin_inference_probe as inference
     from scripts import odin_relay_journal as journal
     from scripts import odin_service_restart as service_restart
 except ImportError:
+    import odin_inference_probe as inference
     import odin_relay_journal as journal
     import odin_service_restart as service_restart
 
@@ -200,6 +202,7 @@ def normalized_action(text):
         "ai status": "ai_status",
         "model status": "ai_status",
         "/ai-test": "ai_test",
+        "/ai-proof": "inference_probe",
         "/restart-services": "restart_services",
         "/restart-all-services": "restart_services",
         "restart all services": "restart_services",
@@ -307,6 +310,13 @@ def handle_message(token, msg, seen, answer_fn):
             answer = ("ODIN_TASK_REJECTED: supported: /ping, /status, "
                       "/task git-status, /task queue-status, /ai-status, /ai-test, "
                       "/restart-services")
+        elif action == "inference_probe":
+            result = inference.probe(mid)
+            if result["match"]:
+                answer = (f"Verified OpenAI challenge · {result['model']} · "
+                          f"{result['response_id']} · request {mid}")
+            else:
+                answer = f"OpenAI challenge unverified · {result['reason']} · request {mid}"
         elif action == "ai_test":
             result = answer_fn("Reply briefly with the words Odin AI ready.")
             answer = ("ODIN_AI_TEST_RESPONSE (provider answer, not task proof): "
