@@ -39,3 +39,5 @@ In local Stage 5 or the hosted encrypted chat, open **Voice and webpage excerpts
 The private mailbox action `stage5_coding_review` asks the local model for one Python expression for counting UTF-8 bytes. It compares syntax against known expressions without executing the reply. The private receipt contains the proposed expression for review. A match records performance on this specific task. The action has no repository editing or push step.
 
 Keep evaluated tasks separate from training examples. Collect owner-approved examples and corrections, reserve unseen tasks, then train a candidate LoRA adapter on compatible hardware using the matching upstream base. Compare the adapter with the installed baseline on the same unseen tasks before approving it for device use. No automatic training job is configured.
+
+For isolated adapter training and held-out evaluation, see [Offline candidate adapter training](TRAINING.md).
