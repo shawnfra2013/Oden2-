@@ -207,3 +207,46 @@ Odin health also reports worker heartbeat age, the age of the last completed
 private relay poll, and queue counts for pending and running tasks. Missing
 data stays unknown. Long tasks can delay worker heartbeats. Queue counts
 reflect a moment in time and contain no task names or contents.
+
+
+## Private mailbox hardening and rollout
+
+The private Termux service passed staging write/readback after a service
+restart. A separate physical test rejected the first push and published the
+same saved commit on retry. Keep those receipts in the private repository.
+Android reboot startup remains deferred.
+
+Private successful receipts now include `timing.picked_up_at` (UTC) and
+`timing.action_ms` (monotonic). Use the sender's request timestamp for
+submission, the receipt's `checked_at` for device completion, and the
+observer's first successful outbox read for a publication upper bound. Record
+observer poll cadence. Clock offset can affect cross-device measurements.
+Run timing comparisons with the same workload and poll cadence before
+changing the service interval.
+
+The disposable Git tests in `tests/test_private_mailbox_integration.py`
+run in the existing CI test discovery. They verify recovery of an identical
+committed receipt after a rejected push, repeated polling, invalid request
+rejection, and progress on valid work behind a batch of invalid requests.
+The rejected-push test exercises a Git failure with a local remote.
+
+### Rollout gates
+
+1. Review the PR and require green Odin Checks on its exact head. Test the
+   candidate with its own disposable mailbox state and branches before
+   switching the existing runit process. Keep the verified service checkout
+   and current outbox intact for rollback.
+2. Stop the previous poller before starting a replacement against the live
+   mailbox. Verify a fresh staging checksum and timing fields, restart the
+   service, and verify a second fresh receipt. For rollback, stop the
+   candidate, restart the prior pinned checkout, and verify a private probe.
+3. Verify a replacement deploy key against the private mailbox before
+   switching the service. Keep the old key during the rollback window.
+   Confirm with the owner before revocation and verify the replacement again.
+4. Capture an idle and queued latency baseline before tuning polling. Check
+   Stage 5 provider and model configuration with credentials redacted.
+   Benchmark fixed inference requests and recovery after a timeout only
+   after the intended backend is enabled. Keep inference time separate from
+   mailbox pickup and publication time.
+5. Verify per-check names, timings and failure categories for Ruff and
+   regression checks on an exact revision before any expanded rollout.
