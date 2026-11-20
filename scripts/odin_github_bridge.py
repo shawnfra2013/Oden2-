@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -295,6 +296,27 @@ def staging_probe(request_id):
     return {"bytes": len(actual), "sha256": hashlib.sha256(actual).hexdigest()}
 
 
+def model_capacity():
+    """Read the Termux home volume and kernel memory without a model call."""
+    info = {"architecture": os.uname().machine,
+            "llama_server_installed": shutil.which("llama-server") is not None,
+            "llama_cli_installed": shutil.which("llama-cli") is not None,
+            "aider_installed": shutil.which("aider") is not None}
+    try:
+        info["disk_free_bytes"] = shutil.disk_usage(Path.home()).free
+    except OSError:
+        pass
+    try:
+        mem = Path("/proc/meminfo").read_text()
+        for field, key in (("MemAvailable", "ram_available_bytes"), ("MemTotal", "ram_total_bytes")):
+            match = re.search(r"^" + field + r":\s+(\d+) kB$", mem, re.MULTILINE)
+            if match:
+                info[key] = int(match[1]) * 1024
+    except OSError:
+        pass
+    return info
+
+
 def status_action(action, request=None):
     if action == "inference_probe":
         if not private_mailbox:
@@ -317,7 +339,7 @@ def status_action(action, request=None):
     if action == "ping":
         result = {"alive": True, "bridge_version": 1}
         if private_mailbox:
-            result.update(revision=git("rev-parse", "HEAD"), pid=os.getpid())
+            result.update(revision=git("rev-parse", "HEAD"), pid=os.getpid(), model_capacity=model_capacity())
         return result
     if action == "repo_status":
         tracked_clean = (

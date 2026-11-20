@@ -288,3 +288,5 @@ separate capability. Expansion waits for combined-path acceptance.
 ### Hosted device inference check
 
 Use **Chat → Odin Device Inbox → Verify Odin GPT** in a paired session. The UI sends the fixed `/ai-proof` request over the private relay and refreshes the inbox for the matching device reply. This requires the upgraded relay client, working private storage and the on-device private probe credential. Both device entry points share one attempt journal and budget.
+
+Private ping also measures available bytes on the Termux home filesystem, total and available kernel memory when readable, CPU architecture, and discovery of llama-server, llama-cli and aider on the service PATH. Missing memory fields mean unavailable. These measurements use no model calls. Installed binary detection does not establish that model weights are installed or that inference works offline.
