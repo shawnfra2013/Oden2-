@@ -5,7 +5,7 @@ edits Git. It polls an authenticated HTTPS API, records delivery/read
 receipts and replies using Odin's already configured conversational model.
 
 Requires a locally entered token in $HOME/odin-workspace/state/odin-relay/token
-(mode 0600). The matching secret must be configured in Vercel as
+(mode 0600). The matching secret must be configured on the optional legacy host as
 ODIN_DEVICE_RELAY_TOKEN; it is not stored in GitHub or published in receipts.
 """
 import argparse
@@ -13,14 +13,16 @@ import contextlib
 import fcntl
 import json
 import os
+import re
 import socket
 import ssl
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 try:
     from scripts import odin_inference_probe as inference
@@ -37,7 +39,22 @@ TOKEN_FILE = STATE / "token"
 SEEN_FILE = STATE / "processed.json"
 LOCK_FILE = STATE / "poll.lock"
 STATUS_FILE = STATE / "relay-status.json"
-API = "https://odin-control.vercel.app/api/relay"
+class NoRelayRedirect(HTTPRedirectHandler):
+    def redirect_request(self, *args):
+        return None
+
+
+open_relay = build_opener(NoRelayRedirect()).open
+
+
+def legacy_origin():
+    origin = os.environ.get("ODIN_LEGACY_RELAY_ORIGIN", "").strip().rstrip("/")
+    if origin and not re.fullmatch(r"https://[a-zA-Z0-9.-]+(?::[0-9]{1,5})?", origin):
+        raise ValueError("Expected an HTTPS origin for the optional legacy relay")
+    return origin
+
+
+
 MAX_RESPONSE = 150000
 POLL_SECONDS = 45
 
@@ -56,8 +73,11 @@ def read_token():
 def request(token, payload=None):
     body = None if payload is None else json.dumps(
         payload, separators=(",", ":")).encode("utf-8")
+    origin = legacy_origin()
+    if not origin:
+        raise RuntimeError("Legacy relay disabled")
     req = Request(
-        API,
+        origin + "/api/relay",
         data=body,
         method="GET" if body is None else "POST",
         headers={
@@ -68,7 +88,7 @@ def request(token, payload=None):
         },
     )
     try:
-        with urlopen(req, timeout=20) as response:
+        with open_relay(req, timeout=20) as response:
             content = response.read(MAX_RESPONSE + 1)
             if len(content) > MAX_RESPONSE:
                 raise ValueError("Relay response exceeded limit")
@@ -430,6 +450,12 @@ def main(argv=None):
             print("Private relay status:", json.dumps(record, sort_keys=True))
         except (FileNotFoundError, OSError, ValueError):
             print("Private relay status: no completed poll record")
+        return
+    if not legacy_origin():
+        if args.serve:
+            while True:
+                time.sleep(3600)
+        print("Legacy relay disabled")
         return
     token = read_token()
     if args.serve:

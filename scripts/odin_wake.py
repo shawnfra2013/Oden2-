@@ -1,22 +1,26 @@
 """Wait for an authenticated work hint, preserving the normal reconciliation timer."""
 import json
 import time
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
 try:
-    from .odin_relay_client import read_token
+    from .odin_relay_client import legacy_origin, open_relay, read_token
 except ImportError:
-    from odin_relay_client import read_token
+    from odin_relay_client import legacy_origin, open_relay, read_token
 
 
 def wait_for_work(lane, interval):
     deadline = time.monotonic() + interval
     try:
-        req = Request("https://odin-control.vercel.app/api/wake?lane=" + lane,
+        origin = legacy_origin()
+        if not origin:
+            time.sleep(interval)
+            return
+        req = Request(origin + "/api/wake?lane=" + lane,
                       headers={"Authorization": "Bearer " + read_token()})
         while deadline - time.monotonic() >= 21:
             started = time.monotonic()
-            with urlopen(req, timeout=min(25, deadline - started)) as response:
+            with open_relay(req, timeout=min(25, deadline - started)) as response:
                 result = json.loads(response.read(256))
             if result.get("wake") is True:
                 return
