@@ -490,7 +490,7 @@ def process_locked():
         if not name.startswith("bridge/requests/") or not name.endswith(".json"):
             continue
         request_id = Path(name).stem
-        if not ID_PATTERN.fullmatch(request_id):
+        if not ID_PATTERN.fullmatch(request_id) or name != f"bridge/requests/{request_id}.json":
             continue
         if (OUTBOX / "bridge" / "responses" / (request_id + ".json")).exists():
             continue

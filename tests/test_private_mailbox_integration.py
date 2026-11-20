@@ -114,3 +114,17 @@ class PrivateMailboxIntegrationTests(unittest.TestCase):
             self.assertEqual(self.receipt(request_id)["status"], "rejected_or_failed")
         self.assertEqual(self.receipt(expired)["status"], "expired")
         self.assertEqual(self.receipt(valid)["status"], "complete")
+
+    def test_only_direct_request_path_can_claim_receipt(self):
+        nested_id = self.request(1)
+        directory = self.seed / "bridge" / "requests"
+        nested = directory / "000"
+        nested.mkdir()
+        (directory / f"{nested_id}.json").rename(nested / f"{nested_id}.json")
+        valid = self.request(2)
+        (nested / f"{valid}.json").write_text("{}", encoding="utf-8")
+        self.publish()
+
+        self.assertEqual(bridge.process_once(), 1)
+        self.assertEqual(self.receipt(valid)["status"], "complete")
+        self.assertFalse((bridge.OUTBOX / "bridge" / "responses" / f"{nested_id}.json").exists())
