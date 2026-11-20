@@ -6,12 +6,14 @@ contain structured booleans/counts, never command output or local file names.
 """
 import argparse
 import fcntl
+import hashlib
 import json
 import os
 import re
 import shlex
 import subprocess
 import sys
+import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.error import URLError
@@ -36,7 +38,7 @@ ORIGINS = {
 }
 POLL_SECONDS = 60
 PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
-PRIVATE_ACTIONS = frozenset({"ping", "stage5_health"})
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe"})
 private_mailbox = False
 
 
@@ -98,7 +100,8 @@ def validate_request(raw, expected_id, now=None):
         raise ValueError("Invalid request fields")
     if payload["version"] != 1 or payload["id"] != expected_id:
         raise ValueError("Invalid version or ID")
-    if payload["action"] not in ACTIONS:
+    allowed = PRIVATE_ACTIONS if private_mailbox else ACTIONS
+    if payload["action"] not in allowed:
         raise ValueError("Action not allowlisted")
     if payload["action"] in REVISION_ACTIONS:
         expected = payload["expected_sha"]
@@ -277,7 +280,22 @@ def health_summary():
     }
 
 
+def staging_probe(request_id):
+    if not private_mailbox or not ID_PATTERN.fullmatch(request_id):
+        raise ValueError("Invalid private staging probe")
+    payload = f"odin-staging-probe:{request_id}\n".encode("ascii")
+    with tempfile.TemporaryDirectory(prefix="staging-", dir=STATE) as staging:
+        path = Path(staging) / "probe.txt"
+        path.write_bytes(payload)
+        actual = path.read_bytes()
+        if actual != payload:
+            raise ValueError("Staging readback mismatch")
+    return {"bytes": len(actual), "sha256": hashlib.sha256(actual).hexdigest()}
+
+
 def status_action(action, request=None):
+    if action == "staging_probe":
+        return staging_probe(request["id"])
     if action == "worker_probe":
         try:
             from .odin_worker_probe import probe
@@ -484,8 +502,6 @@ def process_locked():
             raw = inbox_git("show", ref + ":" + name, timeout=20)
             request = validate_request(raw, request_id)
             action = request["action"]
-            if private_mailbox and action not in PRIVATE_ACTIONS:
-                raise ValueError("Action unavailable in private pilot")
             details = status_action(action, request)
             if action == "worker_probe" and details is None:
                 continue
