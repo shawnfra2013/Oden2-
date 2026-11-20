@@ -26,6 +26,24 @@ el("noteFile").onchange=async event=>{
   el("noteStatus").textContent="Loaded. Select Include to use this note.";
  } catch(e){el("noteStatus").textContent=e.message;}
 };
+el("lookup").onclick=async()=>{
+ const name=el("symbol").value.trim();
+ el("sourceMatches").replaceChildren();el("lookup").disabled=true;
+ try{
+  const data=await getJSON("/api/source?symbol="+encodeURIComponent(name));
+  el("sourceStatus").textContent=data.matches.length?"Select an excerpt to preview.":"No matching function in the indexed Python modules.";
+  for(const item of data.matches){
+   const button=document.createElement("button");
+   button.type="button";button.textContent=item.label;
+   button.onclick=()=>{
+    el("note").value=item.reference;el("notePanel").open=true;el("useNote").checked=true;
+    el("noteStatus").textContent="Selected source excerpt. Review before sending.";
+   };
+   el("sourceMatches").append(button);
+  }
+ }catch(e){el("sourceStatus").textContent=e.message;}
+ finally{el("lookup").disabled=false;}
+};
 let conversationId;
 try{
  const saved=sessionStorage.getItem(storageKey);

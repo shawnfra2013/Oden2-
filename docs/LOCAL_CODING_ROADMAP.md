@@ -17,7 +17,7 @@ The owner observed an offline reply on the handheld. The [installer receipt](htt
 2. Record first-token latency separately from total response time before changing threads or context size.
 3. Check the context limit with long code, Unicode, and several turns. Provide a clear prompt to trim input.
 4. Test short and regular modes against the same three small coding fixes, recording correctness and time.
-5. Add one read-only file preview selected by the user, with an exact path and revision in the UI.
+5. Shipped a read-only Python function lookup with file, line and revision. Extend to other languages only when needed.
 6. Offer project-note search if manually selecting one excerpt becomes a bottleneck.
 7. Present a proposed diff and the files it affects before any write.
 8. Apply one approved diff in an isolated worktree; stop on a stale base commit.

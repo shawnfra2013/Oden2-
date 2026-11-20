@@ -8,7 +8,8 @@ import time
 from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
+from subprocess import TimeoutExpired
 
 ROOT = Path(__file__).resolve().parent
 WORKSPACE = Path.home() / "odin-workspace"
@@ -138,6 +139,21 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_body(200, disconnect_status())
             except sqlite3.Error:
                 self.json_body(503, {"error": "Local test journal unavailable"})
+        elif path == "/api/source":
+            from source_lookup import lookup
+            if os.environ.get("ODIN_STAGE5_PROVIDER") != "local":
+                self.json_body(409, {"error": "Local provider required"})
+                return
+            params = parse_qs(urlsplit(self.path).query)
+            if set(params) != {"symbol"} or len(params["symbol"]) != 1:
+                self.json_body(400, {"error": "Enter one function name"})
+                return
+            try:
+                self.json_body(200, lookup(params["symbol"][0]))
+            except ValueError:
+                self.json_body(400, {"error": "Invalid function name"})
+            except (RuntimeError, OSError, TimeoutExpired):
+                self.json_body(503, {"error": "Source unavailable"})
         elif path == "/api/tasks":
             self.json_body(200, {"counts": task_counts(),
                                  "access": "read_only"})

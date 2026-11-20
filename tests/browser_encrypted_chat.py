@@ -104,6 +104,15 @@ with sync_playwright() as w:
     page.click("#forgetNote")
     page.reload()
     assert page.input_value("#note") == ""
+    page.locator("summary", has_text="Look up Odin code").click()
+    page.fill("#symbol", "local_settings")
+    page.click("#lookup")
+    page.locator("#sourceMatches button").first.click()
+    assert page.is_checked("#useNote") and 'ODIN_LOCAL_PORT' in page.input_value("#note")
+    assert 'stage5/local_adapter.py:' in page.input_value("#note")
+    page.fill("#symbol", "../state")
+    page.click("#lookup")
+    page.locator("#sourceStatus").filter(has_text="400").wait_for()
     os.environ["ODIN_STAGE5_PROVIDER"] = "groq"
     status = page.evaluate("""async()=> (await fetch('/api/chat',{method:'POST',
       headers:{'Content-Type':'application/json','X-Odin-Request':'chat'},
