@@ -25,7 +25,7 @@ def ask_local(question, history=None):
     model, port = local_settings(os.environ)
     messages = [*bounded_history(history), {"role": "user", "content": question}]
     body = json.dumps(dict(model=model, messages=messages, max_tokens=700, stream=False))
-    connection = HTTPConnection("127.0.0.1", port, timeout=40)
+    connection = HTTPConnection("127.0.0.1", port, timeout=180)
     try:
         connection.request("POST", "/v1/chat/completions", body, {"Content-Type": "application/json"})
         response = connection.getresponse()

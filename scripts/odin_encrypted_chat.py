@@ -34,6 +34,8 @@ def reply(request):
     if str(ROOT / "stage5") not in sys.path:
         sys.path.insert(0, str(ROOT / "stage5"))
     from local_adapter import ask_local
+    from offline_profile import activate
+    activate(os.environ)
 
     data = base64.b64decode(request["sealed"], validate=True)
     if not 28 < len(data) <= 12029:

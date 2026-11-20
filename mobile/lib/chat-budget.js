@@ -10,7 +10,7 @@ const reserveScript=`
   redis.call('EXPIRE', KEYS[2], 172800)
   return 'reserved'`;
 function dailyLimit(){
-  const value=process.env.ODIN_CLOUD_CHAT_DAILY_LIMIT || "2";
+  const value=process.env.ODIN_CLOUD_CHAT_DAILY_LIMIT || "0";
   return /^([1-9]|[1-9][0-9]{1,2})$/.test(value)?Number(value):0;
 }
 function configured(){
