@@ -136,7 +136,8 @@ def read_ci_payload(target):
 
 def update_once(root=ROOT, fetch_ci=None, git_cmd=None, run_cmd=None, before_pull=None):
     if git_cmd is None:
-        git_cmd = lambda *a: git(*a, root=root)
+        def git_cmd(*args):
+            return git(*args, root=root)
     if run_cmd is None:
         run_cmd = subprocess.run
     old, target = None, None

@@ -14,10 +14,10 @@ from unittest.mock import patch
 
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / "ai/agent"))
-import healthcheck
-import orchestrator
-import pipeline
-import proposal_builder
+import healthcheck  # noqa: E402 - use the checkout-specific import path above
+import orchestrator  # noqa: E402 - use the checkout-specific import path above
+import pipeline  # noqa: E402 - use the checkout-specific import path above
+import proposal_builder  # noqa: E402 - use the checkout-specific import path above
 
 spec = importlib.util.spec_from_file_location("stage4_worker_tests", PROJECT / "scripts/odin_worker.py")
 worker = importlib.util.module_from_spec(spec)
