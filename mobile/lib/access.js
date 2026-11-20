@@ -18,7 +18,7 @@ function authorized(req) {
   return timingSafeEqual(sha(secret), sha(provided));
 }
 function validOrigin(req) {
-  return req.headers.origin === ORIGIN;
+  return req.headers.origin === (process.env.ODIN_CONTROL_ORIGIN || ORIGIN);
 }
 function validBody(req, size=24576) {
   const len = Number(req.headers["content-length"]);
