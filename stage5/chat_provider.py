@@ -6,13 +6,17 @@ from inference_adapter import ask_bounded
 
 def provider_name():
     name = os.environ.get("ODIN_STAGE5_PROVIDER", "groq").strip().lower()
-    if name not in {"groq", "openai"}:
+    if name not in {"groq", "openai", "local"}:
         raise RuntimeError("Unknown Odin AI provider")
     return name
 
 
 def ask_model(question, history=None):
-    if provider_name() == "openai":
+    provider = provider_name()
+    if provider == "local":
+        from local_adapter import ask_local
+        return ask_local(question, history)
+    if provider == "openai":
         from openai_adapter import ask_openai
         return ask_openai(question, history)
     return ask_bounded(question, history)
@@ -27,6 +31,17 @@ def provider_status(environ=None):
     env = os.environ if environ is None else environ
     name = str(env.get("ODIN_STAGE5_PROVIDER", "groq")).strip().lower()
     enabled = env.get("ODIN_STAGE5_ENABLE_AI") == "1"
+    if name == "local":
+        from local_adapter import local_settings
+        try:
+            local_settings(env)
+            configured = True
+        except ValueError:
+            configured = False
+        return {"provider": name, "enabled": enabled, "credential_present": False,
+                "model_configured": configured, "ready": enabled and configured,
+                "reason": "ai_disabled" if not enabled else (
+                    "configured_not_tested" if configured else "model_missing")}
     if name == "groq":
         credential = bool(str(env.get("GROQ_API_KEY", "")).strip())
         model_configured = True  # Existing orchestrator pins a known model.

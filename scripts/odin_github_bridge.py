@@ -40,7 +40,7 @@ ORIGINS = {
 }
 POLL_SECONDS = 60
 PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
-PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe"})
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat"})
 private_mailbox = False
 
 
@@ -90,7 +90,7 @@ def parse_utc(value):
 
 def validate_request(raw, expected_id, now=None):
     """Validate a bounded, expiring command-free GitHub request."""
-    if not isinstance(raw, str) or len(raw.encode("utf-8")) > 4096:
+    if not isinstance(raw, str) or len(raw.encode("utf-8")) > (18000 if private_mailbox else 4096):
         raise ValueError("Invalid request size")
     if not ID_PATTERN.fullmatch(expected_id):
         raise ValueError("Invalid ID")
@@ -98,6 +98,12 @@ def validate_request(raw, expected_id, now=None):
     if not isinstance(payload, dict):
         raise TypeError("Invalid request object")
     required = REQUEST_KEYS | ({"expected_sha"} if payload.get("action") in REVISION_ACTIONS else set())
+    if private_mailbox and payload.get("action") == "encrypted_chat":
+        required = required | {"sealed"}
+        if not isinstance(payload.get("sealed"), str):
+            raise ValueError("Missing encrypted message")
+    elif len(raw.encode("utf-8")) > 4096:
+        raise ValueError("Oversized diagnostic request")
     if set(payload) != required:
         raise ValueError("Invalid request fields")
     if type(payload["version"]) is not int or payload["version"] != 1 or payload["id"] != expected_id:
@@ -318,6 +324,17 @@ def model_capacity():
 
 
 def status_action(action, request=None):
+    if action == "encrypted_chat":
+        if not private_mailbox:
+            raise ValueError("Private mailbox required")
+        try:
+            if __package__:
+                from .odin_encrypted_chat import reply
+            else:
+                from odin_encrypted_chat import reply
+            return reply(request)
+        except ImportError as exc:
+            raise RuntimeError("Encrypted chat dependency unavailable") from exc
     if action == "inference_probe":
         if not private_mailbox:
             raise ValueError("Private mailbox required")
@@ -571,7 +588,7 @@ def process_locked():
         try:
             # Check blob size before reading content from an untrusted inbox.
             blob_size = int(inbox_git("cat-file", "-s", ref + ":" + name))
-            if blob_size > 4096:
+            if blob_size > (18000 if private_mailbox else 4096):
                 raise ValueError("Oversized request blob")
             raw = inbox_git("show", ref + ":" + name, timeout=20)
             request = validate_request(raw, request_id)

@@ -1,5 +1,7 @@
 ## November 20 · Structure audit repairs
 
+[Offline model and encrypted chat setup](docs/OFFLINE_CHAT.md).
+
 Published the private workflow health and staging validations. The [hardening record](docs/STRUCTURE_HARDENING.md) tracks the 21 findings, browser-dispatched ping, staging digest, source changes and outstanding device cutover.
 
 ## November 20 · Direct private mailbox access

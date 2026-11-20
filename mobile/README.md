@@ -1,5 +1,7 @@
 # Odin Control — Hosted iPhone UI
 
+[Offline model and encrypted chat setup](../docs/OFFLINE_CHAT.md).
+
 For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](../docs/STRUCTURE_HARDENING.md).
 
 The active device bridge is the private GitHub mailbox in `shawnfra2013/Odin-private-bridge`. Termux polls `odin-bridge-inbox` and publishes matching receipts on `odin-bridge-outbox`. Use the [private mailbox in a browser](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) or submit a request through the authorized GitHub integration. Browser submissions use GitHub sign-in and the workflow’s repository-scoped token.
