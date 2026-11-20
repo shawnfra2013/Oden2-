@@ -470,11 +470,11 @@ function renderSecureState() {
       : "Private server token is not set. See setup instructions in GitHub.";
   } else {
     $("accessState").textContent="Authenticated for this tab. Cloud AI: "
-      +(p.cloud?"ready":"needs server key")
+      +(p.cloud?"configured":"needs server key")
       +" · Odin diagnostics: "+(p.diagnostics?"ready":"needs GitHub token");
   }
   $("cloudChatBanner").textContent=ready&&p.cloud
-    ? "Cloud AI available · Separate from this ChatGPT app thread"
+    ? "Cloud AI configured · Separate from this ChatGPT app thread"
     : "Cloud AI chat not connected";
   if(p.pending){
     const id=p.pending.id;
