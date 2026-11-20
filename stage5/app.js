@@ -169,3 +169,19 @@ async function watchDisconnectTest(){
  }finally{delete panel.dataset.watching;}
 }
 el("disconnectTest").addEventListener("toggle",watchDisconnectTest);
+
+el("practicePanel").addEventListener("toggle", async () => {
+ if (!el("practicePanel").open) return;
+ try {
+  const book = await getJSON("/api/practice");
+  el("practiceSummary").textContent = (book.passed || 0) + " passed, " + (book.missed || 0) +
+    " missed. " + (book.review_skills?.length ? "Review repeated errors in " + book.review_skills.join(", ") :
+    "Keep current weights.");
+  el("practiceNotes").replaceChildren(...book.notes.map(note => {
+   const item = document.createElement("li");
+   item.textContent = [note.question, note.state, note.answer === undefined ? "" : "Answer: " + note.answer,
+     note.expected === undefined ? "" : "Expected: " + note.expected, note.note].filter(Boolean).join(" · ");
+   return item;
+  }));
+ } catch { el("practiceSummary").textContent = "Practice notebook unavailable."; }
+});

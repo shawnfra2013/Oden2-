@@ -9,3 +9,11 @@ Keep two JSONL files. Each line has a question, the reviewed correct answer and 
 Remove the final flag for one training epoch. The base and examples stay local. The script writes the adapter and baseline/candidate held-out answer loss into a new directory. Inspect task correctness separately. A lower loss alone does not establish better code. Test a compatible converted GGUF adapter against the original on the handheld, including correctness, memory and latency, before promoting it. The training command has no mailbox trigger, deployment or Git push.
 
 The software can prepare and evaluate a candidate with reviewed data. Autonomous labeling, continuous self-training and automatic activation are outside the current release.
+
+## Practice and progress notes
+
+Run `python -B scripts/odin_practice.py --next` on Odin for one local exercise and `python -B scripts/odin_practice.py` to read the notebook offline. The private GitHub mailbox accepts the same bounded action, `practice_next`. Both interfaces share nine cases and one persistent SQLite notebook in the Termux user's home. One request claims at most one case. A claimed case interrupted before its result was saved stays ungraded. An exhausted set stops without contacting the model.
+
+The notebook records the question, reference, expected and actual answer, timing and outcome. Two distinct incorrect responses in the same skill flag it for diagnosis. Transport failures and interrupted jobs do not count as model mistakes. Check retrieval, prompts and grading before attributing a pattern to the weights. If the pattern persists on new examples, train a separate candidate with reviewed corrections and measure held-out correctness and regressions before promotion. These nine published exercises remain practice material.
+
+On the local UI, open Tasks → Practice notebook to read the results. After a miss, the next case of the same kind includes a brief, fixed reminder about how to approach it.

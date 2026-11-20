@@ -3,6 +3,7 @@ import json
 import os
 import secrets
 import sqlite3
+import sys
 import threading
 import time
 from contextlib import closing
@@ -12,6 +13,7 @@ from urllib.parse import parse_qs, urlsplit
 from subprocess import TimeoutExpired
 
 ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT.parent))
 WORKSPACE = Path.home() / "odin-workspace"
 HOST = "127.0.0.1"
 PORT = 8765
@@ -137,6 +139,12 @@ class Handler(BaseHTTPRequestHandler):
                 "provider": os.environ.get("ODIN_STAGE5_PROVIDER", "groq"),
                 "worker_connected": False
             })
+        elif path == "/api/practice":
+            from scripts.odin_practice import notebook
+            try:
+                self.json_body(200, notebook())
+            except (sqlite3.Error, OSError, ValueError):
+                self.json_body(503, {"error": "Practice notebook unavailable"})
         elif path == "/api/disconnect-test":
             try:
                 self.json_body(200, disconnect_status())

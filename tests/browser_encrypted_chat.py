@@ -111,6 +111,8 @@ with sync_playwright() as w:
     assert proposal["http_status"] == 200 and proposal["match"] and proposal["review"] == "pending"
     page.unroute("**/api/**")
     page.goto(f"http://127.0.0.1:{server.PORT}")
+    page.locator("summary", has_text="Practice notebook").click()
+    page.locator("#practiceSummary").filter(has_text="Keep current weights.").wait_for()
     page.locator("summary", has_text="Project note").click()
     page.locator("#noteFile").set_input_files({"name":"facts.md", "mimeType":"text/plain", "buffer":b"Sample fact"})
     page.get_by_text('Loaded. Select Include to use this note.', exact=True).wait_for()

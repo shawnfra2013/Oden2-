@@ -22,7 +22,7 @@ def byte_count_proposal(answer):
     return proposal[:160], accepted
 
 
-def check(request_id, *, source=False, coding=False, port=8765):
+def check(request_id, *, source=False, coding=False, exercise=None, port=8765):
     conn = HTTPConnection("127.0.0.1", port, timeout=190)
     try:
         conn.request("GET", "/api/health")
@@ -54,6 +54,10 @@ def check(request_id, *, source=False, coding=False, port=8765):
             payload = {"message": "Write one Python expression that returns the number of UTF-8 "
                        "bytes in the string named text. Reply only with the expression.",
                        "local_options": {"quick": True, "reference": ""}}
+        if exercise:
+            question, reference, marker = exercise
+            payload = {"message": question + " Reply with the value only.",
+                       "local_options": {"quick": True, "reference": reference}}
         if "odin_session" not in cookie:
             raise ValueError("Missing session")
         conn.request("POST", "/api/chat", json.dumps(payload), {
@@ -67,6 +71,7 @@ def check(request_id, *, source=False, coding=False, port=8765):
                     "review": "pending" if proposal else "no_proposal", "http_status": response.status,
                     "elapsed_ms": data.get("elapsed_ms")}
         return {"match": response.status == 200 and data.get("answer", "").strip() == marker,
+                **({"answer": data.get("answer", "")[:240]} if exercise else {}),
                 **({"source_revision": revision} if source else {}),
                 "http_status": response.status, "elapsed_ms": data.get("elapsed_ms")}
     finally:
