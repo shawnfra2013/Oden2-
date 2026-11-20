@@ -55,8 +55,8 @@ def names(*argv):
     output = subprocess.check_output(["git", *argv])
     return [p for p in output.split(b"\0") if p]
 
-incoming = names("diff", "--diff-filter=A", "--name-only", "-z", "HEAD", "origin/main")
-untracked = names("ls-files", "--others", "--exclude-standard", "-z")
+incoming = names("diff", "--no-renames", "--diff-filter=AMT", "--name-only", "-z", "HEAD", "origin/main")
+untracked = names("ls-files", "--others", "-z")
 collisions = [
     (new, old) for new in incoming for old in untracked
     if new == old or new.startswith(old + b"/") or old.startswith(new + b"/")
@@ -67,7 +67,7 @@ if collisions:
 print(f"Preflight: {len(untracked)} untracked file(s) preserved.")
 PY
 
-git merge --ff-only origin/main
+git merge --ff-only --no-overwrite-ignore origin/main
 
 printf 'Updated commit: '
 git rev-parse HEAD

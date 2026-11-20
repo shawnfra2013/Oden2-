@@ -25,8 +25,9 @@ function request(method,token,body,origin){
     },body:body||{}};
 }
 function environ(callback){
-  const keys=["ODIN_CONTROL_ACCESS_TOKEN","ODIN_DEVICE_RELAY_TOKEN","BLOB_READ_WRITE_TOKEN"];
+  const keys=["ODIN_ENABLE_LEGACY_RELAY","ODIN_CONTROL_ACCESS_TOKEN","ODIN_DEVICE_RELAY_TOKEN","BLOB_READ_WRITE_TOKEN"];
   const old=keys.map(k=>process.env[k]);
+  process.env.ODIN_ENABLE_LEGACY_RELAY="1";
   process.env.ODIN_CONTROL_ACCESS_TOKEN=IPHONE_TOKEN;
   process.env.ODIN_DEVICE_RELAY_TOKEN=DEVICE_TOKEN;
   process.env.BLOB_READ_WRITE_TOKEN="fake-test-storage-token-not-network-access";

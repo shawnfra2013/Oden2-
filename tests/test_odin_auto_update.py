@@ -105,6 +105,7 @@ class UpdateSafetyTests(unittest.TestCase):
 
                 with (
                     patch.object(updater, "RESULT", result),
+                    patch.object(updater, "git", return_value=revision),
                     patch.object(updater, "ROLLOUT_RESULT", result.with_name("rollout.json")),
                     patch.object(updater, "flag_is_enabled", return_value=True),
                     patch.object(updater, "update_once", return_value=current),
@@ -126,6 +127,26 @@ class UpdateSafetyTests(unittest.TestCase):
                         self.assertEqual(launch.call_count, 1)
                     else:
                         self.assertFalse(evidence.exists())
+
+    def test_failed_reload_is_retried_three_times_and_never_reports_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result"
+            rollout = path.with_name("rollout")
+            statuses = ["updated", "current", "current", "current"]
+            records = [updater.result_record(status, "test", self.OLD, self.TARGET, self.TARGET)
+                       for status in statuses]
+            persist = updater.save_result
+            with (
+                patch.object(updater, "RESULT", path),
+                patch.object(updater, "ROLLOUT_RESULT", rollout),
+                patch.object(updater, "flag_is_enabled", return_value=True),
+                patch.object(updater, "update_once", side_effect=records),
+                patch.object(updater, "save_result", side_effect=lambda data, destination=path: persist(data, destination)),
+                patch.object(updater.subprocess, "run", return_value=SimpleNamespace(returncode=1)) as restart,
+            ):
+                self.assertEqual([updater.main(["--once"]) for _ in statuses], [1, 1, 1, 1])
+            self.assertEqual(restart.call_count, 3)
+            self.assertEqual(json.loads(rollout.read_bytes())["reload_status"], "unverified")
 
     def test_dirty_checkout_refused_before_fetch(self):
         result = updater.update_once(git_cmd=self.make_git(dirty=True))

@@ -1,5 +1,7 @@
 # Odin private message relay — phone ↔ device
 
+For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](STRUCTURE_HARDENING.md).
+
 Historical runbook for the optional Blob journal. The active private device bridge and acceptance checks are documented in [the GitHub mailbox runbook](ODIN_GITHUB_BRIDGE.md). The dashboard hides the legacy controls unless the operator sets `ODIN_ENABLE_LEGACY_RELAY=1`.
 
 

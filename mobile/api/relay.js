@@ -14,6 +14,7 @@ module.exports=async function handler(req,res){
   const owner=authorized(req) &&
     (req.method==="GET" ? (!req.headers.origin || validOrigin(req)) : validOrigin(req));
   if(!device&&!owner)return res.status(403).json({error:"Pairing is not configured or access denied"});
+  if(process.env.ODIN_ENABLE_LEGACY_RELAY!=="1")return res.status(410).json({error:"Legacy relay disabled. Use the private GitHub mailbox."});
   if(!process.env.BLOB_READ_WRITE_TOKEN&&!process.env.VERCEL_OIDC_TOKEN)
     return res.status(503).json({error:"Private relay storage is not configured"});
   if(req.method!=="GET"&&req.method!=="POST"){
@@ -30,7 +31,8 @@ module.exports=async function handler(req,res){
       const history=relay.view(all,owner?"iphone":"odin");
       return res.status(200).json({
         source:"private-odin-relay",connected:true,
-        messages:history.slice(-60),
+        messages:owner?history.slice(-60):history.filter(m=>m.to==="odin" &&
+          !["failed","replied"].includes(m.status)).slice(0,60),
         unread:owner?history.filter(x=>x.sender==="odin"&&x.status==="queued").length:
           history.filter(x=>x.to==="odin"&&x.status==="queued").length
       });

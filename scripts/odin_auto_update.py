@@ -10,6 +10,7 @@ import re
 import stat
 import subprocess
 import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -45,23 +46,19 @@ def result_record(status, reason, before=None, target=None, after=None):
 
 def save_result(record, destination=RESULT):
     destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    temp = destination.with_name(destination.name + ".tmp")
-    if temp.exists() or temp.is_symlink():
-        raise RuntimeError("Existing temporary update-result file")
-    with temp.open("x", encoding="utf-8") as handle:
-        os.chmod(temp, 0o600)
-        json.dump(record, handle, sort_keys=True)
-        handle.write("\n")
-        handle.flush()
-        os.fsync(handle.fileno())
-    temp.replace(destination)
+    with tempfile.NamedTemporaryFile(mode="w", dir=destination.parent, delete=False) as handle:
+        temp = Path(handle.name)
+        try:
+            json.dump(record, handle, sort_keys=True)
+            handle.flush()
+            os.fsync(handle.fileno())
+            os.replace(temp, destination)
+        finally:
+            temp.unlink(missing_ok=True)
 
 
 def save_rollout(evidence, reload_status):
-    try:
-        save_result({**evidence, "reload_status": reload_status}, ROLLOUT_RESULT)
-    except (OSError, RuntimeError):
-        print("ODIN_UPDATE_ROLLOUT_EVIDENCE_WRITE_FAILED", file=sys.stderr, flush=True)
+    save_result({**evidence, "reload_status": reload_status}, ROLLOUT_RESULT)
 
 
 def flag_is_enabled(path=FLAG):
@@ -137,7 +134,7 @@ def read_ci_payload(target):
     return json.loads(raw)
 
 
-def update_once(root=ROOT, fetch_ci=None, git_cmd=None, run_cmd=None):
+def update_once(root=ROOT, fetch_ci=None, git_cmd=None, run_cmd=None, before_pull=None):
     if git_cmd is None:
         git_cmd = lambda *a: git(*a, root=root)
     if run_cmd is None:
@@ -164,6 +161,8 @@ def update_once(root=ROOT, fetch_ci=None, git_cmd=None, run_cmd=None):
         payload = fetch_ci(target) if fetch_ci else read_ci_payload(target)
         if not ci_has_passed(target, payload):
             return result_record("waiting", "ci_not_passed", old, target)
+        if before_pull is not None:
+            before_pull(target)
         completed = run_cmd(
             ["bash", str(root / "scripts" / "odin-safe-pull.sh")],
             cwd=root, env=dict(os.environ, ODIN_EXPECTED_SHA=target),
@@ -189,8 +188,11 @@ def main(argv=None):
     mode.add_argument("--enable", action="store_true")
     mode.add_argument("--disable", action="store_true")
     mode.add_argument("--status", action="store_true")
+    mode.add_argument("--is-enabled", action="store_true")
     mode.add_argument("--once", action="store_true")
     args = parser.parse_args(argv)
+    if args.is_enabled:
+        return 0 if flag_is_enabled() else 1
     if args.enable:
         change_flag(True)
         print("Safe source updates and post-update service reload enabled.")
@@ -213,38 +215,48 @@ def main(argv=None):
         previous = json.loads(RESULT.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         previous = None
-    record = update_once()
-    needs_reload = record["status"] == "updated" or (
-        record["status"] == "current"
-        and isinstance(previous, dict)
-        and previous.get("reason") == "source_updated_restart_not_automatic"
-        and previous.get("after") == record["after"]
-    )
+    def mark_pending(target):
+        save_rollout({"revision": target, "checked_at": datetime.now(UTC).isoformat(), "attempts": 0}, "pending")
+
+    record = update_once(before_pull=mark_pending)
     try:
-        save_result(record)
-    except (OSError, RuntimeError):
-        print("ODIN_UPDATE_FAILURE: result not saved", file=sys.stderr)
-        return 1
-    print("ODIN_UPDATE", record["status"], record["reason"],
-          record["after"] or record["target"] or "", flush=True)
-    if needs_reload:
-        rollout = record if record["status"] == "updated" else previous
-        evidence = {"revision": rollout["after"], "checked_at": rollout["checked_at"]}
-        save_rollout(evidence, "pending")
-        # Execute the newly installed helper after the exact revision passed CI.
-        # Keep the calling sync supervisor alive while it holds the sync lock.
         try:
-            reloaded = subprocess.run(
-                [sys.executable, "-B", str(ROOT / "scripts" / "odin_service_restart.py"),
-                 "--after-update"],
-                cwd=ROOT, check=False, timeout=200,
-            )
-            save_rollout(evidence, "unverified" if reloaded.returncode else "verified")
-            if reloaded.returncode:
-                print("ODIN_UPDATE_RELOAD_UNVERIFIED", file=sys.stderr, flush=True)
-        except (OSError, subprocess.TimeoutExpired):
-            save_rollout(evidence, "unverified")
-            print("ODIN_UPDATE_RELOAD_UNVERIFIED", file=sys.stderr, flush=True)
+            rollout = json.loads(ROLLOUT_RESULT.read_text())
+        except FileNotFoundError:
+            rollout = {}
+        if not isinstance(rollout, dict):
+            raise ValueError("Invalid rollout evidence")
+        revision = record["after"]
+        same = rollout.get("revision") == revision
+        retry = same and rollout.get("reload_status") in {"pending", "unverified"}
+        interrupted = (isinstance(previous, dict) and previous.get("status") == "updated"
+                       and previous.get("after") == revision and not same)
+        needs_reload = record["status"] == "updated" or (
+            record["status"] == "current" and (retry or interrupted))
+        if needs_reload:
+            attempts = rollout.get("attempts", 0) if retry else 0
+            if attempts >= 3:
+                print("Reload attempt limit reached for", revision, file=sys.stderr)
+                return 1
+            evidence = {"revision": revision, "checked_at": record["checked_at"], "attempts": attempts + 1}
+            save_rollout(evidence, "pending")
+        save_result(record)
+        if needs_reload:
+            try:
+                result = subprocess.run(
+                    [sys.executable, "-B", str(ROOT / "scripts" / "odin_service_restart.py"), "--after-update"],
+                    cwd=ROOT, check=False, timeout=200,
+                )
+                healthy = result.returncode == 0 and git("rev-parse", "HEAD") == revision
+            except (OSError, subprocess.TimeoutExpired):
+                healthy = False
+            save_rollout(evidence, "verified" if healthy else "unverified")
+            if not healthy:
+                return 1
+    except (OSError, ValueError, TypeError, RuntimeError):
+        print("ODIN_UPDATE_FAILURE: rollout evidence unavailable", file=sys.stderr)
+        return 1
+    print("ODIN_UPDATE", record["status"], record["reason"], record["after"] or "", flush=True)
     return 1 if record["status"] in {"blocked", "error"} else 0
 
 

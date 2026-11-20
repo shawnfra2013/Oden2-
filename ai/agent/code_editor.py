@@ -7,7 +7,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROOT = Path.home() / "odin-workspace"
+ROOT = Path(__file__).resolve().parents[2]
 MODEL = "openai/gpt-oss-120b"
 API = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -174,7 +174,7 @@ def main():
     ))
 
     print("=== PROPOSED CHANGES ===")
-    print(diff[:30000])
+    print(diff)
     print("=== SYNTAX: PASS ===")
 
     approval = input("Type APPLY to approve: ").strip()
@@ -190,21 +190,28 @@ def main():
         print("STOP: Repository changed during review")
         return 1
 
-    path.write_text(new)
-
     if path.suffix == ".py":
-        result = run(["ruff", "check", filename])
+        result = run(["ruff", "check", "--stdin-filename", filename, "-"], input=new)
         if result.returncode:
-            path.write_text(original)
-            print("RUFF FAILED — ORIGINAL RESTORED")
-            print(result.stdout[:2000])
+            print("RUFF FAILED")
             return 1
-
-    result = run(["git", "diff", "--check", "--", filename])
-    if result.returncode:
-        path.write_text(original)
-        print("DIFF CHECK FAILED — ORIGINAL RESTORED")
+    patch = run(["git", "apply", "--check", "--whitespace=error", "-"], input=diff)
+    if patch.returncode:
+        print("DIFF CHECK FAILED")
         return 1
+    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False, mode="w") as output:
+        candidate = Path(output.name)
+        try:
+            output.write(new)
+            output.flush()
+            os.fchmod(output.fileno(), path.stat().st_mode & 0o777)
+            os.fsync(output.fileno())
+            if path.read_text() != original:
+                print("Target changed during validation")
+                return 1
+            os.replace(candidate, path)
+        finally:
+            candidate.unlink(missing_ok=True)
 
     print("APPLIED AND LOCALLY VALIDATED")
     print("NOT COMMITTED OR PUSHED")

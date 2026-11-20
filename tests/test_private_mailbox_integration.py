@@ -89,6 +89,37 @@ class PrivateMailboxIntegrationTests(unittest.TestCase):
         self.assertIn("picked_up_at", receipt["timing"])
         self.assertGreaterEqual(receipt["timing"]["action_ms"], 0)
 
+    def test_uncommitted_receipt_resumes_without_repeating_action(self):
+        original_git = bridge.git
+        for number, boundary in enumerate(("add", "commit"), 1):
+            with self.subTest(boundary=boundary):
+                request_id = self.request(number, action="ping")
+                self.publish()
+                def interrupt(*args, **kwargs):
+                    if args[0] == boundary:
+                        raise RuntimeError("Interrupted publication")
+                    return original_git(*args, **kwargs)
+
+                with patch.object(bridge, "git", side_effect=interrupt):
+                    with self.assertRaisesRegex(RuntimeError, "Interrupted"):
+                        bridge.process_once()
+                unrelated = bridge.OUTBOX / "keep-me"
+                unrelated.write_text("owner edit")
+                with self.assertRaisesRegex(RuntimeError, "uncommitted"):
+                    bridge.process_once()
+                self.assertEqual(unrelated.read_text(), "owner edit")
+                unrelated.unlink()
+                with patch.object(bridge, "status_action") as action:
+                    self.assertEqual(bridge.process_once(), 0)
+                    action.assert_not_called()
+                self.assertTrue(self.receipt(request_id)["result"]["alive"])
+                history = git(self.remote, "log", "--format=%s", bridge.OUTBOX_BRANCH)
+                self.assertEqual(history.count("Odin bridge response " + request_id), 1)
+        next_id = self.request(3, action="ping")
+        self.publish()
+        self.assertEqual(bridge.process_once(), 1)
+        self.assertEqual(self.receipt(next_id)["status"], "complete")
+
     def test_invalid_requests_do_not_execute_or_block_valid_work(self):
         rejected = [
             self.request(1, action="checks"),

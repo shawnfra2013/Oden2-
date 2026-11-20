@@ -420,7 +420,9 @@ function addChatLine(role,text) {
   });
   renderRelay();
 }
+let pendingCloudTurn=null;
 function clearPrivateChat() {
+  pendingCloudTurn=null;
   privateState.history=[];
   privateState.cloudEvents=[];
   renderRelay();
@@ -470,7 +472,7 @@ function renderSecureState() {
       : "Private server token is not set. See setup instructions in GitHub.";
   } else {
     $("accessState").textContent="Authenticated for this tab. Cloud AI: "
-      +(p.cloud?"ready":"needs server key")
+      +(p.cloud?"ready":"check model and budget configuration")
       +" · Public diagnostics: "+(p.diagnostics?"ready":"needs GitHub token");
   }
   $("cloudChatBanner").textContent=ready&&p.cloud
@@ -642,11 +644,17 @@ $("cloudChatForm").addEventListener("submit",async event=>{
   addChatLine("user",msg);
   renderSecureState();
   try {
+    if(!pendingCloudTurn || pendingCloudTurn.message!==msg){
+      const day=new Date().toISOString().slice(0,10);
+      pendingCloudTurn={message:msg,id:day+":"+crypto.randomUUID().replaceAll("-","")};
+    }
     const result=await authenticatedPost("/api/chat",{
+      request_id:pendingCloudTurn.id,
       message:msg,history:privateState.history.slice(-8)
     },privateState.token);
     if(typeof result.answer!=="string"||result.source!=="openai-api")
       throw Error("Unexpected AI response");
+    pendingCloudTurn=null;
     addChatLine("assistant",result.answer);
     privateState.history.push({role:"user",content:msg},{role:"assistant",content:result.answer});
     privateState.history=privateState.history.slice(-8);

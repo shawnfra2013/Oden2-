@@ -3,20 +3,26 @@
 set -euo pipefail
 umask 077
 target=$(git rev-parse HEAD)
-old=bb9ea122a9e754b8c1bcff3bec9826d78fc6764e
+
 service="${PREFIX:?}/var/service/odin-private-mailbox"
 pid_of_service() {
   sv status "$service" | sed -n 's/^run:.*(pid \([0-9]*\)).*/\1/p'
 }
 before=$(pid_of_service)
 active=$(readlink -e "/proc/${before:?service down}/cwd")
-[ "$active" = "$HOME/odin-pr45-test.iwGRYw" ]
-[ "$(git -C "$active" rev-parse HEAD)" = "$old" ]
+old=$(git -C "$active" rev-parse HEAD)
+case "$(git -C "$active" remote get-url origin)" in
+  https://github.com/shawnfra2013/Oden2-.git|git@github.com:shawnfra2013/Oden2-.git) ;;
+  *) echo 'Unexpected active source repository.' >&2; exit 1 ;;
+esac
+[[ "$active" == "$HOME/"* && "$active" != "$HOME/odin-workspace" ]] ||
+  { echo 'Expected an isolated service checkout.' >&2; exit 1; }
 if git -C "$active" symbolic-ref -q HEAD >/dev/null; then exit 1; fi
 [ -z "$(git -C "$active" status --porcelain)" ]
 python -B -m unittest discover -s tests -p 'test_private*.py' -v
 python -B -m unittest discover -s stage5 -p test_openai_adapter.py -v
 git -C "$active" fetch -q "$PWD" "$target"
+git -C "$active" merge-base --is-ancestor "$old" "$target" || { echo "Target must advance the active revision."; exit 1; }
 config="$HOME/.config/odin-private-inference"
 mkdir -p -m 700 "$config"
 [ ! -L "$config" ] && [ "$(stat -c %a "$config")" = 700 ] || exit 1
@@ -46,6 +52,7 @@ finally:
 PY
 fi
 python -B -c 'from scripts.odin_inference_probe import load_key; load_key()'
+if [[ "$old" == "$target" ]]; then echo "Already running target $target"; exit 0; fi
 rollback() {
   rc=$?
   trap - EXIT

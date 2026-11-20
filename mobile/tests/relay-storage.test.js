@@ -110,3 +110,20 @@ test("parallel replies for the same request create one immutable event",async()=
   const seen=relay.view(await relay.loadEvents(backend),"iphone");
   assert.equal(seen.filter(x=>x.reply_to===OLD).length,1);
 });
+
+test("old pending work survives more than 2000 stored events",async()=>{
+  const {backend}=makeStore();
+  const entries=Array.from({length:2001},(_,i)=>({
+    version:1,id:i.toString(16).padStart(32,"0"),kind:"receipt",sender:"odin",
+    state:"read",for:"d".repeat(32),at:"2026-11-20T00:00:00Z"
+  }));
+  backend.list=async({cursor="0",prefix})=>{
+    const start=Number(cursor);
+    return {blobs:entries.slice(start,start+100).map((_,i)=>({pathname:prefix+(start+i)})),
+      hasMore:start+100<entries.length,cursor:String(start+100)};
+  };
+  backend.get=async path=>({statusCode:200,stream:new Response(JSON.stringify(entries[Number(path.split("/").pop())])).body});
+  const events=await relay.loadEvents(backend);
+  assert.equal(events.length,2002);
+  assert.equal(relay.view(events,"odin").find(m=>m.id===OLD).status,"queued");
+});

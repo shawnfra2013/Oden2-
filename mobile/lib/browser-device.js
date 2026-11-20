@@ -13,7 +13,7 @@ function fingerprint(secret) {
 }
 function approved(req) {
   const secret = secretFrom(req);
-  return Boolean(secret && fingerprint(secret) === process.env.ODIN_TRUSTED_BROWSER_ID);
+  return Boolean(secret && (process.env.ODIN_TRUSTED_BROWSER_ID || "").split(",").map(id=>id.trim()).includes(fingerprint(secret)));
 }
 function cookie(res,value,age) {
   res.setHeader("Set-Cookie", NAME+"="+value+"; Path=/; Max-Age="+age+"; Secure; HttpOnly; SameSite=Strict");

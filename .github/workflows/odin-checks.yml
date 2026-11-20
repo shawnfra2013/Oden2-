@@ -43,7 +43,7 @@ jobs:
           done
 
       - name: Install Python linter
-        run: python -m pip install ruff
+        run: python -m pip install ruff==0.14.5
 
       - name: Stage 4 offline regression
         run: python -B -m unittest discover -s tests -p 'test*.py' -v
@@ -57,7 +57,7 @@ jobs:
           node-version: "22"
 
       - name: Install mobile dependencies
-        run: npm install --prefix mobile --no-audit --no-fund --ignore-scripts
+        run: npm ci --prefix mobile --no-audit --no-fund --ignore-scripts
 
       - name: Verify Odin iPhone dashboard
         shell: bash
@@ -113,6 +113,7 @@ jobs:
 
           printf '%s\n' "${files[@]}"
 
+          files+=(services/*/run)
           for file in "${files[@]}"; do
             bash -n "$file"
           done
@@ -122,12 +123,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          if git grep -nEI \
+          if git grep -qEI \
             '(gsk_[A-Za-z0-9_-]{20,}|csk-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]{20,}|github_pat_[A-Za-z0-9_]+|ghp_[A-Za-z0-9]+|BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY)' \
-            -- . ':!*.md'
+            -- .
           then
             echo "::error::Possible secret detected in repository."
             exit 1
+          else
+            scan_rc=$?
+            [[ "$scan_rc" == 1 ]] || exit "$scan_rc"
           fi
 
           echo "No obvious committed secrets detected."

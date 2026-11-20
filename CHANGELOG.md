@@ -1,3 +1,7 @@
+## November 20 · Structure audit repairs
+
+Published the private workflow health and staging validations. The [hardening record](docs/STRUCTURE_HARDENING.md) tracks the 21 findings, browser-dispatched ping, staging digest, source changes and outstanding device cutover.
+
 ## November 20 · Direct private mailbox access
 
 The dashboard opens the private GitHub mailbox for bounded device checks. The legacy journal and restart controls require explicit server opt-in with `ODIN_ENABLE_LEGACY_RELAY=1`. Device agent and mailbox schema are unchanged.

@@ -1,5 +1,7 @@
 # Odin 2 — Safe self-update and useful device tasks
 
+For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](STRUCTURE_HARDENING.md).
+
 Current device transport and November 20 verification are documented in [the private GitHub mailbox runbook](ODIN_GITHUB_BRIDGE.md). Use that mailbox for device checks.
 
 

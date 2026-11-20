@@ -37,4 +37,4 @@ async function wait(lane) {
   return Boolean(await withClient(client => client.blPop(name, 20)));
 }
 
-module.exports = {lanes, notify, wait};
+module.exports = {lanes, notify, wait, withClient};
