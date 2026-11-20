@@ -23,7 +23,10 @@ class Model(BaseHTTPRequestHandler):
 
     def do_POST(self):
         assert self.path == '/v1/chat/completions' and 'Authorization' not in self.headers
-        prompt = json.loads(self.rfile.read(int(self.headers['content-length'])))['messages'][-1]['content']
+        payload = json.loads(self.rfile.read(int(self.headers['content-length'])))
+        prompt = payload["messages"][-1]["content"]
+        if prompt == "use project note":
+            assert payload["max_tokens"] == 128 and "Sample fact" in payload["messages"][0]["content"]
         data = json.dumps({'choices': [{'message': {'content': prompt.upper()}}]}).encode()
         self.send_response(200)
         self.end_headers()
@@ -76,3 +79,36 @@ with sync_playwright() as w:
     page.evaluate('lockPrivateAccess()')
     assert page.locator('#sealedAnswer').inner_text() == ''
     print('PASS four navigation tabs, pairing survives reload, WebCrypto → device decrypt → loopback HTTP fixture → device encrypt → browser decrypt, session lock clears answer.')
+
+    import server
+    os.environ["ODIN_STAGE5_PROVIDER"] = "local"
+    stage = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    server.PORT = stage.server_port
+    stage.session_token = secrets.token_urlsafe(32)
+    stage.chat_lock = threading.BoundedSemaphore(1)
+    threading.Thread(target=stage.serve_forever, daemon=True).start()
+    page.unroute("**/api/**")
+    page.goto(f"http://127.0.0.1:{server.PORT}")
+    page.locator("summary", has_text="Project note").click()
+    page.locator("#noteFile").set_input_files({"name":"facts.md", "mimeType":"text/plain", "buffer":b"Sample fact"})
+    page.wait_for_function("document.querySelector('#note').value==='Sample fact'")
+    page.click("#saveNote")
+    page.reload()
+    page.locator("summary", has_text="Project note").click()
+    assert page.input_value("#note") == "Sample fact" and not page.is_checked("#useNote")
+    page.check("#useNote")
+    page.check("#quick")
+    page.fill("#message", "use project note")
+    page.click("#send")
+    page.wait_for_function("document.querySelector('#answer').textContent==='USE PROJECT NOTE'")
+    page.click("#forgetNote")
+    page.reload()
+    assert page.input_value("#note") == ""
+    os.environ["ODIN_STAGE5_PROVIDER"] = "groq"
+    status = page.evaluate("""async()=> (await fetch('/api/chat',{method:'POST',
+      headers:{'Content-Type':'application/json','X-Odin-Request':'chat'},
+      body:JSON.stringify({message:'no send',local_options:{reference:'secret',quick:true}})})).status""")
+    assert status == 409
+    stage.shutdown()
+    stage.server_close()
+    print("PASS import, save, reload, opt in, local reply limit, forget and cloud refusal.")

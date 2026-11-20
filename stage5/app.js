@@ -1,6 +1,31 @@
 "use strict";
 const el=id=>document.getElementById(id);
 const storageKey="odin-stage5-conversation";
+const noteKey="odin-local-project-note";
+const noteSize=value=>new TextEncoder().encode(value).byteLength;
+try { el("note").value=localStorage.getItem(noteKey)||""; } catch {}
+el("saveNote").onclick=()=>{
+ try {
+  if(noteSize(el("note").value)>1600)throw Error("Use a shorter excerpt.");
+  localStorage.setItem(noteKey,el("note").value);
+  el("noteStatus").textContent="Saved on this browser.";
+ } catch(e){el("noteStatus").textContent=e.message;}
+};
+el("forgetNote").onclick=()=>{
+ try {
+  localStorage.removeItem(noteKey);el("note").value="";el("useNote").checked=false;
+  el("noteFile").value="";el("noteStatus").textContent="Saved note removed.";
+ } catch(e){el("noteStatus").textContent=e.message;}
+};
+el("noteFile").onchange=async event=>{
+ const file=event.target.files[0];
+ if(!file)return;
+ try {
+  if(file.size>1600)throw Error("Paste a shorter excerpt (up to 1,600 UTF-8 bytes).");
+  el("note").value=new TextDecoder("utf-8",{fatal:true}).decode(await file.arrayBuffer());
+  el("noteStatus").textContent="Loaded. Select Include to use this note.";
+ } catch(e){el("noteStatus").textContent=e.message;}
+};
 let conversationId;
 try{
  const saved=sessionStorage.getItem(storageKey);
@@ -36,6 +61,7 @@ async function refreshHealth(){
   const health=await getJSON("/api/health");
   el("health").textContent="Backend: "+health.status+
     " | "+(health.provider==="local"?"On-device model · zero OpenAI usage":health.provider)+" | AI: "+(health.ai_enabled?"enabled":"disabled");
+  el("localOptions").hidden=health.provider!=="local";
   aiReady=health.ai_enabled===true;
   el("send").disabled=sending||!aiReady;
   if(!sending)el("chatStatus").textContent=health.ai_enabled?
@@ -59,10 +85,16 @@ el("send").addEventListener("click",async()=>{
  el("newChat").disabled=true;
  el("chatStatus").textContent="Waiting for AI response...";
  try{
+  const body={message,conversation_id:conversationId};
+  if(!el("localOptions").hidden){
+   const reference=el("useNote").checked?el("note").value:"";
+   if(noteSize(reference)>1600)throw Error("Shorten the project excerpt.");
+   body.local_options={reference,quick:el("quick").checked};
+  }
   const response=await fetch("/api/chat",{
    method:"POST",
    headers:{"Content-Type":"application/json","X-Odin-Request":"chat"},
-   body:JSON.stringify({message,conversation_id:conversationId})
+   body:JSON.stringify(body)
   });
   const result=await response.json();
   if(!response.ok){
@@ -75,7 +107,7 @@ el("send").addEventListener("click",async()=>{
   selectConversation(result.conversation_id);
   el("answer").textContent=result.answer;
   el("chatStatus").textContent="Response received · Unverified · "+
-   (result.persisted?"Saved":"Not saved");
+   (result.persisted?"Saved":"Not saved")+" · "+(result.elapsed_ms/1000).toFixed(1)+" s";
  }catch(e){
   if(e instanceof TypeError){aiReady=false;retry=setTimeout(refreshHealth,1000);}
   el("chatStatus").textContent=e.message;
