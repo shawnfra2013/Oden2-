@@ -21,6 +21,7 @@ class PrivateMailboxIntegrationTests(unittest.TestCase):
     def setUp(self):
         temporary = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(temporary)
+        self.enterContext(patch.object(Path, "home", return_value=self.root))
         self.remote = self.root / "mailbox.git"
         self.seed = self.root / "seed"
         git(self.root, "init", "--bare", str(self.remote))
