@@ -41,3 +41,5 @@ The private mailbox action `stage5_coding_review` asks the local model for one P
 Keep evaluated tasks separate from training examples. Collect owner-approved examples and corrections, reserve unseen tasks, then train a candidate LoRA adapter on compatible hardware using the matching upstream base. Compare the adapter with the installed baseline on the same unseen tasks before approving it for device use. No automatic training job is configured.
 
 For isolated adapter training and held-out evaluation, see [Offline candidate adapter training](TRAINING.md).
+
+The default GitHub mailbox and update timers run independently of any hosted wake endpoint. The legacy relay and authenticated wake requests require an explicitly configured ODIN_LEGACY_RELAY_ORIGIN in the corresponding service environment. Leave it unset for direct mailbox use.

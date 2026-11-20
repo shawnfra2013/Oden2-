@@ -19,7 +19,7 @@ Oden ADB OS edits/build
 <!-- odin-stage4-20261017 -->
 ## Odin bridge and device diagnostics
 
-Use **System → Odin health** in [Odin Control](https://odin-control.vercel.app/)
+Use the GitHub bridge action `odin_health`
 for a device receipt with the checkout revision, runit service states and
 uptimes, last updater reason, rollout evidence when available, and Stage 5 HTTP status. The authenticated
 private inbox accepts `/restart-service odin-task-worker` and

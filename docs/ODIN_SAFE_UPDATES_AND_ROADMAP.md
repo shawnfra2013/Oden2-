@@ -94,8 +94,7 @@ status is available via:
 
     python -B scripts/odin_relay_client.py --status
 
-Use the existing iPhone app at https://odin-control.vercel.app/
-under Chat > Messages & responses. Its shortcuts fill the message
+On an explicitly configured legacy host, open Chat > Messages & responses. Its shortcuts fill the message
 field; the user still presses Send. It clearly distinguishes physical
 Odin replies and independent cloud API replies.
 
