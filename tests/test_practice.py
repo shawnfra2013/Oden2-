@@ -38,3 +38,17 @@ class PracticeTests(unittest.TestCase):
             self.assertEqual(practice("end", followup=True)["state"], "finished")
             self.assertEqual(notebook()["attempted"], 1)
             self.assertEqual(notebook(followup=True)["passed"], 4)
+
+    def test_review_recognizes_workflow_word_but_preserves_file_case_and_raw_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "notes"
+            def assess(_, *, exercise):
+                return {"http_status": 200, "match": False, "answer": exercise[2].upper()}
+            for i in range(3):
+                practice(str(i), path=path, assess=assess)
+            book = notebook(path)
+            self.assertEqual(book["exact_passed"], 0)
+            self.assertEqual(book["passed"], 1)
+            self.assertEqual(book["notes"][1]["reviewed_state"], "miss")
+            self.assertEqual(book["notes"][2]["state"], "miss")
+            self.assertEqual(book["notes"][2]["reviewed_state"], "pass")

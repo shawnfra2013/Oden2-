@@ -43,11 +43,23 @@ def initialize(db):
                "id TEXT PRIMARY KEY, idx INTEGER UNIQUE NOT NULL, state TEXT NOT NULL, result TEXT)")
 
 
+def reviewed_state(index, state, result, cases):
+    # Action and provider names in workflow exercises are ordinary words.
+    # File values and Python output retain their exact spelling.
+    if state == "miss" and result and cases[index][0] == "workflow":
+        answer = json.loads(result).get("answer")
+        if isinstance(answer, str) and answer.strip().casefold() == cases[index][3].casefold():
+            return "pass"
+    return state
+
+
 def summary(db, cases):
-    rows = db.execute("SELECT idx,state FROM practice_v1 ORDER BY idx").fetchall()
+    records = db.execute("SELECT idx,state,result FROM practice_v1 ORDER BY idx").fetchall()
+    rows = [(i, reviewed_state(i, state, raw, cases)) for i, state, raw in records]
     misses = [cases[i][0] for i, state in rows if state == "miss"]
     repeat = sorted({skill for skill in misses if misses.count(skill) >= 2})
     return {"total": len(cases), "attempted": len(rows),
+            "exact_passed": sum(state == "pass" for _, state, _ in records),
             "passed": sum(state == "pass" for _, state in rows),
             "missed": len(misses), "review_skills": repeat,
             "training_decision": "investigate_repeated_errors" if repeat else "keep_current_weights"}
@@ -60,8 +72,12 @@ def notebook(path=None, *, followup=False):
         return {"notes": [], "total": len(cases), "training_decision": "keep_current_weights"}
     with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as db:
         rows = db.execute("SELECT idx,state,result FROM practice_v1 ORDER BY idx").fetchall()
-        return {**summary(db, cases), "notes": [json.loads(result) if result else
-                {"case": i+1, "state": state} for i, state, result in rows]}
+        notes = []
+        for i, state, result in rows:
+            note = json.loads(result) if result else {"case": i+1, "state": state}
+            note["reviewed_state"] = reviewed_state(i, state, result, cases)
+            notes.append(note)
+        return {**summary(db, cases), "notes": notes}
 
 
 def practice(request_id, *, path=None, assess=check, followup=False):
@@ -80,8 +96,9 @@ def practice(request_id, *, path=None, assess=check, followup=False):
         db.execute("INSERT INTO practice_v1 VALUES(?,?,'claimed',NULL)", (request_id, index))
         db.commit()
         skill, question, reference, expected = cases[index]
-        past = db.execute("SELECT idx,state FROM practice_v1 WHERE idx < ? ORDER BY idx DESC", (index,))
-        last = next((state for i, state in past if cases[i][0] == skill and state in {"pass", "miss"}), None)
+        past = db.execute("SELECT idx,state,result FROM practice_v1 WHERE idx < ? ORDER BY idx DESC", (index,))
+        last = next((reviewed_state(i, state, raw, cases) for i, state, raw in past
+                     if cases[i][0] == skill and state in {"pass", "miss"}), None)
         reminder = ""
         if last == "miss" and not followup:
             reminder = {"python": "Trace the expression one operation at a time.",
@@ -96,7 +113,8 @@ def practice(request_id, *, path=None, assess=check, followup=False):
         result = {**outcome, "series": "followup" if followup else "baseline", "state": state, "case": index+1, "skill": skill,
                   "question": question, "reference": reference, "reminder": reminder, "expected": expected,
                   "at": datetime.now(UTC).isoformat()}
-        db.execute("UPDATE practice_v1 SET state=? WHERE id=?", (state, request_id))
+        db.execute("UPDATE practice_v1 SET state=?,result=? WHERE id=?", (state, json.dumps(result), request_id))
+        result["reviewed_state"] = reviewed_state(index, state, json.dumps(result), cases)
         result.update(summary(db, cases))
         result["note"] = {"pass": "Matched the answer key on this example.",
                           "miss": "Review the supplied context and compare the answer with the key.",

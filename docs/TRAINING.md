@@ -21,3 +21,5 @@ On the local UI, open Tasks → Practice notebook to read the results. After a m
 ## Targeted retests
 
 The four `practice_followup` cases use their own local notebook and receipt IDs. First ask a new failed-check question and a UTF-8 byte-count question without coaching. Then use new inputs with a condition-matching cue or a UTF-8 range reference. A supported correct answer measures use of the supplied evidence. These items are public practice materials, unsuitable as blind promotion tests. Select Targeted retests in the practice notebook or run `python -B scripts/odin_practice.py --followup` to read them. Add `--next` to run one.
+
+The notebook recalculates reviewed totals from saved answers. Workflow action words ignore capitalization during review. File and expression answers retain exact grading. Raw receipt results remain available for comparison.

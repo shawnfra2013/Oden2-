@@ -183,8 +183,9 @@ async function showPractice() {
     "Keep current weights.");
   el("practiceNotes").replaceChildren(...book.notes.map(note => {
    const item = document.createElement("li");
-   item.textContent = [note.question, note.state, note.answer === undefined ? "" : "Answer: " + note.answer,
-     note.expected === undefined ? "" : "Expected: " + note.expected, note.note].filter(Boolean).join(" · ");
+   const grade = note.reviewed_state === "pass" && note.state === "miss" ? "Pass after capitalization review" : note.state;
+   item.textContent = [note.question, grade, note.answer === undefined ? "" : "Answer: " + note.answer,
+     note.expected === undefined ? "" : "Expected: " + note.expected, grade === note.state ? note.note : "Meaning matches the action key."].filter(Boolean).join(" · ");
    return item;
   }));
  } catch { el("practiceSummary").textContent = "Practice notebook unavailable."; }
