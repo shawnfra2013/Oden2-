@@ -5,7 +5,7 @@ ROOT="${HOME}/odin-workspace"
 SYNC="${ROOT}/scripts/git-sync.sh"
 
 while true; do
-    if "$SYNC"; then
+    if bash "$SYNC"; then
         :
     else
         result=$?
