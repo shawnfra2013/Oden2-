@@ -11,6 +11,19 @@ from scripts import odin_relay_client as client
 class AiReadinessTests(unittest.TestCase):
     MID = "ab" * 16
 
+    def setUp(self):
+        self.profile_home = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.enterContext(patch.object(Path, "home", return_value=self.profile_home))
+
+    def test_enrolled_profile_selects_local_for_device_status(self):
+        marker = self.profile_home / ".config/odin-offline/enabled"
+        marker.parent.mkdir(parents=True)
+        marker.touch()
+        with patch.dict(os.environ, {"ODIN_STAGE5_PROVIDER": "groq"}, clear=True):
+            status = client.local_ai_status()
+        self.assertEqual(status["provider"], "local")
+        self.assertTrue(status["ready"])
+
     def message(self, text):
         return {"id": self.MID, "to": "odin", "sender": "iphone",
                 "text": text, "status": "queued"}
