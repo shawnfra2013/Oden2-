@@ -17,3 +17,9 @@ Run `python -B scripts/odin_practice.py --next` on Odin for one local exercise a
 The notebook records the question, reference, expected and actual answer, timing and outcome. Two distinct incorrect responses in the same skill flag it for diagnosis. Transport failures and interrupted jobs do not count as model mistakes. Check retrieval, prompts and grading before attributing a pattern to the weights. If the pattern persists on new examples, train a separate candidate with reviewed corrections and measure held-out correctness and regressions before promotion. These nine published exercises remain practice material.
 
 On the local UI, open Tasks → Practice notebook to read the results. After a miss, the next case of the same kind includes a brief, fixed reminder about how to approach it.
+
+## Targeted retests
+
+The four `practice_followup` cases use their own local notebook and receipt IDs. First ask a new failed-check question and a UTF-8 byte-count question without coaching. Then use new inputs with a condition-matching cue or a UTF-8 range reference. A supported correct answer measures use of the supplied evidence. These items are public practice materials, unsuitable as blind promotion tests. Select Targeted retests in the practice notebook or run `python -B scripts/odin_practice.py --followup` to read them. Add `--next` to run one.
+
+The notebook recalculates reviewed totals from saved answers. Workflow action words ignore capitalization during review. File and expression answers retain exact grading. Raw receipt results remain available for comparison.

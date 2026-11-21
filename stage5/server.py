@@ -139,10 +139,10 @@ class Handler(BaseHTTPRequestHandler):
                 "provider": os.environ.get("ODIN_STAGE5_PROVIDER", "groq"),
                 "worker_connected": False
             })
-        elif path == "/api/practice":
+        elif path in {"/api/practice", "/api/practice-followup"}:
             from scripts.odin_practice import notebook
             try:
-                self.json_body(200, notebook())
+                self.json_body(200, notebook(followup=path.endswith("-followup")))
             except (sqlite3.Error, OSError, ValueError):
                 self.json_body(503, {"error": "Practice notebook unavailable"})
         elif path == "/api/disconnect-test":

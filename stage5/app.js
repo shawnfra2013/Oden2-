@@ -170,18 +170,25 @@ async function watchDisconnectTest(){
 }
 el("disconnectTest").addEventListener("toggle",watchDisconnectTest);
 
-el("practicePanel").addEventListener("toggle", async () => {
+let practiceView = 0;
+async function showPractice() {
+ const view = ++practiceView;
  if (!el("practicePanel").open) return;
  try {
-  const book = await getJSON("/api/practice");
+  const followup = el("practiceSeries").value === "followup";
+  const book = await getJSON(followup ? "/api/practice-followup" : "/api/practice");
+  if (view !== practiceView) return;
   el("practiceSummary").textContent = (book.passed || 0) + " passed, " + (book.missed || 0) +
     " missed. " + (book.review_skills?.length ? "Review repeated errors in " + book.review_skills.join(", ") :
     "Keep current weights.");
   el("practiceNotes").replaceChildren(...book.notes.map(note => {
    const item = document.createElement("li");
-   item.textContent = [note.question, note.state, note.answer === undefined ? "" : "Answer: " + note.answer,
-     note.expected === undefined ? "" : "Expected: " + note.expected, note.note].filter(Boolean).join(" · ");
+   const grade = note.reviewed_state === "pass" && note.state === "miss" ? "Pass after capitalization review" : note.state;
+   item.textContent = [note.question, grade, note.answer === undefined ? "" : "Answer: " + note.answer,
+     note.expected === undefined ? "" : "Expected: " + note.expected, grade === note.state ? note.note : "Meaning matches the action key."].filter(Boolean).join(" · ");
    return item;
   }));
  } catch { el("practiceSummary").textContent = "Practice notebook unavailable."; }
-});
+}
+el("practicePanel").addEventListener("toggle", showPractice);
+el("practiceSeries").addEventListener("change", showPractice);

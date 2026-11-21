@@ -26,8 +26,16 @@ CASES = (
 )
 
 
-def notes_path():
-    return Path.home() / ".local/share/odin-practice/notes.sqlite3"
+FOLLOWUP_CASES = (
+    ("workflow", "The tests failed. Which action is required?", "When tests pass, release. When tests fail, diagnose.", "diagnose"),
+    ("python", "How many UTF-8 bytes does the single character ñ occupy?", "", "2"),
+    ("workflow", "The backup check failed. Which action is required?", "If the check fails, restore. If the check passes, publish. First identify the observed condition.", "restore"),
+    ("python", "How many UTF-8 bytes does ø (U+00F8) occupy?", "In UTF-8, U+0080 through U+07FF use two bytes.", "2"),
+)
+
+
+def notes_path(followup=False):
+    return Path.home() / ".local/share/odin-practice" / ("followup-v1.sqlite3" if followup else "notes.sqlite3")
 
 
 def initialize(db):
@@ -35,28 +43,46 @@ def initialize(db):
                "id TEXT PRIMARY KEY, idx INTEGER UNIQUE NOT NULL, state TEXT NOT NULL, result TEXT)")
 
 
-def summary(db):
-    rows = db.execute("SELECT idx,state FROM practice_v1 ORDER BY idx").fetchall()
-    misses = [CASES[i][0] for i, state in rows if state == "miss"]
+def reviewed_state(index, state, result, cases):
+    # Action and provider names in workflow exercises are ordinary words.
+    # File values and Python output retain their exact spelling.
+    if state == "miss" and result and cases[index][0] == "workflow":
+        answer = json.loads(result).get("answer")
+        if isinstance(answer, str) and answer.strip().casefold() == cases[index][3].casefold():
+            return "pass"
+    return state
+
+
+def summary(db, cases):
+    records = db.execute("SELECT idx,state,result FROM practice_v1 ORDER BY idx").fetchall()
+    rows = [(i, reviewed_state(i, state, raw, cases)) for i, state, raw in records]
+    misses = [cases[i][0] for i, state in rows if state == "miss"]
     repeat = sorted({skill for skill in misses if misses.count(skill) >= 2})
-    return {"total": len(CASES), "attempted": len(rows),
+    return {"total": len(cases), "attempted": len(rows),
+            "exact_passed": sum(state == "pass" for _, state, _ in records),
             "passed": sum(state == "pass" for _, state in rows),
             "missed": len(misses), "review_skills": repeat,
             "training_decision": "investigate_repeated_errors" if repeat else "keep_current_weights"}
 
 
-def notebook(path=None):
-    path = path or notes_path()
+def notebook(path=None, *, followup=False):
+    cases = FOLLOWUP_CASES if followup else CASES
+    path = path or notes_path(followup)
     if not path.is_file():
-        return {"notes": [], "total": len(CASES), "training_decision": "keep_current_weights"}
+        return {"notes": [], "total": len(cases), "training_decision": "keep_current_weights"}
     with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as db:
         rows = db.execute("SELECT idx,state,result FROM practice_v1 ORDER BY idx").fetchall()
-        return {**summary(db), "notes": [json.loads(result) if result else
-                {"case": i+1, "state": state} for i, state, result in rows]}
+        notes = []
+        for i, state, result in rows:
+            note = json.loads(result) if result else {"case": i+1, "state": state}
+            note["reviewed_state"] = reviewed_state(i, state, result, cases)
+            notes.append(note)
+        return {**summary(db, cases), "notes": notes}
 
 
-def practice(request_id, *, path=None, assess=check):
-    path = path or notes_path()
+def practice(request_id, *, path=None, assess=check, followup=False):
+    cases = FOLLOWUP_CASES if followup else CASES
+    path = path or notes_path(followup)
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     with closing(sqlite3.connect(path, timeout=8)) as db:
         db.execute("BEGIN IMMEDIATE")
@@ -65,15 +91,16 @@ def practice(request_id, *, path=None, assess=check):
         if prior:
             return json.loads(prior[1]) if prior[1] else {"state": "already_claimed", "match": False}
         index = db.execute("SELECT COUNT(*) FROM practice_v1").fetchone()[0]
-        if index >= len(CASES):
-            return {**summary(db), "state": "finished", "match": True}
+        if index >= len(cases):
+            return {**summary(db, cases), "state": "finished", "match": True}
         db.execute("INSERT INTO practice_v1 VALUES(?,?,'claimed',NULL)", (request_id, index))
         db.commit()
-        skill, question, reference, expected = CASES[index]
-        past = db.execute("SELECT idx,state FROM practice_v1 WHERE idx < ? ORDER BY idx DESC", (index,))
-        last = next((state for i, state in past if CASES[i][0] == skill and state in {"pass", "miss"}), None)
+        skill, question, reference, expected = cases[index]
+        past = db.execute("SELECT idx,state,result FROM practice_v1 WHERE idx < ? ORDER BY idx DESC", (index,))
+        last = next((reviewed_state(i, state, raw, cases) for i, state, raw in past
+                     if cases[i][0] == skill and state in {"pass", "miss"}), None)
         reminder = ""
-        if last == "miss":
+        if last == "miss" and not followup:
             reminder = {"python": "Trace the expression one operation at a time.",
                         "files": "Use the exact field the question asks about.",
                         "workflow": "Match the observed condition to the stated rule."}[skill]
@@ -83,11 +110,12 @@ def practice(request_id, *, path=None, assess=check):
         except (RuntimeError, ValueError, OSError) as exc:
             outcome = {"match": False, "error": type(exc).__name__}
             state = "unavailable"
-        result = {**outcome, "state": state, "case": index+1, "skill": skill,
+        result = {**outcome, "series": "followup" if followup else "baseline", "state": state, "case": index+1, "skill": skill,
                   "question": question, "reference": reference, "reminder": reminder, "expected": expected,
                   "at": datetime.now(UTC).isoformat()}
-        db.execute("UPDATE practice_v1 SET state=? WHERE id=?", (state, request_id))
-        result.update(summary(db))
+        db.execute("UPDATE practice_v1 SET state=?,result=? WHERE id=?", (state, json.dumps(result), request_id))
+        result["reviewed_state"] = reviewed_state(index, state, json.dumps(result), cases)
+        result.update(summary(db, cases))
         result["note"] = {"pass": "Matched the answer key on this example.",
                           "miss": "Review the supplied context and compare the answer with the key.",
                           "unavailable": "Check the local service before evaluating the model."}[state]
@@ -99,5 +127,6 @@ def practice(request_id, *, path=None, assess=check):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--next", action="store_true", help="Run one remaining local example")
+    parser.add_argument("--followup", action="store_true", help="Select the four targeted retests")
     args = parser.parse_args()
-    print(json.dumps(practice(secrets.token_hex(16)) if args.next else notebook(), indent=2))
+    print(json.dumps(practice(secrets.token_hex(16), followup=args.followup) if args.next else notebook(followup=args.followup), indent=2))

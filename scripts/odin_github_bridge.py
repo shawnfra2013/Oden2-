@@ -40,7 +40,7 @@ ORIGINS = {
 }
 POLL_SECONDS = 60
 PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
-PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next"})
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next", "practice_followup"})
 private_mailbox = False
 
 
@@ -328,12 +328,12 @@ def model_capacity():
 
 
 def status_action(action, request=None):
-    if action == "practice_next" and private_mailbox:
+    if action in {"practice_next", "practice_followup"} and private_mailbox:
         if __package__:
             from .odin_practice import practice
         else:
             from odin_practice import practice
-        return practice(request["id"])
+        return practice(request["id"], followup=action == "practice_followup")
     if action in {"stage5_note_check", "stage5_source_check", "stage5_coding_review"}:
         if not private_mailbox:
             raise ValueError("Private mailbox required")
@@ -649,7 +649,7 @@ def process_locked():
             details = status_action(action, request)
             if action == "worker_probe" and details is None:
                 continue
-            status = "complete" if action not in {"inference_probe", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next"} or details["match"] else "unverified"
+            status = "complete" if action not in {"inference_probe", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next", "practice_followup"} or details["match"] else "unverified"
             if action == "install_offline_model" and details.get("state") != "ready":
                 status = "unverified"
         except ExpiredRequest:
