@@ -25,3 +25,16 @@ class PracticeTests(unittest.TestCase):
             row = practice("test", path=Path(temporary) / "notes", assess=Mock(side_effect=OSError))
             self.assertEqual(row["missed"], 0)
             self.assertEqual(row["training_decision"], "keep_current_weights")
+
+    def test_followup_has_own_limit_and_preserves_baseline(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as temporary, patch("pathlib.Path.home", return_value=Path(temporary)):
+            def assess(_, *, exercise):
+                return {"http_status": 200, "match": True, "answer": exercise[2]}
+            practice("original", assess=assess)
+            for i in range(4):
+                result = practice(str(i), assess=assess, followup=True)
+                self.assertEqual(result["total"], 4)
+            self.assertEqual(practice("end", followup=True)["state"], "finished")
+            self.assertEqual(notebook()["attempted"], 1)
+            self.assertEqual(notebook(followup=True)["passed"], 4)
