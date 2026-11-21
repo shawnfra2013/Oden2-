@@ -19,12 +19,17 @@
 <main>
 <section class="card" id="system">
 <h2>System</h2>
+<details id="deviceControls"><summary>Device buttons</summary>
+<label>Shortcut <select id="buttonAction"><option value="chat">Open chat</option><option value="notebook">Open notebook</option><option value="editor">Open UI editor</option></select></label>
+<button type="button" id="buttonBind">Assign next press</button><button type="button" id="buttonCancel">Cancel</button>
+<button type="button" id="buttonRemove">Remove assignment</button>
+<p id="buttonStatus" role="status"></p><ul id="buttonList"></ul></details>
 <details id="disconnectTest"><summary>Wi-Fi disconnect test</summary>
 <p id="disconnectStatus">Waiting for test status…</p></details><p id="health">Checking backend...</p>
 <button id="reconnect">Check connection</button>
 </section>
 <section class="card" id="chat">
-<h2>AI Chat</h2>
+<h2 data-odin-chat-heading>AI Chat</h2>
 <textarea id="message" maxlength="4000" placeholder="Ask Odin..."></textarea>
 <div id="localOptions" hidden>
 <details><summary>Look up Odin code</summary>
@@ -56,6 +61,13 @@
 </section>
 <section class="card" id="tasks-panel">
 <h2>Task Dashboard</h2>
+<details id="uiEdits"><summary>Edit the web UI offline</summary>
+<label>Chat heading <input id="editHeading" maxlength="48"></label>
+<label>Accent <select id="editAccent"><option value="original">Original</option><option value="teal">Teal</option><option value="gold">Gold</option></select></label>
+<label>Chat text size <select id="editSize"><option value="standard">Standard</option><option value="large">Large</option></select></label>
+<label>Describe an appearance change <input id="editBrief" maxlength="200"></label><button id="editSuggest">Suggest locally</button>
+<button id="editApprove">Approve for upload to public review branch</button>
+<button id="editReload">Reload saved edit and status</button><p id="editStatus" role="status"></p></details>
 <details id="practicePanel"><summary>Practice notebook</summary>
 <label>Exercises <select id="practiceSeries"><option value="baseline">Baseline</option><option value="followup">Targeted retests</option></select></label>
 <p id="practiceSummary" role="status"></p><ol id="practiceNotes"></ol></details>
@@ -69,5 +81,7 @@
 </main>
 <script src="/app.js" defer></script>
 <script src="/local-tools.js" defer></script>
+<script src="/ui-settings.js" defer></script>
+<script src="/device-controls.js" defer></script>
 </body>
 </html>
