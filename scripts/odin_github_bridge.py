@@ -40,7 +40,7 @@ ORIGINS = {
 }
 POLL_SECONDS = 60
 PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
-PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next", "practice_followup"})
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next", "practice_followup", "regression_details"})
 private_mailbox = False
 
 
@@ -328,6 +328,12 @@ def model_capacity():
 
 
 def status_action(action, request=None):
+    if action == "regression_details" and private_mailbox:
+        if __package__:
+            from .odin_regression_details import diagnose
+        else:
+            from odin_regression_details import diagnose
+        return diagnose(Path.home() / "odin-workspace")
     if action in {"practice_next", "practice_followup"} and private_mailbox:
         if __package__:
             from .odin_practice import practice
