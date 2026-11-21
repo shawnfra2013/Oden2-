@@ -53,3 +53,9 @@ The existing sync service retries pending commits and confirms each remote SHA b
 ## Handheld controls
 
 In Stage 5 open **System → Device buttons**. Pick an action, choose Assign next press and press a keyboard key or a controller button. Bindings are stored in this browser on this device. Assign again to replace one or use Remove assignment. While the local UI is focused, shortcuts open chat, the notebook or the offline UI editor. A held gamepad button triggers once per press. Typing in a field keeps ordinary keys available for text entry. Android system keys, OS-wide remapping, and buttons intercepted by device firmware are outside this browser interface.
+
+## Phone chat routing and app updates
+
+Phone Chat remembers three preferences in this browser. Bridge connects this phone to the handheld. Offline model sends an encrypted question to Odin over that bridge. Online model sends a separate cloud API request under the host budget. Plan requests steps and pauses device actions; Work requests a draft and enables explicit device checks when the bridge and private permissions are available. Switching the phone bridge off pauses new device traffic from this UI. A previously submitted request may still finish. Public status reads and the handheld's own sync service continue.
+
+The installed phone web app checks its deployed origin on opening, returning to the foreground, reconnecting, and pressing the top-right refresh button. Refresh also requests status, capabilities and appearance settings. An update waits for confirmation when the tab contains private session data or a draft. Run `python scripts/stamp_mobile.py` before deploying changed static assets so the shell and asset URLs identify the release. The phone can receive only versions published on its installed origin.

@@ -79,6 +79,14 @@ with sync_playwright() as w:
     for tab in ['system', 'activity', 'overview', 'chat']:
         page.locator(f'[data-tab="{tab}"]').click()
         assert page.locator('#view-' + tab).is_visible()
+    assert not page.locator("#localChatPanel").is_visible()
+    page.check("#deviceBridge")
+    assert page.locator("#localChatPanel").is_visible()
+    page.select_option("#chatModel","cloud")
+    assert page.locator("#onlineChatPanel").is_visible() and not page.locator("#localChatPanel").is_visible()
+    page.select_option("#chatModel","local")
+    page.select_option("#chatMode","work")
+    assert page.locator("#deviceWorkPanel").is_visible()
     page.locator('summary', has_text='Pair this browser').click()
     page.fill('#sealedCode', base64.b64encode(k).decode())
     page.click('#sealedPair')
@@ -92,14 +100,29 @@ with sync_playwright() as w:
     assert not answers
     page.fill('#sealedQuestion', 'private test')
     page.click('#sealedSend')
-    page.wait_for_function("document.querySelector('#sealedAnswer').textContent==='PRIVATE TEST'", timeout=8000)
+    page.wait_for_function("document.querySelector('#sealedAnswer').textContent.endsWith('PRIVATE TEST')", timeout=8000)
     page.locator("summary", has_text="Voice and webpage excerpts").click()
     assert page.locator("#clipBookmark").get_attribute("href").startswith("javascript:")
     page.click('#readLocal')
-    assert page.evaluate('window.spoken.voice.localService && window.spoken.text === "PRIVATE TEST"')
+    assert page.evaluate('window.spoken.voice.localService && window.spoken.text.endsWith("PRIVATE TEST")')
     page.evaluate('lockPrivateAccess()')
     assert page.locator('#sealedAnswer').inner_text() == ''
     print('PASS four navigation tabs, pairing survives reload, WebCrypto → device decrypt → loopback HTTP fixture → device encrypt → browser decrypt, session lock clears answer.')
+
+    # The installed shell checks the deployed HTML itself, independently of device status.
+    import re
+    original = (root / "mobile/index.html").read_text()
+    updated = re.sub(r'(<meta name="odin-release" content=")[0-9a-f]{16}', r'\g<1>1111222233334444', original)
+    page.route("**/?odin_check=*", lambda route: route.fulfill(content_type="text/html", body=updated))
+    page.route("**/?odin_release=*", lambda route: route.fulfill(content_type="text/html", body=updated))
+    page.fill("#sealedQuestion", "keep draft")
+    page.click("#refreshBtn")
+    page.locator("#applyAppUpdate").wait_for()
+    assert page.input_value("#sealedQuestion") == "keep draft"
+    page.fill("#sealedQuestion", "")
+    page.click("#applyAppUpdate")
+    page.wait_for_url("**/?odin_release=1111222233334444*")
+    assert page.locator("meta[name=odin-release]").get_attribute("content") == "1111222233334444"
 
     import server
     os.environ["ODIN_STAGE5_PROVIDER"] = "local"

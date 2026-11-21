@@ -384,7 +384,7 @@ document.addEventListener("click",event=>{
     renderActivity();
   }
 });
-$("refreshBtn").addEventListener("click",refresh);
+
 window.addEventListener("focus",()=>{ if (state.data) renderAll(); });
 document.addEventListener("visibilitychange",()=>{
   if (document.visibilityState==="visible") refresh();
@@ -431,6 +431,9 @@ function clearPrivateChat() {
   $("chatSendStatus").textContent="Conversation cleared";
 }
 async function authenticatedPost(path, body, token) {
+  if ((path==="/api/command" || path==="/api/relay") && !odinRoute.work()) throw Error("Turn on the bridge and select Work for device actions.");
+  if (path==="/api/encrypted-chat" && (!odinRoute.bridge || odinRoute.model!=="local")) throw Error("Device chat paused in this browser.");
+  if (path==="/api/chat" && odinRoute.model!=="cloud") throw Error("Select the online model first.");
   const response=await fetch(path,{
     method:"POST",cache:"no-store",
     headers:{"Accept":"application/json","Content-Type":"application/json",
@@ -461,7 +464,7 @@ function renderSecureState() {
   $("cloudMessage").disabled=!(ready&&p.cloud);
   $("cloudSend").disabled=!(ready&&p.cloud)||p.sending;
   for (const button of document.querySelectorAll("[data-odin-action]")) {
-    button.disabled=!(ready&&p.diagnostics)||p.sending;
+    button.disabled=!odinRoute.work()||!(ready&&p.diagnostics)||p.sending;
   }
   if(!ready){
     const capabilities=p.capabilities;
@@ -639,7 +642,7 @@ $("disconnectButton").addEventListener("click",async()=>{
 });
 $("cloudChatForm").addEventListener("submit",async event=>{
   event.preventDefault();
-  if(!privateState.connected||!privateState.cloud||privateState.sending)return;
+  if(odinRoute.model!=="cloud"||!privateState.connected||!privateState.cloud||privateState.sending)return;
   const msg=$("cloudMessage").value.trim();
   if(!msg||msg.length>3000)return;
   privateState.sending=true;
@@ -648,13 +651,13 @@ $("cloudChatForm").addEventListener("submit",async event=>{
   addChatLine("user",msg);
   renderSecureState();
   try {
-    if(!pendingCloudTurn || pendingCloudTurn.message!==msg){
+    if(!pendingCloudTurn || pendingCloudTurn.message!==msg || pendingCloudTurn.mode!==odinRoute.mode){
       const day=new Date().toISOString().slice(0,10);
-      pendingCloudTurn={message:msg,id:day+":"+crypto.randomUUID().replaceAll("-","")};
+      pendingCloudTurn={message:msg,mode:odinRoute.mode,id:day+":"+crypto.randomUUID().replaceAll("-","")};
     }
     const result=await authenticatedPost("/api/chat",{
       request_id:pendingCloudTurn.id,
-      message:msg,history:privateState.history.slice(-8)
+      message:msg,mode:odinRoute.mode,history:privateState.history.slice(-8)
     },privateState.token);
     if(typeof result.answer!=="string"||result.source!=="openai-api")
       throw Error("Unexpected AI response");
@@ -734,8 +737,8 @@ const RELAY_FAILURE_LABELS=Object.freeze({
   status_unavailable:"Odin AI status could not be checked"
 });
 function renderRelay(){
-  for(const panel of document.querySelectorAll("[data-legacy-relay]"))panel.hidden=!privateState.relay;
-  const unlocked=privateState.connected && privateState.relay===true;
+  for(const panel of document.querySelectorAll("[data-legacy-relay]"))panel.hidden=!privateState.relay || !odinRoute.work();
+  const unlocked=privateState.connected && privateState.relay===true && odinRoute.work();
   $("relayMessage").disabled=!unlocked;
   $("inferenceProof").disabled=!unlocked||!privateState.paired||relayLocal.sending;
   $("relaySendButton").disabled=!unlocked||relayLocal.sending;
@@ -802,7 +805,7 @@ function renderRelay(){
   document.title=count?"("+count+") Odin Control":"Odin — Control Center";
 }
 async function refreshRelay(){
-  if(relayLocal.loading||!privateState.connected||!privateState.relay)return;
+  if(!odinRoute.work()||relayLocal.loading||!privateState.connected||!privateState.relay)return;
   relayLocal.loading=true;
   try{
     const resp=await fetch("/api/relay",{
@@ -917,3 +920,5 @@ connectPrivateAccess(null).then(()=>{
   renderVaultUI();
   renderRelay();
 }).catch(()=>{});
+
+window.addEventListener("odin-route-change",()=>{renderSecureState();renderRelay();});
