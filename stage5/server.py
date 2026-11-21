@@ -122,12 +122,20 @@ class Handler(BaseHTTPRequestHandler):
                 200, (ROOT / "style.css").read_bytes(),
                 "text/css; charset=utf-8"
             )
+        elif path == "/api/ui-edits":
+            from scripts.odin_ui_edits import current
+            try:
+                self.json_body(200, current())
+            except (OSError, ValueError, RuntimeError, TimeoutExpired):
+                self.json_body(503, {"error": "Offline edit store unavailable"})
+        elif path == "/ui-settings.js":
+            self.send_body(200, (ROOT.parent / "mobile/ui-settings.js").read_bytes(), "text/javascript; charset=utf-8")
         elif path == "/local-tools.js":
             self.send_body(200, (ROOT.parent / "mobile/local-tools.js").read_bytes(),
                            "text/javascript; charset=utf-8")
-        elif path == "/app.js":
+        elif path in {"/app.js", "/device-controls.js"}:
             self.send_body(
-                200, (ROOT / "app.js").read_bytes(),
+                200, (ROOT / path[1:]).read_bytes(),
                 "text/javascript; charset=utf-8"
             )
         elif path == "/api/health":
@@ -193,7 +201,7 @@ class Handler(BaseHTTPRequestHandler):
         if not token or not hmac.compare_digest(supplied, token):
             self.json_body(403, {"error": "Session authentication required"})
             return
-        if urlsplit(self.path).path != "/api/chat":
+        if urlsplit(self.path).path not in {"/api/chat", "/api/ui-edits"}:
             self.json_body(404, {"error": "Not found"})
             return
         if self.headers.get("Content-Type") != "application/json":
@@ -208,6 +216,17 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             data = json.loads(self.rfile.read(length))
+            if urlsplit(self.path).path == "/api/ui-edits":
+                from scripts.odin_ui_edits import approve
+                if not isinstance(data, dict) or set(data) != {"settings", "version"}:
+                    raise ValueError("Invalid edit")
+                try:
+                    self.json_body(200, approve(data["settings"], data["version"]))
+                except ValueError as exc:
+                    self.json_body(400, {"error": str(exc)})
+                except (OSError, RuntimeError, TimeoutExpired):
+                    self.json_body(409, {"error": "Could not save. Reload and review your settings."})
+                return
             question = data.get("message") if isinstance(data, dict) else None
             if not isinstance(question, str) or not 0 < len(question.strip()) <= MAX_INPUT:
                 raise ValueError("Invalid message")

@@ -28,6 +28,8 @@ class Model(BaseHTTPRequestHandler):
         if prompt == "use project note":
             assert payload["max_tokens"] == 128 and "Sample fact" in payload["messages"][0]["content"]
         answer = prompt.upper()
+        if prompt.startswith("Update these UI settings"):
+            answer = json.dumps({"heading":"Offline studio","accent":"teal","size":"large"})
         if prompt.startswith("Write one Python expression"):
             assert payload["max_tokens"] == 128
             answer = "len(text.encode())"
@@ -111,6 +113,39 @@ with sync_playwright() as w:
     assert proposal["http_status"] == 200 and proposal["match"] and proposal["review"] == "pending"
     page.unroute("**/api/**")
     page.goto(f"http://127.0.0.1:{server.PORT}")
+    page.locator("summary", has_text="Device buttons").click()
+    page.select_option("#buttonAction", "editor")
+    page.click("#buttonBind")
+    page.keyboard.press("F8")
+    page.locator("#buttonList").filter(has_text="key F8").wait_for()
+    page.reload()
+    page.keyboard.press("F8")
+    assert page.locator("#uiEdits").get_attribute("open") is not None
+    page.locator("summary", has_text="Device buttons").click()
+    page.evaluate("""() => {
+      window.testPad = {id:"Fixture controller", index:0, buttons:[{pressed:false}]};
+      Object.defineProperty(navigator, "getGamepads", {value:()=>[window.testPad], configurable:true});
+    }""")
+    page.select_option("#buttonAction", "chat")
+    page.click("#buttonBind")
+    page.evaluate("window.testPad.buttons[0].pressed = true")
+    page.locator("#buttonList").filter(has_text="Fixture controller button 0").wait_for()
+    page.evaluate("window.testPad.buttons[0].pressed = false")
+    page.wait_for_timeout(100)
+    page.evaluate("window.testPad.buttons[0].pressed = true")
+    page.locator('#message:focus').wait_for()
+    page.evaluate("window.testPad.buttons[0].pressed = false")
+    page.locator("#editStatus").filter(has_text="Ready for an offline edit").wait_for()
+    page.fill("#editBrief", "Use a teal heading and larger text")
+    page.click("#editSuggest")
+    page.locator("#editStatus").filter(has_text="Model suggestion ready").wait_for()
+    assert page.input_value("#editAccent") == "teal" and page.input_value("#editSize") == "large"
+    page.fill("#editHeading", "Browser preview")
+    assert page.locator("[data-odin-chat-heading]").inner_text() == "Browser preview"
+    page.click("#editApprove")
+    page.locator("#editStatus").filter(has_text="waiting for upload").wait_for()
+    page.reload()
+    page.locator("[data-odin-chat-heading]").filter(has_text="Browser preview").wait_for()
     page.locator("summary", has_text="Practice notebook").click()
     page.locator("#practiceSummary").filter(has_text="Keep current weights.").wait_for()
     page.locator("summary", has_text="Project note").click()

@@ -43,3 +43,13 @@ Keep evaluated tasks separate from training examples. Collect owner-approved exa
 For isolated adapter training and held-out evaluation, see [Offline candidate adapter training](TRAINING.md).
 
 The default GitHub mailbox and update timers run independently of any hosted wake endpoint. The legacy relay and authenticated wake requests require an explicitly configured ODIN_LEGACY_RELAY_ORIGIN in the corresponding service environment. Leave it unset for direct mailbox use.
+
+## Offline UI edits and reconnect uploads
+
+On the handheld open **Tasks → Edit the web UI offline**. Preview a chat heading, heading accent or chat text size. Suggest locally uses one bounded on-device chat request. You can type a heading directly without inference. The approval button explicitly queues these three public settings for the source repository. Approval creates a local Git commit with a separate index; it survives a service restart and a browser reload. A stale edit requires a fresh preview. Ordinary chat text and the model prompt are outside the uploaded file.
+
+The existing sync service retries pending commits and confirms each remote SHA before clearing its queue entry. The review branch is named `odin-ui/edit-<commit prefix>`. The hosted UI uses the settings after the branch is reviewed, merged and the hosting service deploys the update. Use **Reload saved edit and status** to check progress. Both interfaces support the same settings. The handheld edit panel is served locally even when its hosted counterpart cannot be reached.
+
+## Handheld controls
+
+In Stage 5 open **System → Device buttons**. Pick an action, choose Assign next press and press a keyboard key or a controller button. Bindings are stored in this browser on this device. Assign again to replace one or use Remove assignment. While the local UI is focused, shortcuts open chat, the notebook or the offline UI editor. A held gamepad button triggers once per press. Typing in a field keeps ordinary keys available for text entry. Android system keys, OS-wide remapping, and buttons intercepted by device firmware are outside this browser interface.

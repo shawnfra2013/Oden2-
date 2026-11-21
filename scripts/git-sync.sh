@@ -33,6 +33,9 @@ if [[ "$BRANCH" != "main" ]]; then
     exit 1
 fi
 
+# Already approved UI commits are independent of the working index.
+python -B "$ROOT/scripts/odin_ui_edits.py" >>"$LOG" 2>&1 || log "Offline UI edits pending retry"
+
 # Reuse the existing five-minute supervisor. Updates are disabled unless the
 # owner deliberately enables the 0600 state/auto-update.enabled flag.
 # Any failed gated update stays visible in logs and status JSON.
