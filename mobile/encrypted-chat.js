@@ -55,14 +55,19 @@
   let locked = false;
   async function deliver() {
     if (locked) return;
+    if (!odinRoute.bridge || odinRoute.model !== "local") return;
     locked = true;
+    el("sealedSend").setAttribute("aria-busy","true");
     try {
       if (!privateState.connected) throw Error("Unlock private access first");
       const key = await state("key");
       if (!key) throw Error("Pair this browser with Odin first");
       let pending = await state("pending");
       if (!pending) {
-        const message = el("sealedQuestion").value.trim();
+        const draft = el("sealedQuestion").value.trim();
+        if (!draft) throw Error("Enter a question first");
+        const guidance = odinRoute.mode === "plan" ? "Plan mode. Give steps only. " : "Work mode. Draft the requested result. ";
+        const message = guidance + draft;
         if (!message || text.encode(message).length > 12000 || message.length > 4000) throw Error("Enter a question of up to 4,000 characters");
         const id = Array.from(crypto.getRandomValues(new Uint8Array(16)), b=>b.toString(16).padStart(2,"0")).join("");
         const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -74,12 +79,12 @@
       await post(pending);
       el("sealedQuestion").value = "";
       for (let i=0;i<24;i++) {
-        if (!privateState.connected) throw Error("Session locked");
+        if (!privateState.connected || !odinRoute.bridge || odinRoute.model !== "local") throw Error("Device chat paused. Your pending reply can be checked later.");
         const result = await post({id:pending.id});
         if (result.sealed) {
           const data = bytes(result.sealed);
           const clear = await crypto.subtle.decrypt({name:"AES-GCM",iv:data.slice(0,12),additionalData:aad(pending.id,"answer")},key,data.slice(12));
-          if (!privateState.connected) throw Error("Session locked");
+          if (!privateState.connected || !odinRoute.bridge || odinRoute.model !== "local") throw Error("Device chat paused. Your pending reply can be checked later.");
           el("sealedAnswer").textContent = new TextDecoder().decode(clear);
           await state("pending",null);
           status("Reply received from your local model");
@@ -90,7 +95,7 @@
       }
       status("Still pending. Check the same message again.");
     } catch (e) { status(e.message); }
-    finally { locked = false; }
+    finally { locked = false; el("sealedSend").removeAttribute("aria-busy"); }
   }
   el("sealedSend").onclick = deliver;
   el("sealedDismiss").onclick = async () => {

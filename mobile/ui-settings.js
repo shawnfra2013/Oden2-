@@ -9,7 +9,9 @@
   }
   const panel = document.getElementById("uiEdits");
   if (!panel) {
-    fetch("/ui-settings.json").then(r => r.json()).then(paint).catch(() => {});
+    const refresh = () => fetch("/ui-settings.json",{cache:"no-store"}).then(r => r.json()).then(paint).catch(() => {});
+    window.addEventListener("odin-refresh-settings",refresh);
+    refresh();
     return;
   }
   const el = id => document.getElementById(id);

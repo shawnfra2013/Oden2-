@@ -4,7 +4,8 @@ const {openAiApiKey} = require("../lib/openai-config");
 const budget=require("../lib/chat-budget");
 const MODEL = /^[a-zA-Z0-9._-]{1,100}$/;
 function validate(data) {
-  if (Object.keys(data).some(k=>!["message","history","request_id"].includes(k))
+  if (Object.keys(data).some(k=>!["message","history","request_id","mode"].includes(k))
+      || (data.mode!==undefined && !["plan","work"].includes(data.mode))
       || typeof data.message!=="string"
       || !data.message.trim()
       || data.message.length>3000
@@ -23,13 +24,13 @@ module.exports=async function handler(req,res) {
   const key=openAiApiKey();
   const model=process.env.ODIN_OPENAI_MODEL;
   if (!key || !MODEL.test(model||"")) {
-    return res.status(503).json({error:"Cloud chat not configured; add a fresh API key and model in Vercel settings"});
+    return res.status(503).json({error:"Cloud chat not configured; add a fresh API key and model in host settings"});
   }
   const input=validate(req.body);
   if (!input) return res.status(400).json({error:"Invalid conversation or message"});
   const payload={
     model,input,store:false,max_output_tokens:700,
-    instructions:"You are the Odin Control cloud AI assistant. You are an independent API conversation, NOT the user's exact ChatGPT app conversation and NOT an active Odin device process. Guide the user about their AYN Odin 2 AI workstation and its public GitHub repository shawnfra2013/Oden2-. Never claim that you have connected to Odin, pushed code, tested, restarted services or approved a device action unless the user supplies a separate verified receipt. Never request API keys in the chat. Device operations require a separate explicitly confirmed diagnostic action."
+    instructions:(req.body.mode==="plan"?"Provide a plan without taking action. ": "Draft the requested result directly. ")+"You are the Odin Control cloud AI assistant. You are an independent API conversation, NOT the user's exact ChatGPT app conversation and NOT an active Odin device process. Guide the user about their AYN Odin 2 AI workstation and its public GitHub repository shawnfra2013/Oden2-. Never claim that you have connected to Odin, pushed code, tested, restarted services or approved a device action unless the user supplies a separate verified receipt. Never request API keys in the chat. Device operations require a separate explicitly confirmed diagnostic action."
   };
   try {
     if(!budget.configured())return res.status(503).json({error:"Cloud chat budget unavailable"});
