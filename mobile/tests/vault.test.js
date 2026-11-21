@@ -73,7 +73,7 @@ test("browser wiring offers password unlock plus manual token fallback",()=>{
   assert.match(html,/id="vaultUnlockForm"/);
   assert.match(html,/id="vaultSaveForm"/);
   assert.match(html,/id="vaultForget"/);
-  assert.match(html,/src="\/vault\.js" defer/);
+  assert.match(html,/src="\/vault\.js\?v=[a-f0-9]{16}" defer/);
   assert.ok(html.includes('src="/vault.js?') && html.indexOf('src="/vault.js?')<html.indexOf('src="/app.js?'));
   assert.match(app,/OdinVault\.unlock\(password\)/);
   assert.match(app,/OdinVault\.save\(privateState\.token,password\)/);
