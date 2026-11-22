@@ -1,0 +1,37 @@
+name: Odin iOS
+on:
+  pull_request:
+    paths: ["ios/**", ".github/workflows/odin-ios.yml"]
+  push:
+    branches: [main]
+    paths: ["ios/**", ".github/workflows/odin-ios.yml"]
+jobs:
+  simulator:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          cd ios
+          xcodegen generate
+      - name: Select iPhone simulator
+        run: |
+          device=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; rows = [d for devices in json.load(sys.stdin)["devices"].values() for d in devices if d["name"].startswith("iPhone")]; print(next((d["udid"] for d in rows if "Plus" in d["name"]), rows[0]["udid"]))')
+          echo "ODIN_SIMULATOR=$device" >> "$GITHUB_ENV"
+      - name: Compile iPhone app and UI tests
+        working-directory: ios
+        timeout-minutes: 8
+        run: |
+          xcodebuild build-for-testing -scheme OdinControl -project OdinControl.xcodeproj -destination "platform=iOS Simulator,id=$ODIN_SIMULATOR" -derivedDataPath Build -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO
+      - name: Verify fixed inbox layout on iPhone
+        working-directory: ios
+        timeout-minutes: 12
+        run: |
+          xcodebuild test-without-building -scheme OdinControl -project OdinControl.xcodeproj -destination "platform=iOS Simulator,id=$ODIN_SIMULATOR" -derivedDataPath Build -parallel-testing-enabled NO -resultBundlePath TestResults.xcresult CODE_SIGNING_ALLOWED=NO
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: odin-ios-simulator-results
+          path: ios/TestResults.xcresult
