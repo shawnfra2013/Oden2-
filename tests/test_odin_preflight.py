@@ -54,6 +54,56 @@ class PreflightTests(unittest.TestCase):
                                                  prefix=root, runner=uncertain)
             self.assertEqual(state["status"], "UNVERIFIED")
 
+    def test_mailbox_launch_path_detects_temporary_checkout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            home = root / "home"
+            correct = home / "odin-workspace"
+            stale = home / "odin-pr45-test.example"
+            correct.mkdir(parents=True)
+            stale.mkdir()
+            prefix = root / "prefix"
+            launcher = prefix / "var/service/odin-private-mailbox/run"
+            launcher.parent.mkdir(parents=True)
+            proc = root / "proc/31415"
+            proc.mkdir(parents=True)
+            (proc / "cwd").symlink_to(stale, target_is_directory=True)
+            launcher.write_text(
+                "#!/bin/bash\nset -eu\ncd " + str(stale)
+                + "\nexec python scripts/odin_github_bridge.py --private-mailbox --serve\n"
+            )
+            def runner(_argv, timeout=5):
+                return subprocess.CompletedProcess(
+                    [], 0, stdout="run: /tmp/odin-private-mailbox: (pid 31415) 6s\n"
+                )
+            result = preflight.private_mailbox_launch_path(
+                prefix=prefix, home=home, proc_root=root / "proc", runner=runner,
+            )
+            self.assertEqual(result["status"], "FAIL")
+            self.assertTrue(result["required"])
+            self.assertIn("noncanonical", result["detail"])
+            launcher.write_text("#!/bin/bash\ncd " + str(correct) + "\n")
+            result = preflight.private_mailbox_launch_path(
+                prefix=prefix, home=home, proc_root=root / "proc", runner=runner,
+            )
+            self.assertEqual(result["status"], "FAIL")
+            self.assertIn("Running", result["detail"])
+            (proc / "cwd").unlink()
+            (proc / "cwd").symlink_to(correct, target_is_directory=True)
+            result = preflight.private_mailbox_launch_path(
+                prefix=prefix, home=home, proc_root=root / "proc", runner=runner,
+            )
+            self.assertEqual(result["status"], "PASS")
+
+    def test_mailbox_launch_path_missing_launcher_is_not_success(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = preflight.private_mailbox_launch_path(
+                prefix=root / "prefix", home=root / "home", proc_root=root / "proc",
+            )
+            self.assertEqual(state["status"], "UNVERIFIED")
+            self.assertTrue(state["required"])
+
     def test_offline_model_tcp_never_issues_chat_request(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
