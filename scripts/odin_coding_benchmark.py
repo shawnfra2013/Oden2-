@@ -19,6 +19,8 @@ def compare(report: dict) -> dict:
     if any(not isinstance(report[k], str) or not SHA.fullmatch(report[k])
            for k in ("baseline_sha", "candidate_sha")):
         raise ValueError("Invalid revision")
+    if report["baseline_sha"] == report["candidate_sha"]:
+        raise ValueError("Candidate and baseline must use distinct revisions")
     cases = report["cases"]
     if not isinstance(cases, list) or not 5 <= len(cases) <= 200:
         raise ValueError("Invalid held-out set size")
@@ -41,9 +43,14 @@ def compare(report: dict) -> dict:
                     "promotion_authorized": False}
         before += case["baseline_pass"]
         after += case["candidate_pass"]
-    return {"status": "PASS" if after >= before else "FAIL",
+    # A tie demonstrates only non-regression in the supplied claims, not
+    # improvement. Do not let it appear as a successful self-improvement gate.
+    outcome = "PASS" if after > before else "FAIL" if after < before else "BLOCKED"
+    return {"status": outcome,
+            "reason": "no_measured_gain" if after == before else "measured_comparison",
             "case_count": len(cases), "baseline_passed": before,
             "candidate_passed": after, "delta_passed": after - before,
+            "improvement_observed": after > before,
             "promotion_authorized": False, "device_verified": False,
             "grader_claims_authenticated": False}
 
