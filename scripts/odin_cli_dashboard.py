@@ -20,6 +20,8 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 SERVICES = ("odin-private-mailbox", "odin-git-sync", "odin-task-worker",
             "odin-local-model", "odin-stage5")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
