@@ -27,6 +27,10 @@ python -B scripts/odin_project_memory.py --query 'delayed mailbox receipt'
 
 The index is confined to ignored `state/project-memory/index.sqlite3`; it can be rebuilt if the Git documents or checkout SHA change. Results carry a local source SHA and `verified_externally=false`. The next separate test is a real model recall of a prior defect, current approved task and outstanding blocker, with source references. This is retrieval, not model retraining.
 
+## Coding improvement is separate from memory retrieval
+
+Odin now has a source-only supervised coding critique module, described in [coding and adapter training gates](ODIN_CODER_TRAINING.md). It reviews immutable isolated proposals and saves bounded, metadata-only static feedback for a human or authorized reviewer. Existing `scripts/train_adapter.py` can build a **candidate** Qwen2 LoRA adapter from explicitly approved examples, but neither this critique nor the Git memory index updates live model weights. The current handheld's model-training compatibility and measured unseen coding accuracy remain **UNVERIFIED**. Do not call repeated critique rounds 'self-training' until an approved dataset, separate candidate checkpoint, heldout functional coding benchmark and controlled device activation are evidenced.
+
 ## Memory update rules
 
 - Add new facts once, in a dated checkpoint or the existing canonical issue/PR; link rather than duplicating whole conversation transcripts.
