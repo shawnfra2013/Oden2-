@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta name="odin-release" content="d6ddd2901b1d27cc">
+<meta name="odin-release" content="f294025f4a8c7df2">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#080b14">
@@ -104,7 +104,7 @@
             <input id="vaultUnlockPassword" type="password" autocomplete="current-password" spellcheck="false" placeholder="Your unlock password" aria-label="Unlock saved Odin access" required>
             <button type="submit" id="vaultUnlockButton">Unlock</button>
           </form>
-          <form id="accessForm" class="connect-row">
+          <form id="accessForm" class="connect-row" hidden>
             <input id="accessToken" type="password" autocomplete="off" spellcheck="false" placeholder="Existing long access token" minlength="32" aria-label="Odin Control access token" required>
             <button type="submit" id="accessButton">Connect</button>
           </form>
@@ -120,7 +120,7 @@
             <button class="text-link" type="button" id="vaultUseToken">Use access token instead</button>
             <button class="text-link" type="button" id="vaultForget">Forget saved access on this device</button>
           </div>
-          <div class="connect-state" id="accessState" role="status">Not connected. Set up the server secrets first.</div>
+          <div class="connect-state" id="accessState" role="status">Checking remembered browser access…</div>
           <button class="text-link" id="disconnectButton" type="button" disabled>Lock private session</button>
         </div>
         <section id="deviceWorkPanel" hidden class="panel" aria-label="Private GitHub mailbox">
@@ -212,7 +212,7 @@
 
   <script src="/vault.js?v=d2bc6bdb1220a95a" defer></script>
   <script src="/chat-route.js?v=97899efb4adef727" defer></script>
-  <script src="/app.js?v=0df6deaa6dfacac5" defer></script>
+  <script src="/app.js?v=ecd0156a058f0417" defer></script>
   <script src="/encrypted-chat.js?v=d8c8e6676e97dd8a" defer></script>
 <script src="/local-tools.js?v=8ecded70f6483524" defer></script>
 <script src="/ui-settings.js?v=02a07db6a01bac42" defer></script>
