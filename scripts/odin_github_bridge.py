@@ -665,7 +665,7 @@ def recover_pending_source_receipt():
         raise RuntimeError("Invalid pending source receipt") from exc
     relative = module.remote_path(receipt_id)
     destination = OUTBOX / relative
-    if destination.is_symlink():
+    if destination.is_symlink() or destination.resolve() != destination:
         raise RuntimeError("Unsafe source receipt destination")
     if destination.exists() and destination.read_bytes() != raw:
         raise RuntimeError("Conflicting private source receipt")
@@ -695,7 +695,7 @@ def publish_local_source_receipts(max_per_poll=3):
             continue
         relative = module.remote_path(candidate.stem)
         destination = OUTBOX / relative
-        if destination.is_symlink():
+        if destination.is_symlink() or destination.resolve() != destination:
             raise RuntimeError("Unsafe private source receipt path")
         if destination.exists():
             if destination.read_bytes() != raw:
