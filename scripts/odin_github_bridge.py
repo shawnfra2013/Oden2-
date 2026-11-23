@@ -40,7 +40,7 @@ ORIGINS = {
 }
 POLL_SECONDS = 60
 PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
-PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next", "practice_followup", "regression_details"})
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next", "practice_followup", "regression_details", "review_feedback"})
 private_mailbox = False
 
 
@@ -108,6 +108,16 @@ def validate_request(raw, expected_id, now=None):
             raise ValueError("Missing encrypted message")
     elif len(raw.encode("utf-8")) > 4096:
         raise ValueError("Oversized diagnostic request")
+    if private_mailbox and payload.get("action") == "review_feedback":
+        required = required | {
+            "issue_number", "pr_number", "head_sha", "reference_receipt_id",
+            "decision", "feedback_note",
+        }
+        if __package__:
+            from .odin_review_feedback import validate_feedback
+        else:
+            from odin_review_feedback import validate_feedback
+        validate_feedback(payload)
     if set(payload) != required:
         raise ValueError("Invalid request fields")
     if type(payload["version"]) is not int or payload["version"] != 1 or payload["id"] != expected_id:
@@ -328,6 +338,14 @@ def model_capacity():
 
 
 def status_action(action, request=None):
+    if action == "review_feedback":
+        if not private_mailbox or request is None:
+            raise ValueError("Private feedback requires a validated request")
+        if __package__:
+            from .odin_review_feedback import record_feedback
+        else:
+            from odin_review_feedback import record_feedback
+        return record_feedback(request, inbox=STATE / "review-feedback")
     if action == "regression_details" and private_mailbox:
         if __package__:
             from .odin_regression_details import diagnose
