@@ -24,6 +24,10 @@ The source test loop runs active-doc checks, source structure checks, Python tes
 
 **Codespaces:** Cloud-generated receipts stay local to the Codespace; its GitHub Actions source checks provide durable cloud evidence. No Codespace is granted access to the handheld's private mailbox key or allowed to impersonate Odin. Running the source CLI does not automatically push source changes to GitHub. Approved source changes still require Git commits, PR review and CI.
 
+## Scoped agent task preflight (source-only)
+
+From an already operator-authorized and actually attached Codespaces or local shell, save the reviewed issue's exact task contract privately, then run `python -B -m scripts.odin_agent_handoff --contract /private/scoped-task.json`. The read-only result checks the task schema, current checkout SHA and tracked cleanliness and returns allowed paths/tests/maximum two review rounds. `READY_FOR_OPERATOR_ATTACHED_AGENT` is **not** evidence of a coding agent being attached or authorized; the owner must independently establish tool permissions and context. The command cannot start Codespaces, run model inference, execute arbitrary task text, clone private keys, create commits or install code. A delegated coding agent must separately publish a scoped PR, test receipts and exact-head CI before implementation can be credited. See [collaboration proof](COLLABORATION_FRAMEWORK.md).
+
 ## Existing receipt and release process
 
 The separate [private mailbox](ODIN_GITHUB_BRIDGE.md) remains the approved asynchronous path to the handheld. Do not copy local terminal output or credentials into public source receipts. A GitHub source PR and CI report are verified against the exact head SHA. Only approved device operations go through the existing authenticated private workflow; a comment or source receipt must never be interpreted as authorization for arbitrary shell execution.
