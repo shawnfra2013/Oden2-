@@ -53,7 +53,7 @@ jobs:
 
       - name: Publish source preflight report even when later tests fail
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: odin-source-preflight
           path: ${{ runner.temp }}/odin-preflight.json

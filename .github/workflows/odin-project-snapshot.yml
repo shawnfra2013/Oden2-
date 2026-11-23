@@ -31,7 +31,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - name: Publish dated public status artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: odin-project-snapshot
           path: ${{ runner.temp }}/odin-snapshot/
