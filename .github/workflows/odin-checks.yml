@@ -84,7 +84,8 @@ jobs:
             fi
           done
           if git grep -inEI '([[:alnum:]-]+\.)+vercel\.app|@vercel/blob' -- \
-            mobile ':!mobile/tests/**' ':!mobile/*.md' scripts services stage5 \
+            mobile ':!mobile/tests/**' ':!mobile/*.md' scripts \
+            ':!scripts/check_odin_structure.py' services stage5 \
             ':!stage5/test*.py' README.md docs/ODIN_RUNTIME.md; then
             echo "::error::Retired hosting reference in a runtime or setup path"
             exit 1
