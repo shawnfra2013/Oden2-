@@ -1,6 +1,7 @@
-"""Opt-in Codespaces source command runner with local, non-secret receipts.
+"""Opt-in portable source command runner with local, non-secret receipts.
 
 Not a device shell, private-mailbox receiver, deployment agent or model call.
+Works inside Codespaces or directly in Termux with previously installed tools.
 Run inside an authenticated Codespace using VS Code Tasks or its terminal.
 """
 from __future__ import annotations
@@ -50,7 +51,7 @@ def status(root: Path = ROOT) -> dict:
     """Source environment status only; never imply device connectivity."""
     return {
         "schema": 1,
-        "scope": "codespace_source_only",
+        "scope": "local_source_only",
         "checked_at": utc_now(),
         "source_sha": sha_at(root),
         "codespace_present": os.environ.get("CODESPACES") == "true",
@@ -109,7 +110,7 @@ def run_tests(root: Path = ROOT) -> dict:
     results = [execute_check(name, argv, root) for name, argv in check_commands(root)]
     return {
         "schema": 1,
-        "scope": "codespace_source_only",
+        "scope": "local_source_only",
         "id": uuid.uuid4().hex,
         "started_at": started,
         "completed_at": utc_now(),
