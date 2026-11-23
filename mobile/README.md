@@ -13,10 +13,12 @@ operator's authenticated network or HTTPS reverse proxy. Use the actual
 HTTPS address with no trailing slash for `ODIN_CONTROL_ORIGIN`.
 
 Open the HTTPS address in Safari, then use Share → Add to Home Screen.
-In the dashboard, Request Browser Approval shows a browser ID. Approve it
+Open the installed shortcut and select **Remember this browser** there to obtain its browser ID. Approve it
 on the host using `ODIN_TRUSTED_BROWSER_ID` to reuse the browser's session
 across visits. Alternatively, unlock private access with the configured
 `ODIN_CONTROL_ACCESS_TOKEN`, which has an encrypted browser vault option.
+On reopen, the viewer tries its approved browser cookie automatically. If that fails and a vault was previously saved at this origin, enter its local unlock password. Clearing website data removes both. Repeat browser approval on the same HTTPS address if needed. Never paste the token into chat.
+
 An approval belongs to its origin. Set up the new origin once when moving
 from the old dashboard.
 
