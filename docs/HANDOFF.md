@@ -52,6 +52,10 @@ A scoped `mailbox_audit` private action lets ChatGPT request a read-only, redact
 
 The review-feedback CLI gained a merged [PR #116](https://github.com/shawnfra2013/Oden2-/pull/116) `--inspect ID` path that creates an immutable, **non-executing** tool-presentation record, and the private mailbox can asynchronously forward its metadata. The reviewed source checks passed. Real tool presentation remains a separate event after owner-approved checkout/reload, with a fresh private outbox receipt. The acknowledgment does not certify an AI identity or action. The next test should use a new bounded review note and independently verify both the original storage response and the separate tool-presentation receipt.
 
+## Current device delivery delay
+
+A fresh read-only ping (`c0ad2026000000000000000000000009`) sent after the new source merges had **no matching private outbox response after at least 150 seconds**, while the outbox's last observed commit remained at 07:35:29 UTC. Record this as a delivery stall, not proof of a device shutdown or a failed installation. Before live rollout, collect a new read-only Termux service/status observation or a later matching response. See incident B-018 in [the trial ledger](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md).
+
 ## Next controlled acceptance sequence
 
 1. Review exact GitHub main SHA and associated Actions checks after the final docs merge; preserve untracked owner files.
