@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 import re
+import stat
 import tempfile
 from pathlib import Path
 
@@ -20,6 +21,8 @@ SHA_RE = re.compile(r"[0-9a-f]{40}\Z")
 ID_RE = re.compile(r"[0-9a-f]{32}\Z")
 DECISIONS = frozenset({"revise", "hold", "review_ready"})
 MAX_NOTE_LENGTH = 600
+# Escaped JSON uses up to 12 bytes per code point plus the bounded metadata.
+MAX_STORED_FEEDBACK_BYTES = 12 * MAX_NOTE_LENGTH + 512
 DEFAULT_INBOX = Path(__file__).resolve().parents[1] / "state" / "github-bridge-private" / "review-feedback"
 
 
@@ -41,6 +44,10 @@ def validate_feedback(request):
     if (not isinstance(note, str) or not 1 <= len(note) <= MAX_NOTE_LENGTH
             or any(ord(char) < 32 or ord(char) == 127 for char in note)):
         raise ValueError("Invalid feedback note")
+    try:
+        note.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise ValueError("Invalid feedback note") from exc
     return {key: request[key] for key in sorted(REQUEST_FIELDS)}
 
 
@@ -87,6 +94,21 @@ def record_feedback(request, *, inbox=DEFAULT_INBOX):
     }
 
 
+def read_bounded(path: Path, max_bytes: int) -> bytes:
+    if path.parent.is_symlink() or path.is_symlink():
+        raise ValueError("Unsafe feedback file or directory")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    fd = os.open(path, flags)
+    with os.fdopen(fd, "rb") as source:
+        meta = os.fstat(source.fileno())
+        if not stat.S_ISREG(meta.st_mode) or not 0 < meta.st_size <= max_bytes:
+            raise ValueError("Unsafe feedback file size/type")
+        content = source.read(max_bytes + 1)
+    if not 0 < len(content) <= max_bytes:
+        raise ValueError("Unsafe feedback read size")
+    return content
+
+
 def list_feedback(*, inbox=DEFAULT_INBOX, limit=5):
     """Return bounded, clearly untrusted pending feedback for a local agent."""
     if type(limit) is not int or not 1 <= limit <= 10:
@@ -96,11 +118,12 @@ def list_feedback(*, inbox=DEFAULT_INBOX, limit=5):
         return []
     items = []
     for path in sorted(inbox.glob("*.json"), reverse=True)[:limit]:
-        if path.is_symlink() or not ID_RE.fullmatch(path.stem) or path.stat().st_size > 2048:
+        if not ID_RE.fullmatch(path.stem):
             continue
         try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-            if payload.get("id") != path.stem:
+            raw = read_bounded(path, MAX_STORED_FEEDBACK_BYTES)
+            payload = json.loads(raw.decode("utf-8"))
+            if not isinstance(payload, dict) or payload.get("id") != path.stem:
                 continue
             data = validate_feedback(payload)
         except (OSError, ValueError, TypeError, json.JSONDecodeError):

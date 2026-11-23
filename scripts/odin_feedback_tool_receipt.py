@@ -10,15 +10,14 @@ import hashlib
 import json
 import os
 import re
-import stat
 import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 try:
-    from .odin_review_feedback import DEFAULT_INBOX, validate_feedback
+    from .odin_review_feedback import DEFAULT_INBOX, MAX_STORED_FEEDBACK_BYTES, read_bounded, validate_feedback
 except ImportError:
-    from odin_review_feedback import DEFAULT_INBOX, validate_feedback
+    from odin_review_feedback import DEFAULT_INBOX, MAX_STORED_FEEDBACK_BYTES, read_bounded, validate_feedback
 
 DEFAULT_OBSERVED = DEFAULT_INBOX.parent / "feedback-tool-observed"
 ID = re.compile(r"[0-9a-f]{32}\Z")
@@ -86,20 +85,6 @@ def validate_tool_receipt(raw: bytes, expected_id: str) -> dict:
     return value
 
 
-def read_bounded(path: Path, max_bytes: int) -> bytes:
-    if path.parent.is_symlink() or path.is_symlink():
-        raise ValueError("Unsafe feedback file or directory")
-    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-    with os.fdopen(fd, "rb") as source:
-        meta = os.fstat(source.fileno())
-        if not stat.S_ISREG(meta.st_mode) or not 0 < meta.st_size <= max_bytes:
-            raise ValueError("Unsafe feedback file size/type")
-        content = source.read(max_bytes + 1)
-    if not 0 < len(content) <= max_bytes:
-        raise ValueError("Unsafe feedback read size")
-    return content
-
-
 def _serialize(value: dict) -> bytes:
     return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
@@ -151,7 +136,7 @@ def inspect_feedback(
     inbox = Path(inbox)
     if inbox.is_symlink():
         raise ValueError("Unsafe review inbox")
-    raw = read_bounded(inbox / (feedback_id + ".json"), 2048)
+    raw = read_bounded(inbox / (feedback_id + ".json"), MAX_STORED_FEEDBACK_BYTES)
     try:
         message = json.loads(raw)
     except (ValueError, TypeError) as exc:
