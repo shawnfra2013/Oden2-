@@ -189,8 +189,21 @@ def ensure_index(root: Path = ROOT, db_path: Path | None = None) -> tuple[Path, 
         try:
             with closing(sqlite3.connect(f"file:{index}?mode=ro", uri=True)) as connection:
                 rows = dict(connection.execute("SELECT key,value FROM meta").fetchall())
+            # Metadata alone is not proof that the FTS cache still contains the
+            # approved source paragraphs. A damaged or edited cache must never
+            # be presented as verified project memory.
+            expected = [
+                (name, heading, body)
+                for name, content in documents for heading, body in _parts(content)
+            ]
+            with closing(sqlite3.connect(f"file:{index}?mode=ro", uri=True)) as connection:
+                integrity = connection.execute("PRAGMA integrity_check").fetchone()
+                actual = connection.execute(
+                    "SELECT path,heading,body FROM snippets ORDER BY rowid"
+                ).fetchall()
             if (rows.get("schema") == "1" and rows.get("content_sha256") == fingerprint
-                    and rows.get("local_git_sha") == revision):
+                    and rows.get("local_git_sha") == revision
+                    and integrity == ("ok",) and actual == expected):
                 return index, revision
         except sqlite3.DatabaseError:
             # Replace only the generated cache; never modify curated source files.
