@@ -72,11 +72,16 @@ def evaluate_contract(contract, observed):
         reasons.append("base_sha_mismatch")
     if not isinstance(observed["head_sha"], str) or not HEX_SHA.fullmatch(observed["head_sha"]):
         reasons.append("invalid_head_sha")
+    elif observed["head_sha"] == contract["base_sha"]:
+        reasons.append("unchanged_head_sha")
     paths = observed["changed_paths"]
     if not isinstance(paths, list) or not paths or any(not _safe_path(x) for x in paths):
         reasons.append("invalid_changed_paths")
-    elif set(paths) - set(contract["allowed_paths"]):
-        reasons.append("out_of_scope_paths")
+    else:
+        if len(paths) != len(set(paths)):
+            reasons.append("duplicate_changed_paths")
+        if set(paths) - set(contract["allowed_paths"]):
+            reasons.append("out_of_scope_paths")
     if type(observed["review_round"]) is not int or observed["review_round"] > contract["max_review_rounds"] or observed["review_round"] < 0:
         reasons.append("review_budget_exceeded")
     tests = observed["tests"]
