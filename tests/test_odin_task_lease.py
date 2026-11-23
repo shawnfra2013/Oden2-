@@ -56,6 +56,22 @@ class TaskLeaseTests(unittest.TestCase):
         self.assertEqual(other["status"], "ACQUIRED")
         self.assertEqual(leases.local_summary(self.db)["active"], 2)
 
+    def test_parent_directory_claim_blocks_child_path(self):
+        self.claim(paths=["scripts"])
+        result = self.claim(
+            issue=98, branch="feature/subdir", lease_id="8" * 32,
+            paths=["scripts/new_module.py"],
+        )
+        self.assertEqual(result["status"], "CONFLICT")
+
+    def test_child_claim_blocks_parent_directory(self):
+        self.claim(paths=["scripts/odin_task_lease.py"])
+        result = self.claim(
+            issue=98, branch="feature/parent", lease_id="9" * 32,
+            paths=["scripts"],
+        )
+        self.assertEqual(result["status"], "CONFLICT")
+
     def test_stale_sha_fails_without_creating_database(self):
         outcome = self.claim(observed_sha="b" * 40)
         self.assertEqual(outcome["status"], "STALE_BASE")
