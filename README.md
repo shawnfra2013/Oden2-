@@ -2,6 +2,8 @@
 
 Start with the [current Odin runtime and cutover guide](docs/ODIN_RUNTIME.md). The dated checkpoints below record earlier configurations.
 
+The [iPhone setup guide](mobile/README.md) covers remembered browser access, password recovery, and the cellular Home Screen test. A passing repository check verifies the published code; check the handset separately after each rollout.
+
 [Offline model and encrypted chat setup](docs/OFFLINE_CHAT.md).
 
 For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](docs/STRUCTURE_HARDENING.md).
