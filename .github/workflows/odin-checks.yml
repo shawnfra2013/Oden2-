@@ -48,6 +48,18 @@ jobs:
       - name: Verify canonical workflow, service registry, ports, and active paths
         run: python -B scripts/check_odin_structure.py
 
+      - name: Generate read-only preflight evidence (no paid model or device access)
+        run: python -B scripts/odin_preflight.py --mode source --json-path "$RUNNER_TEMP/odin-preflight.json"
+
+      - name: Publish source preflight report even when later tests fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: odin-source-preflight
+          path: ${{ runner.temp }}/odin-preflight.json
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Install Python linter
         run: python -m pip install ruff==0.14.5
 

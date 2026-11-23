@@ -12,6 +12,7 @@ Odin's local browser is the **Odin Local Workstation** (historical implementatio
 | Source-to-device messaging | [Private mailbox runbook](docs/ODIN_GITHUB_BRIDGE.md) |
 | Local model and encrypted mobile chat | [Offline chat](docs/OFFLINE_CHAT.md) |
 | Source updates and acceptance checks | [Release gates](docs/RELEASE_GATES.md) |
+| Read-only preflight and explicit failures | [Preflight guide](docs/PREFLIGHT.md) |
 | Open work | [Task board](docs/TASK_BOARD.md) |
 | Evidence-aware status | [Status guide](docs/PROJECT_STATUS.md) |
 | Architecture decisions | [Decision log](docs/DECISIONS.md) |

@@ -2,6 +2,8 @@
 
 **This is a guide to obtaining a status snapshot, not a live value.** The dated, automatically generated snapshot is available as an artifact from the [Odin Project Snapshot workflow](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-project-snapshot.yml) once that workflow has run.
 
+The [read-only preflight](PREFLIGHT.md) adds a separate source validation report with explicit PASS/FAIL/UNVERIFIED results. **A passing source report cannot certify the physical handheld.**
+
 A snapshot reports:
 - GitHub `main` SHA, observation time (UTC), and **exact-SHA** source-check outcome;
 - the open GitHub issue count and tracked work;

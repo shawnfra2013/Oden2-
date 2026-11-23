@@ -24,6 +24,13 @@ The uploaded `Odin Viewer.txt` still contains only an older external dashboard U
 - `scripts/check_odin_structure.py` and regression tests are part of the GitHub CI gate, not a claim that sockets or daemons are alive on the handheld.
 - Approved fixes are in [issues #75–#79](https://github.com/shawnfra2013/Oden2-/issues/75); additional planned improvements are [#80–#84](https://github.com/shawnfra2013/Oden2-/issues/80). All require separate acceptance evidence before marking complete.
 
+## Preflight and failure transparency
+
+- The new [preflight guide](PREFLIGHT.md) explains the read-only source and device modes. GitHub CI generates a JSON report; missing report or a blocking failure fails the workflow.
+- `PASS` means an observed check, `FAIL` means a demonstrated issue, and `UNVERIFIED` means evidence is unavailable. A source pass never upgrades the physical-device or iPhone status.
+- Work item [#81](https://github.com/shawnfra2013/Oden2-/issues/81) remains **in progress**, not done until a device-side preflight and roll-forward/rollback evidence exist.
+- The private GitHub inbox/outbox contract is checked statically, without reading credentials or private messages. CI does not call inference, Tailscale, or the handheld.
+
 ## Session continuation
 
 1. Check `main` and the latest [source CI](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-checks.yml) for the exact merge SHA; do not reuse the old screenshot revision.

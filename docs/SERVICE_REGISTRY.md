@@ -20,6 +20,8 @@ The machine-readable source is [config/odin-services.json](../config/odin-servic
 
 - `python -B scripts/check_odin_structure.py` checks required files and service script references; JSON validity; duplicate listener port and service IDs; source-port agreement; Markdown relative links outside the archive; and absence of retired-host references in active boot/UI entry points.
 - `python -B scripts/check_active_docs.py` additionally checks all current documentation against retired-host and obsolete-stage terms.
+- `python -B scripts/odin_preflight.py --mode source` reports all static checks and keeps unavailable device/phone evidence explicitly UNVERIFIED.
+- `python -B scripts/odin_preflight.py --mode device --strict` is a read-only Termux check of configured runit services, loopback workstation, local model port if enabled, and tailnet CLI status. It is expected to block full release until the phone and device SHA are verified independently. See [preflight](PREFLIGHT.md).
 - GitHub Actions runs these tests automatically on PRs and pushes to main.
 - Device operators separately verify `sv status`, bound sockets, model HTTP readiness, and a fresh matching private mailbox receipt. Missing runtime proof is **unverified**, not **passing**.
 

@@ -25,4 +25,4 @@
 - Never use force-push, hard reset, remove live services, expose a public port, or auto-restart the device without explicit review.
 - Preserve earlier evidence in docs/archive/, but do not use archived commands to configure the active system.
 
-**Source validation command:** `python -B scripts/check_odin_structure.py`. **Device verification:** separate, read-only inspection on Odin; CI cannot determine live listener status.
+**Source validation:** `python -B scripts/odin_preflight.py --mode source` produces PASS/FAIL/UNVERIFIED evidence; GitHub retains its JSON report. **Device inspection:** `python -B scripts/odin_preflight.py --mode device --strict` is read-only and fails closed when required evidence is unknown. Neither mode calls a model or approves deployment. See [preflight guide](docs/PREFLIGHT.md).

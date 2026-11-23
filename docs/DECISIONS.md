@@ -14,5 +14,6 @@ This is the **current decision register**, not a historical status report. Recor
 | D-008 | No secrets, private chat, pairing codes, or direct terminal endpoints in public issues or CI artifacts | Keeps private mailbox and device access safe |
 | D-009 | [ODIN_WORKFLOW.md](../ODIN_WORKFLOW.md) is the single machine-readable-compatible workflow policy, backed by deterministic GitHub CI | Reading and validating it never calls a paid AI model |
 | D-010 | [Service registry](../config/odin-services.json) declares source defaults, with device-generated services identified separately | Source checks catch missing paths and duplicate ports; only live on-device inspection proves bound sockets |
+| D-011 | [Preflight](PREFLIGHT.md) reports PASS/FAIL/UNVERIFIED; missing required evidence never silently passes | Static CI and actual device/phone acceptance remain distinct; no startup paid inference or unreviewed actions |
 
 **Changing a decision:** create a GitHub issue stating the proposed replacement and a migration/test plan, then a reviewed PR updating this log, [runtime](ODIN_RUNTIME.md) and [release gates](RELEASE_GATES.md). Do not edit unrelated service configurations implicitly.
