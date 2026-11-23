@@ -40,6 +40,15 @@
 
 These milestones do not replace previous errors with retrospective PASS. The GitHub source of truth must be pulled and verified on the physical device separately.
 
+## Supervised coding improvement — source verified, model weights unchanged
+
+- [PR #130](https://github.com/shawnfra2013/Oden2-/pull/130) merged to `main` as `55b905176d4aacab67f73c969ee6e7c63b79278e` after 3/3 exact-head source checks. Odin's existing proposal worker now performs receipt-bound static AST critiques (no-op changes, public API deletion/signature changes, new sensitive API calls) after independent Ruff and preserves immutable `critique.json` metadata. Failed critiques are **not** labeled ready. Source regression first failed because its new assertion expected `manual_review` instead of the existing `manual_review_required`; it was corrected and all required checks passed before merge.
+- [PR #131](https://github.com/shawnfra2013/Oden2-/pull/131) merged as `5abc1fe91e01abd59d79ce0930336cb85545fc5d` after all three source checks. A fixed-category, target-bound local lesson record now makes the **next existing code-generation prompt** aware of an earlier critique for the same file, without another model call or unsafe instructions. Unit tests reject tampered lessons and cross-target reuse. This is **feedback-context learning**, not new model weights.
+- `scripts/train_adapter.py` previously existed and can create a Qwen2-family LoRA **candidate** from explicitly approved local examples using `torch`, `peft`, `transformers` and a compatible local safetensors checkpoint. Its heldout answer-loss report is **not** a functional coding benchmark. No user-supplied approved training corpus, on-device training-capacity verification, candidate adapter measurement, automatic promotion or live Odin code-generation acceptance has been observed at this checkpoint.
+- Physical mailbox migration utility [#129](https://github.com/shawnfra2013/Oden2-/pull/129) is source merged but its actual application, preserving private state and restarting `odin-private-mailbox`, requires the separate operator gate in #71. GitHub source changes do not imply the old running test checkout was repointed.
+
+Next safe acceptance: exact main SHA at device, user-approved safe source update and mailbox migration, one local static critic negative test and one fresh source proposal with remembered critique, plus independently graded unseen coding tasks before comparing candidate trained weights. Read [coding/training safeguards](../ODIN_CODER_TRAINING.md). No paid model calls, self-approved datasets, raw private logs, or uncontrolled code execution.
+
 ## Immediate next acceptance steps
 
 1. Complete the [issue #71](https://github.com/shawnfra2013/Oden2-/issues/71) private-mailbox runtime migration with operator approval only **after** rechecking pending state, preserving outbox and log history, and backing up the launcher. Confirm both new launcher and live process cwd match canonical, then perform a new private ping and mailbox audit.
