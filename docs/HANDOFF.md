@@ -7,7 +7,7 @@
 - Canonical supported stack: [runtime](ODIN_RUNTIME.md). User-facing local browser name: **Odin Local Workstation**.
 - Private bridge: [GitHub mailbox](ODIN_GITHUB_BRIDGE.md), independent of the optional standalone phone viewer.
 - Terminal development source runner: [portable source loop](CODESPACES_WORKFLOW.md), merged via PR #104 at GitHub SHA `3b8d3c9e61ef7479831193b03e7d5b439242d0f0` with its source checks successful. It records gitignored local receipts, not automatic source commits.
-- Offline source receipt replay: existing private mailbox code now includes a bounded, private-only `bridge/local-source-receipts/` outbox upload path, recovered local commits, and source-validation tests. Check the associated PR and exact source checks before treating it as merged; it does not imply a device installation or persistent online connectivity.
+- Offline source receipt replay: existing private mailbox code now includes a bounded, private-only `bridge/local-source-receipts/` outbox upload path, recovered local commits, and source-validation tests. See [PR #109](https://github.com/shawnfra2013/Oden2-/pull/109) and its exact-head checks for the source merge evidence; this does not imply a device installation or persistent online connectivity.
 - The last observed matching private `stage5_health` receipt in the November 22 live test was completed at **2026-11-23 04:22:23 UTC**, showing the local workstation reachable *at that time*. This is historical evidence, not a live guarantee or proof of a new installed SHA.
 - Tailscale routing and the iPhone cellular viewer have not passed end-to-end acceptance.
 
