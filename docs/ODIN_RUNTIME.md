@@ -1,46 +1,40 @@
-# Odin runtime and supported transports
+# Odin 2 — CURRENT runtime truth
 
-| Task | Entry point | Dependency |
+**Authority:** This document describes the supported architecture as of November 22, 2026. Verify actual reachability from a new receipt before claiming an installed or running device is current. [Earlier observations are archived](archive/README.md). The repository and CI are separate from the physical handheld.
+
+## What Odin uses
+
+| Purpose | Supported path | Verification boundary |
 | --- | --- | --- |
-| Open the workstation on Odin | `http://127.0.0.1:8765/` | Termux and the supervised `odin-stage5` service |
-| Work without internet | Local chat in the workstation or `python -B scripts/odin_chat.py` | The enrolled model server and downloaded weights, usually on loopback port `18080` |
-| Check Odin from iPhone | [Private GitHub Actions mailbox](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) | GitHub sign-in, a running `odin-private-mailbox` service, and internet access on both devices |
-| Use the full phone dashboard | Serve the `mobile/` app on an approved HTTPS origin | The [phone setup](../mobile/README.md) and optional credentials for enabled features |
-| Update source | Existing runit Git sync and opt-in CI-gated updater | GitHub, exact-SHA CI, and the handset's updater configuration |
+| Source of truth | [GitHub `shawnfra2013/Oden2-`, main](https://github.com/shawnfra2013/Oden2-) | Exact commit SHA and exact-SHA CI |
+| Device communication | [Private GitHub mailbox](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) | Matched request ID, completed receipt, and timestamp |
+| Handheld workstation | `http://127.0.0.1:8765/` on Odin | Local Termux HTTP health and real user turn |
+| Local chat | On-device model server, usually `127.0.0.1:18080`, if installed and enabled | Real local reply with network disconnected |
+| Supervised services | Termux runit, including `odin-private-mailbox`, `odin-git-sync`, and task worker as configured | Read-only service and process checks on Odin |
+| Code updates | Existing CI-gated opt-in updater and Git sync | Git SHA installed + service reload evidence; no implied restart |
+| Optional iPhone control | Standalone `mobile/` Node viewer on `127.0.0.1:8780` behind an approved private HTTPS origin | Installed app release, secure browser access, and real cellular test |
 
-The historical name Stage 5 is retained in protocol names, service IDs, and the
-`stage5/` directory. It refers to Odin's local browser workstation. The
-workstation binds to loopback and its address opens on the handheld itself.
-The model listener remains on loopback as well. The repository does not
-configure a Tailscale service, route, or binding for either port.
+The internal directory `stage5/`, service `odin-stage5`, environment keys prefixed `ODIN_STAGE5_`, and mailbox action `stage5_health` remain **compatibility identifiers**. They refer to the **Odin Local Workstation**, *not* an unfinished development stage. Do not rename them without a tested device migration.
 
-The private mailbox polls its GitHub branches on a timer. Git sync also uses
-a local timer. Both paths operate without this chat. In the private workflow,
-`ping` verifies the mailbox and `stage5_health` checks the local HTTP server.
-Those actions make zero model requests. A configured provider reported by
-health still needs a successful reply to verify model execution.
+The agreed work process is defined in [ODIN_WORKFLOW.md](../ODIN_WORKFLOW.md). Tracked and device-generated services plus default port numbers are inventoried in the [service registry](SERVICE_REGISTRY.md); it is source metadata, not proof a process is running.
 
-The old hosted relay and wake routes are retired. A prior phone shortcut
-still points to its original domain and needs a new shortcut. The private
-workflow link above is usable with GitHub sign-in. The full dashboard
-requires its own reachable HTTPS address and browser approval for that origin.
+## Source, device, and phone are three distinct states
 
-## Cutover verification
+1. **Source verified:** GitHub commit exists and required checks pass on that exact SHA.
+2. **Device verified:** A newly submitted private request has a matching completed receipt, device SHA where the action provides it, and a recorded UTC time. A previous health reply does not prove a new release was installed.
+3. **Phone verified:** The approved HTTPS viewer loads the intended code, retains browser authorization, refreshes, and delivers a paired encrypted reply over the iPhone's cellular connection with Wi-Fi disabled.
 
-1. Confirm the reviewed source SHA passes GitHub Checks.
-2. On Odin, confirm the running Git sync launcher uses the local timer and
-   `odin-stage5` serves its loopback health endpoint. Existing copied runit
-   scripts need the approved service update before their behavior changes.
-3. Run private `ping` and `stage5_health` and open the matching receipts.
-   A queued request establishes submission. The completed receipt establishes
-   a device response at its recorded time.
-4. Complete a browser or CLI turn with Wi-Fi disabled using
-   [offline model setup](OFFLINE_CHAT.md).
-5. Confirm the HTTPS route reaches the standalone mobile listener (default `127.0.0.1:8780` on its host). The workstation on `8765` is a different app. With Wi-Fi off and the private network connected, open the approved HTTPS origin from the iPhone Home Screen. Refresh, close, and reopen it. Confirm automatic sign-in or unlock the saved vault with its password. Send an encrypted device chat and verify the matching reply. Keep the previous shortcut until the replacement passes.
-6. Record the deployed Git SHA, test time, device receipt ID, and which phone checks passed. CI tests the documented listener, capabilities response, and browser flow on a runner. Only the handset and iPhone can confirm the installed route.
+The private mailbox works asynchronously through GitHub. The phone does **not** have a direct secure remote terminal by virtue of having GitHub access. Browser login, device mailbox pairing, and encrypted-chat pairing are separate credentials and must never be conflated.
 
-Existing local relay records can be inspected with
-`python -B scripts/odin_relay_client.py --status` or `--investigations`.
-If an older runit installation has `odin-private-relay` enabled, stop it
-with `sv down "$PREFIX/var/service/odin-private-relay"` during the approved
-cutover. Keep the local journal for recovery.
+**Private networking:** Tailscale access is a planned verification target in [issue #70](https://github.com/shawnfra2013/Oden2-/issues/70), not a proved active route. Keep loopback ports bound locally and do not expose them to the public internet. An approved HTTPS origin must be verified before adding a new Home Screen shortcut.
+
+## How to operate safely
+
+- **Check Odin:** open the private GitHub workflow, run `ping` or `stage5_health`, and inspect the *matching* response in the private outbox. These checks make no model request. Never treat successful submission alone as a device response.
+- **Use locally:** open the workstation at `127.0.0.1:8765` on the handheld. For offline inference, follow [offline chat](OFFLINE_CHAT.md) and verify an actual answer with internet disabled.
+- **Update source:** use [the reviewed updater instructions](ODIN_SAFE_UPDATES_AND_ROADMAP.md), preserving local state and rejecting unsafe Git histories. Do not silently restart services.
+- **Use the iPhone:** follow [mobile setup](../mobile/README.md) and [shortcut cutover](SHORTCUT_CUTOVER.md); do not reuse an old host or browser credential. Cellular end-to-end acceptance remains tracked in [issue #69](https://github.com/shawnfra2013/Oden2-/issues/69).
+- **Verify release:** follow [release gates](RELEASE_GATES.md). A CI success never certifies the actual phone or handheld.
+- **Continue work:** read [status](PROJECT_STATUS.md), [issues](TASK_BOARD.md), [decisions](DECISIONS.md), and [handoff](HANDOFF.md).
+
+The old hosted message service and wake routes are not supported deployment paths. Historical command examples belong exclusively in the archive. Preserve device journals for recovery but do not reactivate them as operating instructions.

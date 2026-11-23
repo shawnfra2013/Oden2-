@@ -1,12 +1,12 @@
 # Offline development on Odin
 
-The Stage 5 browser and the Odin CLI can use a local OpenAI-compatible chat server. The local adapter connects exclusively to 127.0.0.1. It supports an explicitly named model, bounded history and a maximum of 700 generated tokens. It never reads a cloud API key. The model server and its weights must already be available on Odin for offline use.
+The Odin Local Workstation browser and the Odin CLI can use a local OpenAI-compatible chat server. The local adapter connects exclusively to 127.0.0.1. It supports an explicitly named model, bounded history and a maximum of 700 generated tokens. It never reads a cloud API key. The model server and its weights must already be available on Odin for offline use.
 
-Set ODIN_STAGE5_ENABLE_AI=1, ODIN_STAGE5_PROVIDER=local, ODIN_LOCAL_MODEL to the model ID served by the runtime, and ODIN_LOCAL_PORT to its port (default 8080) in the environment of each consumer. Open Stage 5 on Odin at http://127.0.0.1:8765. It persists completed conversations in local SQLite. Programmer assistance generates text. Review edits and run project tests before applying them.
+Set ODIN_STAGE5_ENABLE_AI=1, ODIN_STAGE5_PROVIDER=local, ODIN_LOCAL_MODEL to the model ID served by the runtime, and ODIN_LOCAL_PORT to its port (default 8080) in the environment of each consumer. Open Odin Local Workstation on Odin at http://127.0.0.1:8765. It persists completed conversations in local SQLite. Programmer assistance generates text. Review edits and run project tests before applying them.
 
 ## One-time Termux installation
 
-From the synchronized main checkout run `bash scripts/odin-install-offline.sh` on Wi-Fi. It installs the Termux llama-cpp package if needed, downloads the official Qwen 2.5 Coder 3B Instruct Q4_K_M file (2.10 GB), validates its SHA-256, and enrolls a local runit service on port 18080 with a 2,048-token context and one CPU inference slot. A successful expression-repair test activates the local-only profile for Stage 5, its CLI and encrypted chat, and blocks the private paid diagnostic. The hosted cloud route requires an explicitly positive ODIN_CLOUD_CHAT_DAILY_LIMIT on the host. For zero paid turns, set that value to 0 if previously configured.
+From the synchronized main checkout run `bash scripts/odin-install-offline.sh` on Wi-Fi. It installs the Termux llama-cpp package if needed, downloads the official Qwen 2.5 Coder 3B Instruct Q4_K_M file (2.10 GB), validates its SHA-256, and enrolls a local runit service on port 18080 with a 2,048-token context and one CPU inference slot. A successful expression-repair test activates the local-only profile for Odin Local Workstation, its CLI and encrypted chat, and blocks the private paid diagnostic. The hosted cloud route requires an explicitly positive ODIN_CLOUD_CHAT_DAILY_LIMIT on the host. For zero paid turns, set that value to 0 if previously configured.
 
 After READY, open http://127.0.0.1:8765 on Odin. Turn Wi-Fi off and repeat `python -B scripts/odin-offline-check.py` to verify the device while disconnected. In the UI send a new question and check the on-device provider label. To stop inference use `sv down "$PREFIX/var/service/odin-local-model"`. Keeping the offline profile selected prevents cloud fallback.
 
@@ -24,13 +24,13 @@ The browser acceptance workflow runs Chromium with the real UI, WebCrypto, devic
 
 The private mailbox supports a fixed install_offline_model request carrying the exact reviewed source SHA. Both the running mailbox and canonical checkout must match that revision and have clean tracked files. The job runs the repository installer, records its result locally and returns a receipt. Re-reading a claimed request never starts the job again. During installation the private poller waits for completion. Public health checks remain available independently.
 
-On the local Stage 5 Chat screen, open Project note to paste or import a small text or Markdown excerpt. Save keeps the note in that browser. Select Include to use it on a local request. Short reply caps output at 128 tokens. The elapsed time covers the model request. For upcoming work and its stop conditions, see [Local coding roadmap](LOCAL_CODING_ROADMAP.md).
+On the local Odin Local Workstation Chat screen, open Project note to paste or import a small text or Markdown excerpt. Save keeps the note in that browser. Select Include to use it on a local request. Short reply caps output at 128 tokens. The elapsed time covers the model request. For upcoming work and its stop conditions, see [Local coding roadmap](LOCAL_CODING_ROADMAP.md).
 
-Open **Look up Odin code** to find an exact Python function in the committed Stage 5, scripts or agent modules. Try `local_settings`. Selecting a result previews its path, line, revision and excerpt in the project note. Review it and send one question. Lookup alone runs no model and makes no edits. The private `stage5_source_check` action tests one fixed question through the local UI API and returns the source revision, match and elapsed time.
+Open **Look up Odin code** to find an exact Python function in the committed Odin Local Workstation, scripts or agent modules. Try `local_settings`. Selecting a result previews its path, line, revision and excerpt in the project note. Review it and send one question. Lookup alone runs no model and makes no edits. The private `stage5_source_check` action tests one fixed question through the local UI API and returns the source revision, match and elapsed time.
 
 ## Browser voice and references
 
-In local Stage 5 or the hosted encrypted chat, open **Voice and webpage excerpts**. Read reply aloud selects an installed voice reported as local. Dictate locally requires a browser with on-device recognition and an installed language pack. Review the draft and press Send. The browser reports when either feature is unavailable. Test actual microphone input and speaker output on each device.
+In local Odin Local Workstation or the hosted encrypted chat, open **Voice and webpage excerpts**. Read reply aloud selects an installed voice reported as local. Dictate locally requires a browser with on-device recognition and an installed language pack. Review the draft and press Send. The browser reports when either feature is unavailable. Test actual microphone input and speaker output on each device.
 
 **Clip for Odin** is a bookmark for the page you are reading. Activate it on a page to preview up to 1,200 characters of selected text or article text. Copy the excerpt into the chat draft. The bookmark reads on activation and sends no network request. Browsers that restrict bookmark scripts can use ordinary text selection. The hosted encrypted panel also accepts one selected UTF-8 text file of up to 1,600 bytes into the draft. Only Send submits the reviewed text.
 
@@ -52,7 +52,7 @@ The existing sync service retries pending commits and confirms each remote SHA b
 
 ## Handheld controls
 
-In Stage 5 open **System → Device buttons**. Pick an action, choose Assign next press and press a keyboard key or a controller button. Bindings are stored in this browser on this device. Assign again to replace one or use Remove assignment. While the local UI is focused, shortcuts open chat, the notebook or the offline UI editor. A held gamepad button triggers once per press. Typing in a field keeps ordinary keys available for text entry. Android system keys, OS-wide remapping, and buttons intercepted by device firmware are outside this browser interface.
+In Odin Local Workstation open **System → Device buttons**. Pick an action, choose Assign next press and press a keyboard key or a controller button. Bindings are stored in this browser on this device. Assign again to replace one or use Remove assignment. While the local UI is focused, shortcuts open chat, the notebook or the offline UI editor. A held gamepad button triggers once per press. Typing in a field keeps ordinary keys available for text entry. Android system keys, OS-wide remapping, and buttons intercepted by device firmware are outside this browser interface.
 
 ## Phone chat routing and app updates
 

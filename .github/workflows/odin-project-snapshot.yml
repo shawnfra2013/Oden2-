@@ -1,0 +1,34 @@
+name: Odin Project Snapshot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 12 * * *"
+
+permissions:
+  contents: read
+  actions: read
+  issues: read
+
+jobs:
+  public-project-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Validate documentation
+        run: python -B scripts/check_active_docs.py
+      - name: Generate read-only status and handoff
+        run: python -B scripts/odin_project_snapshot.py --output-dir "$RUNNER_TEMP/odin-snapshot"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Publish dated public status artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: odin-project-snapshot
+          path: ${{ runner.temp }}/odin-snapshot/*.md
+          retention-days: 14

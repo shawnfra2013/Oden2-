@@ -1,7 +1,5 @@
-# Retired phone relay
+# Historical hosted relay note
 
-The hosted message relay was an earlier transport. Its recorded verification
-and incidents remain in the [project history](PROJECT_MEMORY.md).
-Use the [current runtime guide](ODIN_RUNTIME.md) for the private GitHub
-mailbox and [encrypted chat setup](OFFLINE_CHAT.md) for a phone-to-model route.
-Local legacy journals can still be inspected on the handset.
+This dated document is preserved intact in [the archive](archive/ODIN_PRIVATE_RELAY_before_2026-11-22.md). It is not a current deployment or release instruction.
+
+For the supported path use [odin runtime](ODIN_RUNTIME.md) and [current runtime](ODIN_RUNTIME.md).

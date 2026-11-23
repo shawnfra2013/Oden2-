@@ -1,0 +1,40 @@
+name: Odin tracked task
+description: A task with explicit acceptance and no unsupported completion claims
+title: "[Odin] "
+body:
+  - type: dropdown
+    id: workflow_state
+    attributes:
+      label: Workflow state
+      options:
+        - Planned
+        - In progress
+        - Tests passed
+        - Device verified
+        - Closed
+    validations:
+      required: true
+  - type: textarea
+    id: objective
+    attributes:
+      label: Outcome
+      description: What exactly changes?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Deterministic acceptance
+      description: Exact CI, device and phone evidence to close this task
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and blockers
+      description: SHA, workflow run, receipt ID/time; no secrets or private IPs
+  - type: textarea
+    id: security
+    attributes:
+      label: Safety and rollback
+      description: How to protect private state and recover on failure

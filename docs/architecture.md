@@ -1,11 +1,11 @@
 # Odin 2 / Termux system architecture
 
-Read the [runtime guide](ODIN_RUNTIME.md) for supported addresses, dependencies,
+Read the [workflow](../ODIN_WORKFLOW.md), [service registry](SERVICE_REGISTRY.md), and [runtime guide](ODIN_RUNTIME.md) for supported addresses, dependencies,
 and cutover checks. Dated verification is kept in [project history](PROJECT_MEMORY.md).
 
 | Module | Responsibilities | Entry point |
 | --- | --- | --- |
-| `stage5/` | Loopback browser workstation with provider selection and SQLite conversation storage | `services/stage5/run` |
+| `stage5/` (compatibility path) | Odin Local Workstation: loopback browser with provider selection and SQLite conversation storage | `services/stage5/run` |
 | `ai/agent/` | Bounded inference, proposals and evidence | `orchestrator.py`, `pipeline.py` |
 | `scripts/odin_worker.py` | Supervised task queue | `odin-task-worker` |
 | `scripts/odin_chat.py` | Termux model conversation | `python -B scripts/odin_chat.py` |

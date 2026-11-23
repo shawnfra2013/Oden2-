@@ -42,6 +42,24 @@ jobs:
             fi
           done
 
+      - name: Reject obsolete instructions in active documentation
+        run: python -B scripts/check_active_docs.py
+
+      - name: Verify canonical workflow, service registry, ports, and active paths
+        run: python -B scripts/check_odin_structure.py
+
+      - name: Generate read-only preflight evidence (no paid model or device access)
+        run: python -B scripts/odin_preflight.py --mode source --json-path "$RUNNER_TEMP/odin-preflight.json"
+
+      - name: Publish source preflight report even when later tests fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: odin-source-preflight
+          path: ${{ runner.temp }}/odin-preflight.json
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Install Python linter
         run: python -m pip install ruff==0.14.5
 
@@ -78,7 +96,8 @@ jobs:
             fi
           done
           if git grep -inEI '([[:alnum:]-]+\.)+vercel\.app|@vercel/blob' -- \
-            mobile ':!mobile/tests/**' ':!mobile/*.md' scripts services stage5 \
+            mobile ':!mobile/tests/**' ':!mobile/*.md' scripts \
+            ':!scripts/check_odin_structure.py' services stage5 \
             ':!stage5/test*.py' README.md docs/ODIN_RUNTIME.md; then
             echo "::error::Retired hosting reference in a runtime or setup path"
             exit 1

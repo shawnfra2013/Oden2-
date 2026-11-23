@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "scope": "Source configuration only. It does not prove Termux services are installed, running or reachable.",
+  "canonical_workflow": "ODIN_WORKFLOW.md",
+  "listeners": [
+    {
+      "id": "odin-workstation",
+      "entry": "stage5/server.py",
+      "host": "127.0.0.1",
+      "port": 8765,
+      "source_marker": "PORT = 8765",
+      "state": "tracked_optional",
+      "notes": "Local web workstation; historical stage5 code path"
+    },
+    {
+      "id": "iphone-viewer",
+      "entry": "mobile/server.js",
+      "host": "127.0.0.1",
+      "port": 8780,
+      "source_marker": "ODIN_MOBILE_PORT || \"8780\"",
+      "state": "tracked_optional",
+      "notes": "Standalone Node service requires separate approved Tailscale HTTPS route; env may override the default"
+    },
+    {
+      "id": "offline-model",
+      "entry": "stage5/offline_profile.py",
+      "host": "127.0.0.1",
+      "port": 18080,
+      "source_marker": "PORT = \"18080\"",
+      "state": "external_optional",
+      "notes": "On-device model listener if installed/enabled; check running process separately"
+    }
+  ],
+  "services": [
+    {
+      "id": "odin-git-sync",
+      "run": "services/git-sync/run",
+      "entry": "scripts/git-sync.sh",
+      "installation": "tracked_launcher",
+      "state": "supported"
+    },
+    {
+      "id": "odin-stage5",
+      "run": "services/stage5/run",
+      "entry": "stage5/server.py",
+      "installation": "tracked_launcher",
+      "state": "supported_compatibility_name"
+    },
+    {
+      "id": "odin-github-bridge",
+      "run": "services/odin-github-bridge/run",
+      "entry": "scripts/odin_github_bridge.py",
+      "installation": "tracked_launcher",
+      "state": "optional_public_diagnostics_not_active_private_mailbox"
+    },
+    {
+      "id": "odin-private-mailbox",
+      "entry": "scripts/odin_github_bridge.py",
+      "installation": "device_generated_launcher",
+      "state": "supported_private_transport"
+    },
+    {
+      "id": "odin-task-worker",
+      "entry": "scripts/odin_worker.py",
+      "installation": "device_generated_launcher",
+      "state": "supported_when_installed"
+    }
+  ],
+  "private_network": {
+    "selected": "Tailscale",
+    "route": "HTTPS Serve proposed but not device-verified",
+    "planned_phone_port": 8766,
+    "planned_phone_port_active": false,
+    "issue": 70
+  },
+  "intentionally_retained_paths": [
+    "scripts/odin_relay_client.py",
+    "scripts/odin_relay_journal.py"
+  ]
+}
