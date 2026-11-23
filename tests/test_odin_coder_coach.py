@@ -147,6 +147,37 @@ class ReceiptReviewTests(unittest.TestCase):
         self.assertEqual(coach.lesson_for(self.root, "ai/agent/another.py"), "")
         self.assertNotIn(self.original, lesson)
 
+    def test_changed_source_rejects_stale_lesson(self):
+        report = coach.critique(self.original, self.original)
+        coach._remember_lesson(self.root, self.name, report)
+        self.assertIn("no_semantic_change", coach.lesson_for(self.root, self.name))
+        (self.root / self.name).write_text(
+            "def total(items):\\n    return sum(items) + 1\\n".replace("\\n", "\n")
+        )
+        with self.assertRaisesRegex(ValueError, "Stale coding lesson baseline"):
+            coach.lesson_for(self.root, self.name)
+
+    def test_legacy_lesson_schema_is_rejected(self):
+        report = coach.critique(self.original, self.original)
+        coach._remember_lesson(self.root, self.name, report)
+        location = self.root.joinpath(*coach._lesson_parts(self.name))
+        saved = json.loads(location.read_text())
+        saved.pop("baseline_sha256")
+        saved["schema"] = 1
+        location.write_text(json.dumps(saved))
+        with self.assertRaises(ValueError):
+            coach.lesson_for(self.root, self.name)
+
+    def test_tampered_baseline_is_rejected(self):
+        report = coach.critique(self.original, self.original)
+        coach._remember_lesson(self.root, self.name, report)
+        location = self.root.joinpath(*coach._lesson_parts(self.name))
+        saved = json.loads(location.read_text())
+        saved["baseline_sha256"] = "0" * 64
+        location.write_text(json.dumps(saved))
+        with self.assertRaisesRegex(ValueError, "Stale coding lesson baseline"):
+            coach.lesson_for(self.root, self.name)
+
     def test_bogus_lesson_content_cannot_be_injected_as_instructions(self):
         name = self.name
         location = self.root.joinpath(*coach._lesson_parts(name))
