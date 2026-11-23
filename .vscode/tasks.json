@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Odin: source status",
+      "type": "shell",
+      "command": "python3 -B scripts/odin_codespace.py status",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Odin: source test loop + receipt",
+      "type": "shell",
+      "command": "python3 -B scripts/odin_codespace.py test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Odin: local workstation (Codespace)",
+      "type": "shell",
+      "command": "python3 -u -B stage5/server.py",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Odin: local viewer (Codespace)",
+      "type": "shell",
+      "command": "node mobile/server.js",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}
