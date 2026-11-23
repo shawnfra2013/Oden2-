@@ -22,6 +22,10 @@ jobs:
           python-version: "3.13"
       - name: Validate documentation
         run: python -B scripts/check_active_docs.py
+      - name: Generate source-only preflight evidence
+        run: |
+          mkdir -p "$RUNNER_TEMP/odin-snapshot"
+          python -B scripts/odin_preflight.py --mode source --json-path "$RUNNER_TEMP/odin-snapshot/odin-source-preflight.json"
       - name: Generate read-only status and handoff
         run: python -B scripts/odin_project_snapshot.py --output-dir "$RUNNER_TEMP/odin-snapshot"
         env:
@@ -30,5 +34,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: odin-project-snapshot
-          path: ${{ runner.temp }}/odin-snapshot/*.md
+          path: ${{ runner.temp }}/odin-snapshot/
           retention-days: 14
