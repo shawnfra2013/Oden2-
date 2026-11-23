@@ -35,6 +35,6 @@ Prefer no Codespace for GitHub-only work. For authorized coding sessions use a m
 
 For each task keep the approved scope, request ID, issue, PR, head SHA, timestamp, exact test run and outcome, reviewer decision, revision round, and an evidence link. Keep private messages, SSH keys, tokens and personal data out of public GitHub.
 
-Sources currently implemented: private receiver and manual submission workflow (PR #95). Physical two-way acceptance is still unverified until exact reviewed code is installed and a real inbound request, matching device receipt, local coding-agent read, authorized correction and new independently verified PR are observed. Pure offline tests can validate format and reject fabricated states but cannot prove device connectivity.
+The private receiver and manual submission workflow (PR #95) have now demonstrated a **real private review note stored and acknowledged by Odin** (November 23, 2026). The device receipt explicitly reported `action_executed=false`. The separate local-agent tool read, authorized code correction and subsequent independently reviewed agent-generated PR have **not** occurred in this test. Pure offline tests validate contracts but cannot establish those physical steps. See the [current handoff](HANDOFF.md) for the actual test results.
 
 Check source with: python -B -m unittest discover -s tests -p 'test*.py' -v; python -B scripts/odin_preflight.py --mode source. Passing GitHub checks never proves live handheld or iPhone acceptance.
