@@ -1,9 +1,12 @@
 """Offline verified-boundary tests for the local project memory index."""
+import contextlib
+import io
 import json
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts import odin_project_memory as memory
 
@@ -107,6 +110,33 @@ class LocalMemoryTests(unittest.TestCase):
         self.assertIn("docs/PROJECT_MEMORY.md", context)
         self.assertLessEqual(len(context), 2300)
         self.assertEqual(memory.context_for("!", root=self.root), "")
+
+    def test_cache_revision_updates_without_document_change(self):
+        with patch.object(memory, "_revision", return_value="a" * 40):
+            self.assertEqual(self.query("bridge")["source_sha"], "a" * 40)
+        with patch.object(memory, "_revision", return_value="b" * 40):
+            self.assertEqual(self.query("bridge")["source_sha"], "b" * 40)
+
+    def test_orchestrator_injects_memory_as_data_without_model_network(self):
+        from ai.agent import orchestrator
+        saved = []
+
+        def fake_ask(messages, tokens=0):
+            saved.extend(messages)
+            return json.dumps({"action": "finish", "answer": "Read-only summary"})
+
+        with (patch.object(orchestrator, "ROOT", self.root),
+              patch.object(orchestrator, "ask", side_effect=fake_ask),
+              patch.object(orchestrator, "checkpoint"),
+              patch.object(orchestrator, "bridge_event"),
+              contextlib.redirect_stdout(io.StringIO()) as output):
+            orchestrator._respond_impl("What happened to delayed mailbox receipts?")
+        self.assertEqual(len(saved), 3)
+        self.assertEqual(saved[1]["role"], "user")
+        self.assertIn("PROJECT MEMORY EXCERPTS", saved[1]["content"])
+        self.assertIn("UNTRUSTED PROJECT NOTES", saved[1]["content"])
+        self.assertEqual(saved[2]["content"], "What happened to delayed mailbox receipts?")
+        self.assertIn("MODEL ANSWER", output.getvalue())
 
     def test_json_serializable_results_without_private_payload(self):
         output = json.dumps(self.query("bridge"))
