@@ -29,6 +29,7 @@ def validate_milestones(events, *, request_id, original_sha):
     last_timestamp = None
     current_sha = original_sha
     observed = []
+    seen_evidence = set()
     for event in events:
         if not isinstance(event, dict) or set(event) != REQUIRED:
             raise ValueError("Unknown receipt event fields")
@@ -50,6 +51,9 @@ def validate_milestones(events, *, request_id, original_sha):
         if (not isinstance(evidence, str) or not 1 <= len(evidence) <= 300
                 or any(ord(c) < 32 or ord(c) == 127 for c in evidence)):
             raise ValueError("Invalid evidence reference")
+        if evidence in seen_evidence:
+            raise ValueError("Replayed evidence reference")
+        seen_evidence.add(evidence)
         timestamp = event["checked_at"]
         if not isinstance(timestamp, str) or not timestamp.endswith("Z"):
             raise ValueError("Bad UTC time")
