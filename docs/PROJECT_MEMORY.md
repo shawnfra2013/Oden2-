@@ -25,7 +25,7 @@ python -B scripts/odin_project_memory.py --rebuild
 python -B scripts/odin_project_memory.py --query 'delayed mailbox receipt'
 ```
 
-The index is confined to ignored `state/project-memory/index.sqlite3`; it can be rebuilt if the Git documents or checkout SHA change. Results carry a local source SHA and `verified_externally=false`. The next separate test is a real model recall of a prior defect, current approved task and outstanding blocker, with source references. This is retrieval, not model retraining.
+The index is confined to ignored `state/project-memory/index.sqlite3`; it can be rebuilt if the Git documents or checkout SHA change. The source repair in [PR #140](https://github.com/shawnfra2013/Oden2-/pull/140) additionally compares the cached snippet rows with the six approved documents, checks SQLite integrity, and rejects symlinked cache directories before reading. It rebuilds only the generated index on a mismatch. These are **proposed, source-tested changes**, not evidence of a physical Odin rollout; inspect PR head SHA and exact-head CI before claiming them accepted. Results carry a local source SHA and `verified_externally=false`. The next separate test is a real model recall of a prior defect, current approved task and outstanding blocker, with source references. This is retrieval, not model retraining.
 
 ## Coding improvement is separate from memory retrieval
 
