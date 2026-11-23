@@ -28,7 +28,6 @@ ACTIONS_SAFE = frozenset({
     "stage5_source_check", "stage5_coding_review", "practice_next",
     "practice_followup", "regression_details", "review_feedback",
     "inference_probe", "encrypted_chat", "install_offline_model",
-    "mailbox_audit", "mailbox_migration_preview", "full_sweep",
 })
 TERMINAL = frozenset({"complete", "expired", "rejected_or_failed", "unverified"})
 
@@ -220,9 +219,12 @@ def git_records(mailbox: Path, reference: str, prefix: str, *, limit: int = MAX_
     max_bytes = MAX_REQUEST_SIZE if prefix.endswith("requests/") else MAX_RESPONSE_SIZE
     for name in names:
         expected_name = name[len(prefix):]
-        if not name.startswith(prefix) or not ID.fullmatch(Path(expected_name).stem):
+        if not name.startswith(prefix):
             continue
-        if name != prefix + Path(expected_name).stem + ".json":
+        stem = Path(expected_name).stem
+        if not ID.fullmatch(stem) or expected_name != stem + ".json":
+            if prefix == "bridge/requests/" and expected_name.endswith(".json"):
+                records[expected_name] = None
             continue
         raw = _git(mailbox, "show", reference + ":" + name)
         if len(raw.encode("utf-8")) > max_bytes:
