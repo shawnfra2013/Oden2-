@@ -43,7 +43,7 @@ single bounded collection of source SHA consistency, supervised service status,
 canonical mailbox cwd, task queue depths, local workstation/provider readiness,
 preflight PASS/FAIL/UNVERIFIED checks and private metadata audit counts.
 
-The sweep **does not call a model**, invoke Tailscale/phone, fetch GitHub main,
+The sweep **does not call a model**, configure Tailscale or contact the phone, fetch GitHub main,
 run arbitrary command text, restart services, or modify configuration. The
 model-inference, network-offline, exact-GitHub-main, phone and agent-action
 gates remain explicitly `UNVERIFIED` in each sweep; the caller separately
