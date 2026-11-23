@@ -154,7 +154,7 @@ class LocalMemoryTests(unittest.TestCase):
         agent_file = Path(orchestrator.__file__).resolve()
         agent_dir = agent_file.parent
         root = agent_file.parents[2]
-        probe = "\\n".join([
+        probe = "\n".join([
             "import runpy, sys",
             f"root = {str(root)!r}",
             f"agent_dir = {str(agent_dir)!r}",
