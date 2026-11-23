@@ -88,7 +88,7 @@ class LocalMemoryTests(unittest.TestCase):
     def test_reject_oversized_curated_document(self):
         (self.root / "docs/HANDOFF.md").write_bytes(b"x" * (memory.MAX_DOC_BYTES + 1))
         with self.assertRaises(ValueError):
-            self.query("x")
+            self.query("bridge")
         self.assertFalse(self.db.exists())
 
     def test_no_canonical_index_is_fail_closed(self):
