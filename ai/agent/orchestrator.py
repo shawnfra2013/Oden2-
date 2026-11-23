@@ -13,6 +13,11 @@ else:
     import pipeline
 
 ROOT = Path(__file__).resolve().parents[2]
+# Direct execution of ai/agent/orchestrator.py puts ai/agent, not the
+# repository root, on sys.path. Resolve the optional source-only memory
+# package against this trusted checkout, not an ambient working directory.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 API = "https://api.groq.com/openai/v1/chat/completions"
 MODEL = "openai/gpt-oss-120b"
 ROLES = {"research", "coder", "reviewer", "tester", "device"}
