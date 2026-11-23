@@ -81,6 +81,10 @@
       for (let i=0;i<24;i++) {
         if (!privateState.connected || !odinRoute.bridge || odinRoute.model !== "local") throw Error("Device chat paused. Your pending reply can be checked later.");
         const result = await post({id:pending.id});
+        if (result.failed === true) {
+          const label = result.state === "expired" ? "expired" : "not completed";
+          throw Error("Odin request " + label + ". The encrypted draft remains saved; dismiss it before sending a new request.");
+        }
         if (result.sealed) {
           const data = bytes(result.sealed);
           const clear = await crypto.subtle.decrypt({name:"AES-GCM",iv:data.slice(0,12),additionalData:aad(pending.id,"answer")},key,data.slice(12));
@@ -98,6 +102,13 @@
     finally { locked = false; el("sealedSend").removeAttribute("aria-busy"); }
   }
   el("sealedSend").onclick = deliver;
+  // Resume only a message the user already approved; never send a new draft on reconnect.
+  window.addEventListener("online", async () => {
+    try {
+      if (privateState.connected && odinRoute.bridge && odinRoute.model === "local" && await state("pending"))
+        await deliver();
+    } catch { status("Pending encrypted request saved. Use Send to check it."); }
+  });
   el("sealedDismiss").onclick = async () => {
     if (!locked) { await state("pending",null); status("Pending receipt dismissed on this browser"); }
   };

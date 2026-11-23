@@ -37,7 +37,12 @@ module.exports = async function handler(req, res) {
     if (response.status === 404) return res.status(200).json({pending:true});
     if (!response.ok) throw Error();
     const receipt = JSON.parse(Buffer.from((await response.json()).content,"base64"));
-    if (receipt.id !== id || receipt.action !== "encrypted_chat" || receipt.status !== "complete" ||
+    if (receipt.id !== id || receipt.action !== "encrypted_chat") throw Error();
+    if (["expired", "rejected_or_failed", "unverified"].includes(receipt.status)) {
+      // Return only a fixed failure category; never expose the device result or ciphertext.
+      return res.status(200).json({pending:false,failed:true,state:receipt.status});
+    }
+    if (receipt.status !== "complete" ||
         typeof receipt.result?.sealed !== "string" || receipt.result.sealed.length > 43000) throw Error();
     return res.status(200).json({sealed:receipt.result.sealed});
   } catch {
