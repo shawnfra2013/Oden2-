@@ -16,7 +16,16 @@
 
 **Retained privately:** the physical device's ignored `state/` files, local queue/model records, audit snapshots, and authenticated private mailbox receipts. They are **not** part of the public Git commit history and do not constitute a Git backup.
 
-**Not yet verified:** a startup routine that loads these Git memory notes into Odin's local model, searchable long-term semantic memory, or independently demonstrated learning from prior errors. To claim these, add an explicit retrieval procedure and a before/after memory acceptance test, with no automatic execution of retrieved text.
+**New source implementation (device unverified):** `scripts/odin_project_memory.py` builds a local, ignored SQLite FTS5 index using only the six allowlisted current Git documents. The orchestrator now automatically adds at most two bounded, read-only matching excerpts to a **new** question as untrusted background data; this makes no additional model call. It does not retrieve private mail, run commands from documents, train the underlying model, or independently verify the current device state. The physical Termux FTS5 build and actual offline recall must still be tested after an approved source update.
+
+Try locally (from an approved checkout):
+
+```bash
+python -B scripts/odin_project_memory.py --rebuild
+python -B scripts/odin_project_memory.py --query 'delayed mailbox receipt'
+```
+
+The index is confined to ignored `state/project-memory/index.sqlite3`; it can be rebuilt if the Git documents or checkout SHA change. Results carry a local source SHA and `verified_externally=false`. The next separate test is a real model recall of a prior defect, current approved task and outstanding blocker, with source references. This is retrieval, not model retraining.
 
 ## Memory update rules
 

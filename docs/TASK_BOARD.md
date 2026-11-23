@@ -46,6 +46,8 @@
 | [#94 — Two-way private review feedback](https://github.com/shawnfra2013/Oden2-/issues/94) | Source merged in PR #95; physical round-trip unverified | Receive/store/acknowledge private feedback, then separately prove read/action with #99 |
 | [#96 — Collaboration safeguards umbrella](https://github.com/shawnfra2013/Oden2-/issues/96) | Split into prioritized #97–#101 | Parent for the five additional safeguards; **not a 21st ranked task** |
 
+| [#122 — Source-backed local memory recall](https://github.com/shawnfra2013/Oden2-/issues/122) | Offline FTS5 source module in review; physical recall unverified | Index only approved Git docs, no private content, cite local SHA; real Android recall acceptance after update |
+
 ## Working rules
 
 Create new tasks using [the issue template](https://github.com/shawnfra2013/Oden2-/issues/new/choose), specify an owner, test and a blocker, and link relevant PRs. **Ordinary pushes and CI do not require repeated operator permission.** Installing or operating sensitive Android functionality, changing security settings, deleting data and destructive rollback require specific review. Do not close issues because code is pushed or CI passes.

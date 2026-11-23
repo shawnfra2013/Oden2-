@@ -6,6 +6,10 @@
 
 The current sanitized, source-backed memory checkpoint is [November 23 verified collaboration memory](audits/ODIN_VERIFIED_MEMORY_2026-11-23.md); the read-first index and retention rules are in [project memory](PROJECT_MEMORY.md). These documents preserve decisions, the newest relevant GitHub PR/receipt IDs, observed errors, tested fixes, and remaining physical gates. They do **not** mean the device model automatically loads them, that its ignored local state is backed up to public Git, or that a reviewer comment triggered an agent action. Confirm a fresh SHA/receipt before treating a saved checkpoint as live.
 
+## Source-backed local recall (operator rollout pending)
+
+[Memory issue #122](https://github.com/shawnfra2013/Oden2-/issues/122) tracks a source-only SQLite FTS5 index of curated Git project notes. The existing orchestrator can add up to two excerpts as untrusted **data** on a new user question, without starting a separate model request. This is a reviewed-source capability only until the exact code is installed and the Android/Termux Python SQLite build and a real recall answer are verified. It does not retrain the model or import private mailbox content. See [project memory](PROJECT_MEMORY.md).
+
 ## Canonical architecture
 
 - [Current runtime truth](ODIN_RUNTIME.md) and [source/workflow rules](../ODIN_WORKFLOW.md) control the supported stack.
