@@ -70,6 +70,12 @@ At 2026-11-23 08:20–08:23 UTC, a read-only Termux check confirmed that the act
 
 **Next operator gate:** preserve private outbox/history and launcher backup, migrate only the private mailbox state/launcher to the canonical checkout, and restart only the private mailbox runit service after a final collision check. Never remove staging logs, reset branches or overwrite canonical private state. The device preflight now reports FAIL when either the launcher or running process uses a noncanonical checkout. See [private mailbox runbook](ODIN_GITHUB_BRIDGE.md).
 
+## November 23 progressive upgrade checkpoint — source versus device
+
+The newest source features are all through reviewed, green PR-head checks: [#123 local searchable project memory](https://github.com/shawnfra2013/Oden2-/pull/123), [#124 GitHub PR event head-SHA receipts](https://github.com/shawnfra2013/Oden2-/pull/124), [#125 long-lived PR base checkout repair](https://github.com/shawnfra2013/Oden2-/pull/125), and [#126 metadata-only private bridge trace](https://github.com/shawnfra2013/Oden2-/pull/126). The latest functional GitHub main merge before this documentation update is `c548d3e5c8c1368093ea6df080e0037f908323e6`. A real [GitHub event run 45148206068](https://github.com/shawnfra2013/Oden2-/actions/runs/45148206068) stored an artifact for draft PR #119's exact event head SHA. The prior failed run 45147217823 is retained as a test defect, not erased.
+
+**Physical installation remains distinct:** the last operator-confirmed canonical checkout was `0abab1045650cd6cb8968c61ced4b027974f42b2`, and the private mailbox service last proved running from temporary `odin-pr45-test.iwGRYw`. Do not automatically update, migrate, restart or claim memory ingestion/trace records from GitHub source alone. First follow the [state-preserving launcher migration runbook](ODIN_GITHUB_BRIDGE.md), keeping private outbox history and untracked files. A newly observed matching ping, exact source SHA, running PID/cwd, local memory recall and trace summary are required afterward. Work technical comments on #119/#120 beyond the original PR-open review are not yet independently evidenced.
+
 ## Next controlled acceptance sequence
 
 1. Review exact GitHub main SHA and associated Actions checks after the final docs merge; preserve untracked owner files.

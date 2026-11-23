@@ -45,8 +45,17 @@
 | [#92 — Native Android 10 integration](https://github.com/shawnfra2013/Oden2-/issues/92) | Source merged in PR #93; device unverified | Read-only hooks inventory, permission matrix, then authorized companion/device tests |
 | [#94 — Two-way private review feedback](https://github.com/shawnfra2013/Oden2-/issues/94) | Source merged in PR #95; physical round-trip unverified | Receive/store/acknowledge private feedback, then separately prove read/action with #99 |
 | [#96 — Collaboration safeguards umbrella](https://github.com/shawnfra2013/Oden2-/issues/96) | Split into prioritized #97–#101 | Parent for the five additional safeguards; **not a 21st ranked task** |
+| [#122 — Source-backed local memory recall](https://github.com/shawnfra2013/Oden2-/issues/122) | Source merged in [#123](https://github.com/shawnfra2013/Oden2-/pull/123); physical recall unverified | Curated Git notes, no private content, exact local SHA; real Termux FTS5/inference acceptance needed |
 
-| [#122 — Source-backed local memory recall](https://github.com/shawnfra2013/Oden2-/issues/122) | Offline FTS5 source module in review; physical recall unverified | Index only approved Git docs, no private content, cite local SHA; real Android recall acceptance after update |
+## Current reliability-first delivery order (overlay, not a second task queue)
+
+1. **#71:** Migrate `odin-private-mailbox` launcher and preserved private Git state to canonical `~/odin-workspace` after a fresh operator-approved preflight; verify live cwd and new ping.
+2. **#122:** Accept SQLite FTS5 recall on actual Odin using the reviewed source #123; demonstrate three accurate source-backed answers.
+3. **#86:** Accept the new private trace journal #126 plus prior mailbox audits and identify late, orphaned and failed request stages without private payloads.
+4. **#99:** Use the now-proven GitHub Actions event SHA artifact (#124, repair #125) to support meaningful Work PR reviews, then prove distinct feedback storage, authenticated local agent read and source change; no repetitive ping runs.
+5. **#98 / #87 / #88 / #101:** Finish the scoped task quality contract review, interruption/fault testing, backup integrity and bounded cost/stall control before running unattended coding for a full hour.
+
+This overlay does not close any issue or authorize device commands, private key handling, paid inference or automatic deployment. A CI PASS and an actual Android verification remain separate stages.
 
 ## Working rules
 
