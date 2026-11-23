@@ -58,9 +58,35 @@ class LocalMemoryTests(unittest.TestCase):
         self.query("recovery")
         self.assertEqual(self.db.stat().st_mode & 0o777, 0o600)
         self.assertEqual(self.db.parent.stat().st_mode & 0o777, 0o700)
-        with sqlite3.connect(self.db) as conn:
+        with contextlib.closing(sqlite3.connect(self.db)) as conn:
             self.assertEqual(conn.execute(
                 "SELECT value FROM meta WHERE key='schema'").fetchone()[0], "1")
+
+    def test_incident_fact_ranks_before_usage_example(self):
+        index = self.root / "docs/PROJECT_MEMORY.md"
+        index.write_text(
+            "# Project memory\n\n## Usage examples\n"
+            + "```bash\npython scripts/odin_project_memory.py --query 'delayed mailbox receipt'\n```\n"
+            + "This is a usage example, not incident evidence.\n", encoding="utf-8",
+        )
+        handoff = self.root / "docs/HANDOFF.md"
+        handoff.write_text(
+            "# Handoff\n\n## Mailbox incident\n"
+            "The delayed mailbox receipt arrived after the service restarted. "
+            "Actual event delivery was observed and reviewed.\n", encoding="utf-8",
+        )
+        results = self.query("delayed mailbox receipt")["results"]
+        self.assertTrue(results)
+        self.assertEqual(results[0]["path"], "docs/HANDOFF.md")
+        self.assertIn("delayed mailbox receipt", results[0]["excerpt"])
+        self.assertNotIn("python scripts/", str(results))
+
+    def test_chunk_boundaries_do_not_cut_short_words(self):
+        content = "# Project\n\n## Incident\n" + "A " * 551 + "recovery_marker\n"
+        parts = list(memory._parts(content))
+        self.assertGreaterEqual(len(parts), 2)
+        self.assertTrue(all(len(body) <= memory.MAX_CHUNK_CHARS for _, body in parts))
+        self.assertIn("recovery_marker", " ".join(body for _, body in parts))
 
     def test_source_files_are_unchanged_by_indexing(self):
         before = (self.root / "docs/PROJECT_MEMORY.md").read_bytes()

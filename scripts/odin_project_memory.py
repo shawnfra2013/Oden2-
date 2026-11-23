@@ -64,27 +64,58 @@ def _read_documents(root: Path) -> tuple[list[tuple[str, str]], str]:
     return files, digest.hexdigest()
 
 
+def _chunks(paragraph: str):
+    """Split on word boundaries, not inside evidence identifiers or URLs."""
+    words = paragraph.split()
+    current = ""
+    for word in words:
+        if len(word) > MAX_CHUNK_CHARS:
+            word = word[:MAX_CHUNK_CHARS]
+        if current and len(current) + len(word) + 1 > MAX_CHUNK_CHARS:
+            yield current
+            current = word
+        else:
+            current = (current + " " + word).strip()
+    if current:
+        yield current
+
+
 def _parts(content: str):
-    heading, buffer = "Overview", ""
-    for line in content.splitlines(keepends=True):
-        matched = re.match(r"^#{1,4}[ \t]+(.{1,200})$", line.rstrip("\n"))
+    """Index evidence paragraphs; omit executable code fences and shell examples."""
+    heading, lines, fence = "Overview", [], None
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(("```", "~~~")):
+            if lines:
+                for chunk in _chunks(" ".join(lines)):
+                    yield heading, chunk
+                lines = []
+            marker = stripped[:3]
+            if fence is None:
+                fence = marker
+            elif marker == fence:
+                fence = None
+            continue
+        if fence:
+            continue
+        matched = re.match(r"^#{1,4}[ \t]+(.{1,200})$", line)
         if matched:
-            if buffer.strip():
-                yield heading, buffer[:MAX_CHUNK_CHARS]
-                buffer = ""
+            if lines:
+                for chunk in _chunks(" ".join(lines)):
+                    yield heading, chunk
+                lines = []
             heading = matched[1].strip()
             continue
-        while line:
-            available = MAX_CHUNK_CHARS - len(buffer)
-            if available <= 0:
-                if buffer.strip():
-                    yield heading, buffer
-                buffer = ""
-                available = MAX_CHUNK_CHARS
-            part, line = line[:available], line[available:]
-            buffer += part
-    if buffer.strip():
-        yield heading, buffer[:MAX_CHUNK_CHARS]
+        if not stripped:
+            if lines:
+                for chunk in _chunks(" ".join(lines)):
+                    yield heading, chunk
+                lines = []
+        else:
+            lines.append(stripped)
+    if lines:
+        for chunk in _chunks(" ".join(lines)):
+            yield heading, chunk
 
 
 def _db_path(root: Path, db_path: Path | None) -> Path:
@@ -179,12 +210,26 @@ def search(query: str, *, root: Path = ROOT, db_path: Path | None = None,
     if not terms:
         return {"source_sha": "unverified", "results": [], "verified_externally": False}
     index, revision = ensure_index(root, db_path)
-    expression = " OR ".join(terms)
+    # Require all meaningful query terms first. Only fall back to broad
+    # relevance when exact coverage cannot fill the result budget.
+    expressions = (" AND ".join(term + "*" for term in terms),
+                   " OR ".join(term + "*" for term in terms))
+    hits, seen = [], set()
     with closing(sqlite3.connect(f"file:{index}?mode=ro", uri=True)) as db:
-        hits = db.execute(
-            "SELECT path,heading,body FROM snippets WHERE snippets MATCH ? "
-            "ORDER BY bm25(snippets) LIMIT ?", (expression, limit),
-        ).fetchall()
+        for expression in dict.fromkeys(expressions):
+            rows = db.execute(
+                "SELECT path,heading,body FROM snippets WHERE snippets MATCH ? "
+                "ORDER BY bm25(snippets,0,4,1) LIMIT ?", (expression, limit * 5),
+            ).fetchall()
+            for path, heading, body in rows:
+                key = (path, heading, body)
+                if key not in seen:
+                    hits.append(key)
+                    seen.add(key)
+                if len(hits) >= limit:
+                    break
+            if len(hits) >= limit:
+                break
     return {
         "source_sha": revision,
         "results": [
