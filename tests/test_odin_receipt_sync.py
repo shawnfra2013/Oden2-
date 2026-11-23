@@ -157,6 +157,15 @@ class PrivateReceiptBridgeTests(unittest.TestCase):
         bridge.recover_pending_source_receipt()  # idempotent
         self.assertFalse((self.state / "pending-source-receipt.json").exists())
 
+    def test_redirected_private_outbox_parent_is_rejected(self):
+        redirected = self.base / "redirected"
+        redirected.mkdir()
+        (self.outbox / "bridge").symlink_to(redirected, target_is_directory=True)
+        with self.assertRaises(RuntimeError):
+            bridge.publish_local_source_receipts()
+        self.assertEqual(list(redirected.iterdir()), [])
+        self.assertTrue((self.local / (self.rec["id"] + ".json")).exists())
+
     def test_existing_conflicting_remote_id_fails_closed(self):
         self.target().parent.mkdir(parents=True)
         self.target().write_text("different")
