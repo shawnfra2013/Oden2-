@@ -11,6 +11,10 @@ def byte_count_proposal(answer):
     if len(lines) >= 3 and lines[0] in {"```", "```python"} and lines[-1] == "```":
         lines = lines[1:-1]
     proposal = "\n".join(lines).strip()
+    # A model may format one expression as inline Markdown. Remove exactly
+    # one paired backtick delimiter, without evaluating or altering the AST.
+    if len(proposal) >= 2 and proposal.startswith("`") and proposal.endswith("`") and "\n" not in proposal:
+        proposal = proposal[1:-1].strip()
     accepted = False
     if 0 < len(proposal) <= 160:
         try:
