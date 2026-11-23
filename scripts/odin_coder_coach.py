@@ -132,6 +132,45 @@ def critique(original: str, candidate: str) -> dict:
     }
 
 
+def _lesson_parts(name: str) -> tuple[str, ...]:
+    pipeline.target_parts(name)
+    ident = hashlib.sha256(name.encode("utf-8")).hexdigest()
+    return ("state", "coder-coach", "lessons", ident + ".json")
+
+
+def lesson_for(root: Path, name: str) -> str:
+    """Read only fixed advisory guidance from earlier static critiques."""
+    relative = _lesson_parts(name)
+    try:
+        saved = pipeline.read(root, relative, 3000)
+    except FileNotFoundError:
+        return ""
+    raw = json.loads(saved)
+    if not isinstance(raw, dict) or set(raw) != {"schema", "target_sha256", "codes", "guidance"}:
+        raise ValueError("Invalid coding lesson schema")
+    if raw["schema"] != 1 or raw["target_sha256"] != hashlib.sha256(name.encode()).hexdigest():
+        raise ValueError("Stale or cross-target coding lesson")
+    codes = raw["codes"]
+    if (not isinstance(codes, list) or not 1 <= len(codes) <= 4
+            or any(not isinstance(code, str) or code not in GUIDANCE for code in codes)
+            or len(set(codes)) != len(codes)
+            or raw["guidance"] != [GUIDANCE[code] for code in codes]):
+        raise ValueError("Untrusted coding lesson content")
+    return "Previous unverified coding attempt raised: " + ", ".join(codes) + ". " + " ".join(raw["guidance"])
+
+
+def _remember_lesson(root: Path, name: str, report: dict) -> None:
+    if report["status"] != "revision_required":
+        return
+    lesson = {
+        "schema": 1,
+        "target_sha256": hashlib.sha256(name.encode("utf-8")).hexdigest(),
+        "codes": report["codes"],
+        "guidance": report["guidance"],
+    }
+    pipeline.publish(root, _lesson_parts(name), pipeline.json_bytes(lesson), replace=True)
+
+
 def review_proposal(root: Path, name: str, task: str, owner: str | None,
                     invocation: str) -> dict:
     """Read an existing immutable proposal and record a metadata-only critique."""
@@ -164,6 +203,7 @@ def review_proposal(root: Path, name: str, task: str, owner: str | None,
         # A conflicting review must never overwrite the first record.
         if pipeline.read(root, relative, 20000) != raw:
             raise ValueError("Conflicting previously published critique") from None
+    _remember_lesson(root, name, report)
     return report
 
 
