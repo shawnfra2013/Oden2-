@@ -70,7 +70,7 @@ class PreflightTests(unittest.TestCase):
                 return Connection()
             self.assertEqual(preflight.local_model_status(home, connector)["status"],
                              "PASS")
-            def unavailable(_address, _timeout):
+            def unavailable(_address, timeout):
                 raise ConnectionRefusedError()
             self.assertEqual(preflight.local_model_status(home, unavailable)["status"],
                              "FAIL")
