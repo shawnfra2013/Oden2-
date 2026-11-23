@@ -44,6 +44,10 @@ The bridge **does not yet provide** an authenticated general remote shell or aut
 
 The November 23 stress-test observations, including the eight-message backlog (8/8 replies over two polling cycles), branch limits, rejected command injection, source fixes, exact receipts and missing ChatGPT push wake-up are in [the dated collaboration trial ledger](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md). An offline-capable, on-demand private mailbox auditor was added in a reviewed source PR. Run it only from an approved checkout with `python -B scripts/odin_mailbox_audit.py --hours 1 --save`. Its local snapshots do **not** establish live ChatGPT wake-up or autonomous Odin coding.
 
+## Next bridge capability under supervised source review
+
+A scoped `mailbox_audit` private action lets ChatGPT request a read-only, redacted, last-hour inbox/outbox correlation through the existing private GitHub mailbox. It cannot run arbitrary CLI commands and is not an instant ChatGPT wake-up. First verify its PR/CI, then update Odin under the normal release gate before live testing the action. Source tests are not device installation evidence.
+
 ## Next controlled acceptance sequence
 
 1. Review exact GitHub main SHA and associated Actions checks after the final docs merge; preserve untracked owner files.
