@@ -2,6 +2,13 @@
 
 **Updated:** November 23, 2026 (Central). This is the current human-reviewed checkpoint. Use [the timestamped snapshot workflow](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-project-snapshot.yml) and the actual GitHub main SHA for subsequent sessions. Historical material is not a deployment guide.
 
+## November 23 physical local-model success and Issue #148 one-action sweep
+
+**Operator-submitted device result:** `ODIN_STAGE5_PROVIDER=local ODIN_STAGE5_ENABLE_AI=1 python -B scripts/odin_chat.py --once "Reply with exactly ODIN_LOCAL_OK."` returned `Odin AI CLI | provider=local` and `Odin: ODIN_LOCAL_OK`. **Real local-provider inference PASS**, unlike prior readiness-only checks. This turn was not observed with Wi-Fi/mobile network disconnected; disconnected-network acceptance, encrypted phone route and the separate original `ai` orchestrator's actual conversation remain **UNVERIFIED**. The preceding original `ai` startup/exit and memory-import regression test passed physically on the same date, as recorded in [#71](https://github.com/shawnfra2013/Oden2-/issues/71).
+
+**Full Sweep source initiative:** [#148](https://github.com/shawnfra2013/Oden2-/issues/148) now tracks one fixed private `full_sweep` round-trip action, not a new relay. Review exact-head CI and obtain a separately approved physical source rollout before treating a merged action as available on Odin. The old ping and audit remain valid. No model invocation, service changes or phone acceptance are implicit.
+
+
 ## November 23 — Issue #71 physically migrated and independently verified
 
 **Approved physical action:** The owner ran the guarded local `scripts/odin_mailbox_migrate.py` at canonical `~/odin-workspace` for exact target `1e3f309e6b7b3f84b1a9dc96524b9ace0b369dc2` with explicit `--apply --confirm MIGRATE-ODIN-MAILBOX`. Termux reported `status=MIGRATED`, new PID **9200**, `old_private_state_preserved=true`, and a launcher backup under the private local `~/.odin-preservation/` directory. The local `sv status` reported PID 9200 running. Physical `odin_preflight.py --mode device` returned **11 PASS, 0 FAIL, 5 UNVERIFIED**, including `private_mailbox_runtime_checkout=PASS` (both launcher and live process use canonical checkout), all four reported runit services, local HTTP and local model TCP. Its five UNVERIFIED gates were Tailscale CLI state, remote main comparison, actual model inference, Tailscale HTTPS, and iPhone cellular. Local inference and smartphone routing remain untested.
