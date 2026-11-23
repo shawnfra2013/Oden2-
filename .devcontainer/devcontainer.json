@@ -6,14 +6,6 @@
       "version": "22"
     }
   },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-python.python",
-        "charliermarsh.ruff"
-      ]
-    }
-  },
   "portsAttributes": {
     "8765": {
       "onAutoForward": "ignore"
@@ -25,5 +17,6 @@
       "onAutoForward": "ignore"
     }
   },
-  "remoteUser": "vscode"
+  "remoteUser": "vscode",
+  "postCreateCommand": "python -m venv .venv && .venv/bin/python -m pip install --disable-pip-version-check ruff==0.14.5 && npm ci --prefix mobile --no-audit --no-fund --ignore-scripts"
 }
