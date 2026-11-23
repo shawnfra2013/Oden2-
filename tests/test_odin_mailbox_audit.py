@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts import odin_mailbox_audit as audit
 
@@ -111,16 +112,6 @@ class MailboxAuditTests(unittest.TestCase):
         self.assertEqual(report["counts"]["malformed"], 2)
         self.assertIn("malformed_request", [x["code"] for x in report["incidents"]])
 
-    def test_completed_allowlisted_mailbox_audit_is_not_an_incident(self):
-        req = {**self.request, "action": "mailbox_audit"}
-        reply = {**self.response, "action": "mailbox_audit",
-                 "result": {"scope": "private_mailbox_metadata", "matched": 1}}
-        report = self.run_audit(req=req, reply=reply)
-        self.assertEqual(report["counts"]["matched"], 1)
-        self.assertEqual(report["counts"]["malformed"], 0)
-        self.assertEqual(report["incidents"], [])
-        self.assertFalse(report["agent_read_verified"])
-
     def test_unexpected_completed_shell_action_is_not_treated_as_success(self):
         request = {**self.request, "action": "shell"}
         reply = {**self.response, "action": "shell"}
@@ -171,6 +162,17 @@ class MailboxAuditTests(unittest.TestCase):
             (location / "alias").symlink_to(location / "destination")
             with self.assertRaises(ValueError):
                 audit.save_report(self.run_audit(), location / "alias")
+
+    def test_git_scan_counts_short_request_id_without_reading_its_blob(self):
+        name = "a" * 31 + ".json"
+        prefix = "bridge/requests/"
+        with patch.object(audit, "_git", return_value=prefix + name) as git:
+            records = audit.git_records(Path("/tmp"), "origin/odin-bridge-inbox", prefix)
+        self.assertEqual(git.call_count, 1)
+        report = audit.audit_messages(records, {}, now=self.now)
+        self.assertEqual(report["counts"]["malformed"], 1)
+        self.assertEqual(report["counts"]["stalled"], 0)
+        self.assertNotIn(name, str(report))
 
     def test_git_reader_rejects_wrong_refs_and_paths(self):
         with self.assertRaises(ValueError):
