@@ -1,6 +1,7 @@
-## November 20 · Structure audit repairs
+## November 22 · Odin runtime and iPhone viewer cleanup
 
-## Unreleased · Odin runtime cleanup
+- Try the approved browser session on open and offer password unlock when an encrypted access vault exists. Manual token entry is available under the alternate access control.
+- Check active launch paths for retired hosting references and start the dashboard at the documented default loopback port in CI. Test encrypted chat separately in Chromium.
 
 - Retire the former phone relay, its storage SDK, deployment configuration,
   webhook endpoint, and device wake hooks. Keep local historical journals.
