@@ -9,6 +9,7 @@ import json
 import re
 import secrets
 import sqlite3
+from contextlib import closing
 from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 
@@ -95,7 +96,7 @@ def acquire(
         raise ValueError("Invalid lease ID")
     expires = _stamp(instant + timedelta(seconds=ttl_seconds))
     started = _stamp(instant)
-    with _connect(Path(db_path)) as db:
+    with closing(_connect(Path(db_path))) as db:
         try:
             db.execute("BEGIN IMMEDIATE")
             _prepare(db)
@@ -125,7 +126,8 @@ def acquire(
             )
             db.execute("COMMIT")
         except sqlite3.Error:
-            db.execute("ROLLBACK")
+            if db.in_transaction:
+                db.execute("ROLLBACK")
             raise
     return {
         "status": "ACQUIRED", "lease_id": ident, "issue": issue,
@@ -144,7 +146,7 @@ def release(db_path: Path, lease_id: str, owner: str) -> dict:
     db_path = Path(db_path)
     if not db_path.is_file() or db_path.is_symlink():
         return {"status": "MISSING", "released": False}
-    with _connect(db_path) as db:
+    with closing(_connect(db_path)) as db:
         try:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
@@ -172,7 +174,7 @@ def local_summary(db_path: Path = DEFAULT_DB) -> dict:
     db_path = Path(db_path)
     if not db_path.is_file() or db_path.is_symlink():
         return {"active": 0, "expired": 0, "released": 0}
-    with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as db:
+    with closing(sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)) as db:
         rows = db.execute("SELECT state,COUNT(*) FROM leases GROUP BY state").fetchall()
     return {name: dict(rows).get(name, 0) for name in ("active", "expired", "released")}
 
