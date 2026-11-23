@@ -1,0 +1,45 @@
+name: ODIN-HOUR immutable PR event evidence
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, review_requested]
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    if: ${{ startsWith(github.event.pull_request.title, '[ODIN-HOUR]') && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout trusted base SHA (never execute PR branch code)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Capture bounded SHA evidence from original GitHub event
+        env:
+          GH_EVENT_FILE: ${{ github.event_path }}
+          GH_EVENT_OUTPUT: ${{ runner.temp }}/odin-hour-event.json
+          GH_EVENT_RUN_ID: ${{ github.run_id }}
+          GH_EVENT_ATTEMPT: ${{ github.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B scripts/odin_hour_event_receipt.py \
+            --event-file "$GH_EVENT_FILE" \
+            --output "$GH_EVENT_OUTPUT" \
+            --run-id "$GH_EVENT_RUN_ID" \
+            --attempt "$GH_EVENT_ATTEMPT"
+      - name: Publish only the redacted immutable event receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: odin-hour-event-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/odin-hour-event.json
+          if-no-files-found: error
+          retention-days: 14
