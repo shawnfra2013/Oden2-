@@ -17,7 +17,7 @@
 
 The internal directory `stage5/`, service `odin-stage5`, environment keys prefixed `ODIN_STAGE5_`, and mailbox action `stage5_health` remain **compatibility identifiers**. They refer to the **Odin Local Workstation**, *not* an unfinished development stage. Do not rename them without a tested device migration.
 
-The agreed work process is defined in [ODIN_WORKFLOW.md](../ODIN_WORKFLOW.md). Tracked and device-generated services plus default port numbers are inventoried in the [service registry](SERVICE_REGISTRY.md); it is source metadata, not proof a process is running.
+New sessions start at [Working with Odin](WORK_WITH_ODIN.md), which includes the communication/receipt quickstart. The agreed security and change process remains [ODIN_WORKFLOW.md](../ODIN_WORKFLOW.md). Tracked and device-generated services plus default port numbers are inventoried in the [service registry](SERVICE_REGISTRY.md); it is source metadata, not proof a process is running.
 
 ## Source, device, and phone are three distinct states
 

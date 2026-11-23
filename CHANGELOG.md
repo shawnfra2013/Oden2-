@@ -2,6 +2,11 @@
 
 For historical changes, see [the archived changelog](docs/archive/CHANGELOG_before_2026-11-22.md). Historical records are not current deployment instructions.
 
+## November 23, 2026 — consolidated agent operating instructions (review PR #142)
+
+- Established one [read-first collaboration guide](docs/WORK_WITH_ODIN.md), linked from the coding agent entry point, README, workflow, architecture, memory, runtime, and handoff. The guide states the verified GitHub ↔ private mailbox ↔ Odin path, bounded command receipts, current ChatGPT watcher/event limitations, source/agent/device evidence stages, and free-first Codespaces delegation. This documentation and its SQLite source allowlist are **proposed for review**, not a new device install or permanent ChatGPT terminal.
+- Reconciled prior communication-handoff proposal [PR #139](https://github.com/shawnfra2013/Oden2-/pull/139) under the single [PR #142](https://github.com/shawnfra2013/Oden2-/pull/142). Historical failure and request IDs remain preserved in existing dated audits. GitHub exact-head CI validates the documentation; live mailbox/phone/agent action requires separate evidence.
+
 ## November 23, 2026 — live device-to-GitHub testing and supervised source fixes
 
 - Coding critic lessons now produce fixed-category, target-bound advisory feedback, loaded on the next authorized proposal with no additional inference request. The immutable full review stays separate; the lesson cache is local and not weight fine-tuning.

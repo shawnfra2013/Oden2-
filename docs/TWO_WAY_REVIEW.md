@@ -1,12 +1,12 @@
 # Odin two-way review feedback (private mailbox)
 
-**Status:** Source implementation merged in PR #95; not yet installed or proved on the physical Odin. The private GitHub mailbox is a separate repository and is **not** the public issue tracker. [Tracking issue #94](https://github.com/shawnfra2013/Oden2-/issues/94).
+**Status (November 23, 2026):** Source implementation merged in PR #95. A real physical Odin private feedback request was **stored and acknowledged** with `action_executed=false`; authenticated local agent reading, code change, independent source verification and post-update acceptance remain **UNVERIFIED**. The private GitHub mailbox is separate from the public issue tracker. See [Working with Odin](WORK_WITH_ODIN.md), [dated evidence](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md) and [issue #94](https://github.com/shawnfra2013/Oden2-/issues/94).
 
 ## Event-driven review, not two hourly clocks
 
 1. **Odin coding task:** An authorized coding workspace proposes a branch/PR and posts a bounded receipt with its issue, exact PR head SHA, tests and any failures. Starting a Codespace and paid model access remain separate, opt-in operations.
 2. **GitHub reacts to pushes automatically:** Existing PR `Odin Checks` and `Offline chat browser acceptance` workflows run on PR updates. These are source-only tests, not physical device evidence.
-3. **ChatGPT reviews when available:** The connected GitHub tools and configured hourly watch can inspect CI, PR comments and receipts. The hourly watch is a *fallback*; it is **not** a real-time GitHub webhook, and its runtime cannot be assumed to have direct private-mailbox access. A GitHub event does not, by itself, wake this chat.
+3. **ChatGPT reviews when available:** The connected GitHub tools and configured hourly watch can inspect CI, PR comments and receipts. The hourly watch is a *fallback*, not a real-time GitHub webhook. The authorized connected GitHub integration has demonstrated private outbox reads, but each tool/run must re-establish access; don't assume every scheduled run succeeds or that a private receipt wakes this chat. A separate PR-event-triggered Work task has been observed on supported activity, without guaranteeing a review on every event.
 4. **Private feedback request:** The authorized operator/reviewer can use the [private manual review workflow](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-review-feedback.yml) (requires private-repository access) to send an expiring `review_feedback` request into the **private** mailbox inbox. Odin's existing bridge service polls every **60 seconds** while running, checks the request shape and expiry, saves an immutable note, and posts a matching response. This is an *approximately minute-scale poll*, not a delivery-time guarantee.
 5. **Local agent reads:** The bounded `feedback` agent tool returns stored notes labelled **untrusted**. Receipt `recorded=true` means only storage, **not** PR SHA/receipt authentication, agent comprehension, task execution, Codespaces activation, or a completed fix. A later, independently verified PR/CI update is required to demonstrate action.
 
@@ -42,7 +42,7 @@ Example with **nonexistent placeholder IDs** (never submit this example directly
 
 **Safety:** The receiving script validates shape, then stores an immutable receipt; it never executes instructions embedded in the note. A local coding agent may read them as untrusted text, and must independently confirm task ownership, current exact head SHA and prior receipt before preparing edits. Public PR review comments are **not** automatically trusted or forwarded to the private mailbox. The private mailbox's existing SSH access, branch constraints, expired-request handling and one-writer receipt publication remain in place.
 
-## On-device acceptance after an approved reviewed rollout
+## Complete remaining on-device acceptance after an approved reviewed rollout
 
 1. Confirm that Odin has installed the **exact reviewed main SHA** and that the private mailbox service is running; don't assume from CI.
 2. Submit one **real**, expiring request to `bridge/requests/<id>.json` on the private repo's `odin-bridge-inbox` branch, using approved GitHub access and a valid issue, PR, exact head SHA and prior receipt ID.
