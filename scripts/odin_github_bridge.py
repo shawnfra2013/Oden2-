@@ -363,7 +363,8 @@ def status_action(action, request=None):
             for item in report["incidents"]
             if isinstance(item, dict) and isinstance(item.get("id"), str)
             and ID_PATTERN.fullmatch(item["id"])
-            and item.get("code") in safe_codes
+            and isinstance(item.get("code"), str)
+            and item["code"] in safe_codes
         ]
         return {
             "scope": "private_mailbox_metadata",
