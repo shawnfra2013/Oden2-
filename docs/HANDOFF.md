@@ -1,11 +1,13 @@
 # Odin — current session handoff
 
-**Prepared:** November 22, 2026 (Central). This is a human-maintained checkpoint; generate a fresh UTC status and handoff artifact using [the snapshot workflow](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-project-snapshot.yml) at the start of the next session.
+**Updated:** November 23, 2026 (Central). This is a human-maintained checkpoint; generate a fresh UTC status and handoff artifact using [the snapshot workflow](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-project-snapshot.yml) at the start of the next session.
 
 ## Current source and architecture
 
 - Canonical supported stack: [runtime](ODIN_RUNTIME.md). User-facing local browser name: **Odin Local Workstation**.
 - Private bridge: [GitHub mailbox](ODIN_GITHUB_BRIDGE.md), independent of the optional standalone phone viewer.
+- Terminal development source runner: [portable source loop](CODESPACES_WORKFLOW.md), merged via PR #104 at GitHub SHA `3b8d3c9e61ef7479831193b03e7d5b439242d0f0` with its source checks successful. It records gitignored local receipts, not automatic source commits.
+- Offline source receipt replay: existing private mailbox code now includes a bounded, private-only `bridge/local-source-receipts/` outbox upload path, recovered local commits, and source-validation tests. Check the associated PR and exact source checks before treating it as merged; it does not imply a device installation or persistent online connectivity.
 - The last observed matching private `stage5_health` receipt in the November 22 live test was completed at **2026-11-23 04:22:23 UTC**, showing the local workstation reachable *at that time*. This is historical evidence, not a live guarantee or proof of a new installed SHA.
 - Tailscale routing and the iPhone cellular viewer have not passed end-to-end acceptance.
 
@@ -30,6 +32,13 @@ The uploaded `Odin Viewer.txt` still contains only an older external dashboard U
 - `PASS` means an observed check, `FAIL` means a demonstrated issue, and `UNVERIFIED` means evidence is unavailable. A source pass never upgrades the physical-device or iPhone status.
 - Work item [#81](https://github.com/shawnfra2013/Oden2-/issues/81) remains **in progress**, not done until a device-side preflight and roll-forward/rollback evidence exist.
 - The private GitHub inbox/outbox contract is checked statically, without reading credentials or private messages. CI does not call inference, Tailscale, or the handheld.
+
+## Source receipt test and review follow-up
+
+- Review the exact merged-main SHA and GitHub Actions for the source receipt uploader, including malformed-file, retry, conflicting-ID, and recovery tests.
+- On Odin when the operator approves installation, update the intended checkout safely and reload the existing private mailbox service. A source pull alone does not replace the code in a running Python process.
+- Create one offline `python -B scripts/odin_codespace.py test` receipt and preserve its 32-character ID; reconnect and confirm the same ID exactly once in the private outbox `bridge/local-source-receipts/`. Then run a fresh private `ping` to observe `last_source_receipt_push`.
+- Distinguish source uploads from request-specific device responses and GitHub CI checks. Do not mistake any of these for iPhone cellular acceptance.
 
 ## Session continuation
 
