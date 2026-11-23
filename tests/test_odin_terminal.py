@@ -17,6 +17,8 @@ class TerminalTests(unittest.TestCase):
                 output = term.local(root=Path(tmp), prefix="")
         self.assertEqual(output["mailbox_cwd"], "UNVERIFIED")
         self.assertEqual(output["services"]["odin-private-mailbox"]["state"], "UNVERIFIED")
+        self.assertEqual(output["services"]["odin-local-model"]["state"], "UNVERIFIED")
+        self.assertEqual(output["services"]["odin-stage5"]["state"], "UNVERIFIED")
         self.assertIsNone(output["queue"]["pending"])
 
     def test_source_checks_must_match_main(self):

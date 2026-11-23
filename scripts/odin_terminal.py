@@ -16,7 +16,8 @@ from scripts.odin_preflight import private_mailbox_launch_path
 
 ROOT = Path(__file__).resolve().parents[1]
 API = "https://api.github.com/repos/shawnfra2013/Oden2-"
-NAMES = ("odin-private-mailbox", "odin-git-sync", "odin-task-worker")
+NAMES = ("odin-private-mailbox", "odin-git-sync", "odin-task-worker",
+         "odin-local-model", "odin-stage5")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 PID = re.compile(r"\(pid ([0-9]{1,9})\)")
 PALETTES = {"neon": (36, 32, 33, 31), "ocean": (34, 36, 33, 31),
