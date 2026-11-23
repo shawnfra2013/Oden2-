@@ -192,6 +192,41 @@ class MailboxMigrationTests(unittest.TestCase):
         self.assertTrue(self.private.is_dir())
         self.assertTrue((self.canonical / "state/github-bridge-private").exists())
 
+    def test_abandoned_staging_copy_blocks_reapply(self):
+        leftover = self.canonical / "state/.private-mailbox-copy-interrupted"
+        leftover.mkdir()
+        (leftover / "saved-evidence").write_text("preserve")
+        with self.assertRaises(migration.MigrationBlocked):
+            self.preview()
+        self.assertEqual(self.transitions, [])
+        self.assertEqual((leftover / "saved-evidence").read_text(), "preserve")
+
+    def test_simultaneous_attempts_fail_without_stop(self):
+        with patch.object(migration.fcntl, "flock", side_effect=BlockingIOError):
+            with self.assertRaises(migration.MigrationBlocked):
+                self.apply()
+        self.assertEqual(self.transitions, [])
+        self.assertTrue(self.private.is_dir())
+
+    def test_new_journal_after_stop_forces_safe_restart(self):
+        original = migration._private_state
+        calls = []
+
+        def inspect(state):
+            calls.append(state)
+            if len(calls) == 2:
+                (state / "pending-receipt.json").write_text("new intent")
+            return original(state)
+
+        with patch.object(migration, "_private_state", side_effect=inspect):
+            with self.assertRaises(migration.MigrationBlocked):
+                self.apply()
+        self.assertEqual(self.transitions, ["down", "up"])
+        self.assertEqual(self.cwd.resolve(), self.old.resolve())
+        self.assertIn(f"cd {self.old}", self.launcher.read_text())
+        self.assertTrue((self.private / "pending-receipt.json").is_file())
+        self.assertFalse((self.canonical / "state/github-bridge-private").exists())
+
     def test_already_canonical_does_not_change_service(self):
         self.launcher.write_text(self.launcher.read_text().replace(
             f"cd {self.old}", f"cd {self.canonical}",
