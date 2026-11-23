@@ -1,6 +1,6 @@
 # Odin Terminal — colorful read-only CLI
 
-Issue [#148](https://github.com/shawnfra2013/Oden2-/issues/148). **Source-only until an approved physical checkout update.**
+Issue [#148](https://github.com/shawnfra2013/Oden2-/issues/148). **Physical read-only CLI snapshot accepted, Full Sweep source-only:** On November 23 the operator ran `python -B -m scripts.odin_terminal --offline --plain` from canonical checkout `fb5d219f96e693fb163ff9f62c384e8473881e64`. It showed supervised services running, canonical mailbox cwd PASS, and queue 0/0. Remote GitHub SHA and CI were deliberately UNKNOWN/OFFLINE because `--offline` was selected. The optional mixed-case `ai` shell hook remains uninstalled/unverified. The new `full_sweep` mailbox action requires a separately approved physical source rollout/reload.
 
 The terminal displays local source SHA, runit service state and PID, the *canonical mailbox launcher and process cwd* check, task queue counts, local metadata trace, public GitHub exact-main CI and recent public issue/PR activity. Public GitHub status does not prove installation or agent action. Private messages and credentials are never fetched or displayed.
 
