@@ -143,6 +143,35 @@ class LocalMemoryTests(unittest.TestCase):
         with patch.object(memory, "_revision", return_value="b" * 40):
             self.assertEqual(self.query("bridge")["source_sha"], "b" * 40)
 
+    def test_direct_script_resolves_project_memory_without_model_call(self):
+        # Reproduce the real ~/.local/bin/ai invocation: python enters
+        # ai/agent/orchestrator.py directly from an unrelated working dir.
+        import subprocess
+        import sys
+
+        from ai.agent import orchestrator
+
+        script = Path(orchestrator.__file__).resolve()
+        repo_root = script.parents[2]
+        probe = (
+            "import runpy, sys\n"
+            f"repo = {str(repo_root)!r}\n"
+            "sys.path = [entry for entry in sys.path if entry != repo]\n"
+            f"sys.path.insert(0, {str(script.parent)!r})\n"
+            f"namespace = runpy.run_path({str(script)!r}, run_name='odin_safe_import_probe')\n"
+            "from scripts.odin_project_memory import context_for\n"
+            "assert str(namespace['ROOT']) == repo\n"
+            "print('MEMORY_IMPORT_OK')\n"
+        )
+        with tempfile.TemporaryDirectory() as other_dir:
+            result = subprocess.run(
+                [sys.executable, "-B", "-c", probe],
+                cwd=other_dir, capture_output=True, text=True,
+                timeout=15, check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr[-1200:])
+        self.assertIn("MEMORY_IMPORT_OK", result.stdout)
+
     def test_orchestrator_injects_memory_as_data_without_model_network(self):
         from ai.agent import orchestrator
         saved = []
