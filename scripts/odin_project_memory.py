@@ -98,7 +98,7 @@ def _parts(content: str):
             continue
         if fence:
             continue
-        matched = re.match(r"^#{1,4}[ \\t]+(.{1,200})$", line)
+        matched = re.match(r"^#{1,4}[ \t]+(.{1,200})$", line)
         if matched:
             if lines:
                 for chunk in _chunks(" ".join(lines)):
