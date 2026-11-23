@@ -255,7 +255,7 @@ class Stage4Tests(unittest.TestCase):
         result = self.done("012345abcdef")
         self.assertEqual(result["status"], "failed")
         self.assertEqual(result["failure"]["kind"], "execution_error")
-        self.assertTrue(result["failure"]["manual_review"])
+        self.assertTrue(result["failure"]["manual_review_required"])
         self.assertEqual(target.read_text(), "value = 1\\n".replace("\\n", "\n"))
         reviews = list((self.root / "state/proposals/invocations").rglob("critique.json"))
         self.assertEqual(len(reviews), 1)
