@@ -1,5 +1,7 @@
 # Odin structure hardening · November 20, 2026
 
+This is a historical verification record. The [runtime guide](ODIN_RUNTIME.md) lists the current transport and cutover checks.
+
 ## Operating record
 
 | Component | Supported use | Verification |

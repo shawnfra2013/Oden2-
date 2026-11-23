@@ -42,7 +42,7 @@ Keep evaluated tasks separate from training examples. Collect owner-approved exa
 
 For isolated adapter training and held-out evaluation, see [Offline candidate adapter training](TRAINING.md).
 
-The default GitHub mailbox and update timers run independently of any hosted wake endpoint. The legacy relay and authenticated wake requests require an explicitly configured ODIN_LEGACY_RELAY_ORIGIN in the corresponding service environment. Leave it unset for direct mailbox use.
+The default GitHub mailbox and update timers run independently of any hosted wake endpoint. The former relay and wake routes are retired. See the [runtime guide](ODIN_RUNTIME.md).
 
 ## Offline UI edits and reconnect uploads
 

@@ -139,12 +139,17 @@ class Handler(BaseHTTPRequestHandler):
                 "text/javascript; charset=utf-8"
             )
         elif path == "/api/health":
+            from chat_provider import provider_status
+
+            ai = provider_status(os.environ)
             self.json_body(200, {
                 "service": "odin-stage5",
                 "status": "ready",
                 "mode": "isolated",
-                "ai_enabled": os.environ.get("ODIN_STAGE5_ENABLE_AI") == "1",
-                "provider": os.environ.get("ODIN_STAGE5_PROVIDER", "groq"),
+                "ai_enabled": ai["enabled"],
+                "provider": ai["provider"],
+                "ai_configured": ai["ready"],
+                "ai_reason": ai["reason"],
                 "worker_connected": False
             })
         elif path in {"/api/practice", "/api/practice-followup"}:

@@ -1,5 +1,7 @@
 # Browser-free GitHub ↔ Odin background bridge
 
+Use the [runtime guide](ODIN_RUNTIME.md) for the current transport and startup configuration. Older relay examples below are historical.
+
 For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](STRUCTURE_HARDENING.md).
 
 The active device bridge is the private GitHub mailbox in `shawnfra2013/Odin-private-bridge`. Termux polls `odin-bridge-inbox` and publishes matching receipts on `odin-bridge-outbox`. Use the [private mailbox in a browser](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) or submit a request through the authorized GitHub integration. Browser submissions use GitHub sign-in and the workflow’s repository-scoped token.
@@ -285,8 +287,6 @@ receipt in the private repository. Public documentation records the outcome
 only. A request from the handheld to this ChatGPT conversation remains a
 separate capability. Expansion waits for combined-path acceptance.
 
-### Hosted device inference check
-
-Use **Chat → Odin Device Inbox → Verify Odin GPT** in a paired session. The UI sends the fixed `/ai-proof` request over the private relay and refreshes the inbox for the matching device reply. This requires the upgraded relay client, working private storage and the on-device private probe credential. Both device entry points share one attempt journal and budget.
+### Device capacity diagnostics
 
 Private ping also measures available bytes on the Termux home filesystem, total and available kernel memory when readable, CPU architecture, and discovery of llama-server, llama-cli and aider on the service PATH. Missing memory fields mean unavailable. These measurements use no model calls. Installed binary detection does not establish that model weights are installed or that inference works offline.

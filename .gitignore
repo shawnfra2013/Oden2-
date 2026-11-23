@@ -63,3 +63,6 @@ audits/*
 
 # Runtime supervision state written by runit beside service run scripts.
 services/*/supervise/
+
+# Local dashboard dependencies.
+mobile/node_modules/

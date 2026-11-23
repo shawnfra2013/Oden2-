@@ -1,5 +1,15 @@
 ## November 20 · Structure audit repairs
 
+## Unreleased · Odin runtime cleanup
+
+- Retire the former phone relay, its storage SDK, deployment configuration,
+  webhook endpoint, and device wake hooks. Keep local historical journals.
+- Add a standalone loopback Node entry point for the optional HTTPS dashboard
+  and require its explicit HTTPS origin for private requests.
+- Report model configuration through workstation health and private device
+  receipts. Document the local, GitHub, and optional phone paths.
+
+
 [Offline model and encrypted chat setup](docs/OFFLINE_CHAT.md).
 
 Published the private workflow health and staging validations. The [hardening record](docs/STRUCTURE_HARDENING.md) tracks the 21 findings, browser-dispatched ping, staging digest, source changes and outstanding device cutover.
@@ -245,7 +255,7 @@ Remaining limitations:
   boundaries. AI responses remain unverified model text, not evidence
   of actions or shell execution.
 - Add device-only AI environment readiness and a fixed failure-code
-  protocol for private messages, validated by Vercel and shown in the
+  protocol for private messages, validated by the former host and shown in the
   existing iPhone interface. No secret contents appear in replies.
 - Add Python and Node regression tests; a live reply from an AI model,
   unlike the already proven Git task, still requires separate verification.

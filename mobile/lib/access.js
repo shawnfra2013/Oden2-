@@ -1,7 +1,6 @@
 "use strict";
 const {createHash, timingSafeEqual} = require("node:crypto");
 
-const ORIGIN = "https://odin-control.vercel.app";
 function configureResponse(res) {
   res.setHeader("Cache-Control", "no-store, private");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -18,7 +17,14 @@ function authorized(req) {
   return timingSafeEqual(sha(secret), sha(provided));
 }
 function validOrigin(req) {
-  return req.headers.origin === (process.env.ODIN_CONTROL_ORIGIN || ORIGIN);
+  const origin = process.env.ODIN_CONTROL_ORIGIN;
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    return url.protocol === "https:" && url.origin === origin && req.headers.origin === origin;
+  } catch {
+    return false;
+  }
 }
 function validBody(req, size=24576) {
   const len = Number(req.headers["content-length"]);
@@ -44,4 +50,4 @@ function protect(req,res) {
   }
   return true;
 }
-module.exports={ORIGIN,configureResponse,authorized,validOrigin,validBody,protect};
+module.exports={configureResponse,authorized,validOrigin,validBody,protect};

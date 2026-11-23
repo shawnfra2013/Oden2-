@@ -1,10 +1,11 @@
 "use strict";
+process.env.ODIN_CONTROL_ORIGIN = "https://odin.example.test";
 const test=require("node:test");
 const assert=require("node:assert/strict");
 const access=require("../lib/access");
 const handler=require("../api/browser-device");
 test("registration requires same origin and approval binds to the secret cookie",()=>{
-  const req={method:"POST",headers:{origin:access.ORIGIN,"content-type":"application/json","content-length":"21"},body:{action:"register"}};
+  const req={method:"POST",headers:{origin:process.env.ODIN_CONTROL_ORIGIN,"content-type":"application/json","content-length":"21"},body:{action:"register"}};
   const res={headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},json(v){this.body=v}};
   const old=process.env.ODIN_TRUSTED_BROWSER_ID;
   try {

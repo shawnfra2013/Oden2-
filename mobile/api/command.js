@@ -1,5 +1,4 @@
 "use strict";
-const {notify}=require("../lib/wake");
 const {randomBytes} = require("node:crypto");
 const {protect} = require("../lib/access");
 const REPO = "shawnfra2013/Oden2-";
@@ -26,7 +25,7 @@ function buildRequest(action, expectedSha=null, now=new Date()){
 module.exports = async function handler(req,res) {
   if (!protect(req,res))return;
   const token=process.env.ODIN_GITHUB_TOKEN;
-  if(!token)return res.status(503).json({error:"GitHub diagnostics not configured in Vercel"});
+  if(!token)return res.status(503).json({error:"GitHub diagnostics are not configured"});
   const action=parseAction(req.body);
   if(!action)return res.status(400).json({error:"Unsupported action"});
   const headers={
@@ -58,7 +57,6 @@ module.exports = async function handler(req,res) {
       signal:AbortSignal.timeout(12000)
     });
     if(submitted.status!==201)throw Error("GitHub submission failed");
-    await notify("bridge");
     return res.status(202).json({
       accepted:true,id:request.id,action:request.action,
       created_at:request.created_at,expires_at:request.expires_at,
