@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts import odin_trace_log as traces
 
@@ -114,6 +115,27 @@ class OdinTraceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.record()
         self.assertEqual(file.stat().st_size, traces.MAX_LOG_BYTES + 1)
+
+    def test_existing_bridge_can_log_metadata_without_a_new_service(self):
+        from scripts import odin_github_bridge as bridge
+        with (patch.object(bridge, "private_mailbox", True),
+              patch.object(bridge, "ROOT", self.directory.parent.parent),
+              patch.object(bridge, "git", return_value=self.sha),
+              patch.object(bridge, "log") as log):
+            self.assertTrue(bridge.record_private_trace(self.receipt))
+        log.assert_not_called()
+        self.assertEqual(traces.summarize(
+            self.directory, now=self.when)["events"], 1)
+
+    def test_optional_trace_error_never_fails_a_completed_mailbox_reply(self):
+        from scripts import odin_github_bridge as bridge
+        with (patch.object(bridge, "private_mailbox", True),
+              patch.object(bridge, "ROOT", self.directory.parent.parent),
+              patch.object(bridge, "git", return_value="INVALID"),
+              patch.object(bridge, "log") as log):
+            self.assertFalse(bridge.record_private_trace(self.receipt))
+        log.assert_called_once()
+        self.assertNotIn("NEVER_WRITE_PRIVATE_CHAT", log.call_args.args[0])
 
     def test_summary_filters_old_events_without_erasing_history(self):
         self.record()
