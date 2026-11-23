@@ -9,9 +9,16 @@ import argparse
 import ast
 import hashlib
 import json
+import sys
 from pathlib import Path
 
-from ai.agent import pipeline
+try:
+    from ai.agent import pipeline
+except ModuleNotFoundError:
+    # The background worker is launched as scripts/odin_worker.py; keep
+    # the existing direct-script runtime compatible without network imports.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ai" / "agent"))
+    import pipeline
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_FEEDBACK_CODES = 25
@@ -149,7 +156,14 @@ def review_proposal(root: Path, name: str, task: str, owner: str | None,
         "candidate_deployed": False,
     }
     relative = (*pipeline.proposal_parts(owner, invocation), "critique.json")
-    pipeline.publish(root, relative, pipeline.json_bytes(report))
+    raw = pipeline.json_bytes(report)
+    try:
+        pipeline.publish(root, relative, raw)
+    except FileExistsError:
+        # Legitimate repeated verification reads the same immutable critique.
+        # A conflicting review must never overwrite the first record.
+        if pipeline.read(root, relative, 20000) != raw:
+            raise ValueError("Conflicting previously published critique") from None
     return report
 
 
