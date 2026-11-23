@@ -45,6 +45,9 @@ jobs:
       - name: Reject obsolete instructions in active documentation
         run: python -B scripts/check_active_docs.py
 
+      - name: Verify canonical workflow, service registry, ports, and active paths
+        run: python -B scripts/check_odin_structure.py
+
       - name: Install Python linter
         run: python -m pip install ruff==0.14.5
 

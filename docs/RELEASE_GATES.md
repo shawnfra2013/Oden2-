@@ -2,7 +2,7 @@
 
 **Definition of done:** Source tests are distinct from installed-device verification and the iPhone cellular test. All gates must report evidence and time.
 
-1. **Document/architecture check (automated):** active Markdown passes `python -B scripts/check_active_docs.py`; outdated host guidance cannot reappear.
+1. **Document/architecture check (automated):** active Markdown passes `python -B scripts/check_active_docs.py`, and `python -B scripts/check_odin_structure.py` validates the agreed workflow, tracked services, default ports, JSON, relative links and active entrypoints. Neither check can verify actual device listeners.
 2. **Code and security (automated):** Python and Node tests, syntax, lint, secret scan, and protected-source checks pass on the proposed PR SHA.
 3. **Source release (automated):** merge only reviewed code; require a completed successful GitHub `push` check on the exact merge SHA before updating Odin.
 4. **Physical installation (separate evidence):** on Odin verify checkout SHA, local service state, safe update result, and a *newly requested*, matching private mailbox receipt with UTC timestamp. A prior `stage5_health` response is not release proof.

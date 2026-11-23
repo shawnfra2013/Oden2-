@@ -7,6 +7,8 @@ Odin's local browser is the **Odin Local Workstation** (historical implementatio
 | Need | Current document |
 | --- | --- |
 | What is actually in use | [Runtime](docs/ODIN_RUNTIME.md) |
+| Working agreement read by GitHub and Odin | [Odin Workflow](ODIN_WORKFLOW.md) |
+| Services and listener defaults | [Service registry](docs/SERVICE_REGISTRY.md) |
 | Source-to-device messaging | [Private mailbox runbook](docs/ODIN_GITHUB_BRIDGE.md) |
 | Local model and encrypted mobile chat | [Offline chat](docs/OFFLINE_CHAT.md) |
 | Source updates and acceptance checks | [Release gates](docs/RELEASE_GATES.md) |

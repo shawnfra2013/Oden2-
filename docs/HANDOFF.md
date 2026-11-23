@@ -17,6 +17,13 @@
 
 The uploaded `Odin Viewer.txt` still contains only an older external dashboard URL. The original hosted viewer was introduced by [PR #9](https://github.com/shawnfra2013/Oden2-/pull/9), and its message journal was expanded in [PR #11](https://github.com/shawnfra2013/Oden2-/pull/11). Both are **historical** implementations. A GitHub source cleanup or a new chat does not rewrite the actual iPhone Shortcut or Home Screen bookmark. The supported replacement HTTPS viewer origin is **not yet verified**; follow [the shortcut cutover procedure](SHORTCUT_CUTOVER.md) instead of guessing a destination.
 
+## Canonical workflow and source structure checks
+
+- [ODIN_WORKFLOW.md](../ODIN_WORKFLOW.md) defines the agreed working approach without paid model calls; [AGENTS.md](../AGENTS.md) points repo-aware assistants at it.
+- [config/odin-services.json](../config/odin-services.json) records tracked vs device-generated launchers and current loopback defaults; [service guide](SERVICE_REGISTRY.md) explains limitations.
+- `scripts/check_odin_structure.py` and regression tests are part of the GitHub CI gate, not a claim that sockets or daemons are alive on the handheld.
+- Approved fixes are in [issues #75–#79](https://github.com/shawnfra2013/Oden2-/issues/75); additional planned improvements are [#80–#84](https://github.com/shawnfra2013/Oden2-/issues/80). All require separate acceptance evidence before marking complete.
+
 ## Session continuation
 
 1. Check `main` and the latest [source CI](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-checks.yml) for the exact merge SHA; do not reuse the old screenshot revision.
