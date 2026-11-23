@@ -146,10 +146,13 @@ def lesson_for(root: Path, name: str) -> str:
     except FileNotFoundError:
         return ""
     raw = json.loads(saved)
-    if not isinstance(raw, dict) or set(raw) != {"schema", "target_sha256", "codes", "guidance"}:
+    if not isinstance(raw, dict) or set(raw) != {"schema", "target_sha256", "baseline_sha256", "codes", "guidance"}:
         raise ValueError("Invalid coding lesson schema")
-    if raw["schema"] != 1 or raw["target_sha256"] != hashlib.sha256(name.encode()).hexdigest():
+    if raw["schema"] != 2 or raw["target_sha256"] != hashlib.sha256(name.encode()).hexdigest():
         raise ValueError("Stale or cross-target coding lesson")
+    baseline_sha256, _ = pipeline.baseline(root, name)
+    if raw["baseline_sha256"] != baseline_sha256:
+        raise ValueError("Stale coding lesson baseline")
     codes = raw["codes"]
     if (not isinstance(codes, list) or not 1 <= len(codes) <= 4
             or any(not isinstance(code, str) or code not in GUIDANCE for code in codes)
@@ -162,8 +165,12 @@ def lesson_for(root: Path, name: str) -> str:
 def _remember_lesson(root: Path, name: str, report: dict) -> None:
     if report["status"] != "revision_required":
         return
+    baseline_sha256, _ = pipeline.baseline(root, name)
+    if "baseline_sha256" in report and report["baseline_sha256"] != baseline_sha256:
+        raise ValueError("Cannot remember lesson for changed baseline")
     lesson = {
-        "schema": 1,
+        "schema": 2,
+        "baseline_sha256": baseline_sha256,
         "target_sha256": hashlib.sha256(name.encode("utf-8")).hexdigest(),
         "codes": report["codes"],
         "guidance": report["guidance"],
