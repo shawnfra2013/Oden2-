@@ -26,4 +26,18 @@ After an approved checkout update, a Termux operator or authorized local agent c
 
 GitHub receives device receipts as they are pushed. ChatGPT's existing receipt watcher is **hourly**, not event-pushed. Do not claim that GitHub immediately wakes this ChatGPT conversation. See [the dated collaboration trial](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md) for measured eight-message queue behavior and outstanding wake-up limitations.
 
+## Feedback tool presentation receipts
+
+A review note already stored by the private `review_feedback` action remains **untrusted data**. To have an authorized local tool explicitly present one saved message, use the Termux terminal or a properly attached coding agent:
+
+```bash
+cd ~/odin-workspace || exit 1
+python -B scripts/odin_review_feedback.py --list
+python -B scripts/odin_review_feedback.py --inspect EXACT_32_CHARACTER_FEEDBACK_ID
+```
+
+The explicit `--inspect` operation prints the stored note to the *local tool only* and atomically saves a **metadata-only** receipt in `state/github-bridge-private/feedback-tool-observed/`. The existing private mailbox service then sends these receipts to `odin-bridge-outbox:bridge/feedback-tool-receipts/<id>.json` when connected, preserving local originals, rejecting mismatched IDs and recovering interrupted commits. Receipt fields include only the message ID, reviewed head SHA, issue/PR, note digest, UTC presentation time and `action_executed=false`, `agent_identity_verified=false`. No original note, terminal output or command is published.
+
+**Evidence boundary:** this proves a specific local tool invocation displayed the note and the private mailbox delivered its metadata. A human could have invoked the tool; therefore it does **not** prove model cognition, genuine autonomous agent identity, an implemented correction, or source CI. Those need separate task/PR/test receipts under [the collaboration proof contract](COLLABORATION_FRAMEWORK.md).
+
 For a fresh rollout use [release gates](RELEASE_GATES.md). For encrypted phone-model messages use [offline chat](OFFLINE_CHAT.md). Do not publish private responses, secrets, pairing codes, SSH keys, or full private messages in a public issue. The legacy public diagnostic branches remain distinct from the **active private** device mailbox.

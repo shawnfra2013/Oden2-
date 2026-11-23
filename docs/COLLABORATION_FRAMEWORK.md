@@ -25,6 +25,10 @@ The caller must independently authenticate the observed GitHub SHA, approved tas
 6. **Stop:** two review-driven revision rounds maximum; block on wrong task/SHA/receipt, scope drift, no progress, unavailable tests, exhausted budget or missing approvals. Do not loop or silently expand the task.
 7. **Release:** reviewed source merges and manual exact-main-SHA checks precede any physical installation. Device and iPhone testing are separate, explicit approval gates.
 
+## Feedback tool observation stage
+
+The local review-feedback CLI supports an explicit `--inspect ID` action, separate from the no-side-effect `--list` query. A successful inspection saves a metadata-only receipt for asynchronous private GitHub outbox delivery. It records exactly `local_feedback_tool_presented`, not an authenticated AI identity, a source update, or model comprehension. In the proof sequence, this event is only evidence that a local tool presented the note; it must **not** automatically be promoted to `agent_tool_read` or `action_proposed`. Actual agent identity, an independently observable tool read and a new scoped PR require later independent proof.
+
 ## Timing, availability and cost
 
 GitHub checks respond on pushes without a running Codespace. Odin's private mailbox checks approximately once per minute ONLY if the device service is running. ChatGPT's receipt watch checks hourly; it is not a live webhook or guaranteed immediate reply. No unattended model-to-model loop is yet verified.

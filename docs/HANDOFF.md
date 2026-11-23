@@ -48,6 +48,10 @@ The November 23 stress-test observations, including the eight-message backlog (8
 
 A scoped `mailbox_audit` private action lets ChatGPT request a read-only, redacted, last-hour inbox/outbox correlation through the existing private GitHub mailbox. It cannot run arbitrary CLI commands and is not an instant ChatGPT wake-up. First verify its PR/CI, then update Odin under the normal release gate before live testing the action. Source tests are not device installation evidence.
 
+## Pending local feedback presentation acceptance
+
+The review-feedback CLI has a proposed `--inspect ID` path that creates an immutable, **non-executing** tool-presentation record, and the private mailbox can asynchronously forward its metadata. This is source-only until reviewed CI, owner-approved checkout/reload, and a fresh physical tool invocation. The acknowledgment does not certify an AI identity or action. The next test should use a new bounded review note and independently verify both the original storage response and the separate tool-presentation receipt.
+
 ## Next controlled acceptance sequence
 
 1. Review exact GitHub main SHA and associated Actions checks after the final docs merge; preserve untracked owner files.

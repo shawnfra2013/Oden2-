@@ -191,6 +191,7 @@ def ensure_outbox(origin):
     recover_pending_receipt()
     if private_mailbox:
         recover_pending_source_receipt()
+        recover_pending_feedback_tool_receipt()
     if git("status", "--porcelain", cwd=OUTBOX):
         raise RuntimeError("Outbox has uncommitted changes; refusing edits")
     outbox_git("pull", "--ff-only", "origin", OUTBOX_BRANCH, timeout=90)
@@ -755,6 +756,77 @@ def publish_local_source_receipts(max_per_poll=3):
     return published
 
 
+def feedback_tool_receipt_module():
+    if __package__:
+        from . import odin_feedback_tool_receipt
+    else:
+        import odin_feedback_tool_receipt
+    return odin_feedback_tool_receipt
+
+
+def recover_pending_feedback_tool_receipt():
+    """Resume an interrupted immutable tool-presentation receipt commit."""
+    intent = STATE / "pending-feedback-tool-receipt.json"
+    if not intent.exists():
+        return
+    module = feedback_tool_receipt_module()
+    raw = intent.read_bytes()
+    if len(raw) > module.MAX_RECEIPT_BYTES:
+        raise RuntimeError("Oversized feedback-tool journal")
+    try:
+        item = json.loads(raw)
+        feedback_id = item["id"]
+        module.validate_tool_receipt(raw, feedback_id)
+    except (ValueError, KeyError, TypeError) as exc:
+        raise RuntimeError("Invalid pending tool receipt") from exc
+    relative = module.remote_path(feedback_id)
+    destination = OUTBOX / relative
+    if destination.is_symlink() or destination.resolve() != destination:
+        raise RuntimeError("Unsafe feedback-tool receipt path")
+    if destination.exists() and destination.read_bytes() != raw:
+        raise RuntimeError("Conflicting private tool receipt")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not destination.exists():
+        atomic_state_file(destination, raw)
+    git("add", "--", relative, cwd=OUTBOX)
+    if git("diff", "--cached", "--name-only", "--", relative, cwd=OUTBOX):
+        git("commit", "--only", "-m", "Odin tool presented feedback " + feedback_id,
+            "--", relative, cwd=OUTBOX)
+    intent.unlink()
+
+
+def publish_local_feedback_tool_receipts(max_per_poll=3):
+    """Forward only metadata for explicitly invoked local feedback inspections."""
+    if not private_mailbox:
+        return 0
+    module = feedback_tool_receipt_module()
+    published = 0
+    for candidate in module.local_candidates():
+        if published >= max_per_poll:
+            break
+        try:
+            raw = module.load_candidate(candidate)
+        except (OSError, ValueError, TypeError):
+            log("Skipping invalid local feedback-tool receipt")
+            continue
+        relative = module.remote_path(candidate.stem)
+        destination = OUTBOX / relative
+        if destination.is_symlink() or destination.resolve() != destination:
+            raise RuntimeError("Unsafe feedback-tool outbox path")
+        if destination.exists():
+            if destination.read_bytes() != raw:
+                raise RuntimeError("Conflicting feedback-tool receipt in outbox")
+            continue
+        journal = STATE / "pending-feedback-tool-receipt.json"
+        if journal.exists():
+            recover_pending_feedback_tool_receipt()
+        atomic_state_file(journal, raw)
+        recover_pending_feedback_tool_receipt()
+        outbox_git("push", "origin", "HEAD:refs/heads/" + OUTBOX_BRANCH, timeout=90)
+        published += 1
+    return published
+
+
 def process_once():
     # One writer at a time: avoid two agent instances publishing duplicate
     # receipts or running concurrent check requests on the same checkout.
@@ -783,6 +855,13 @@ def process_locked():
             # Preserve the existing diagnostic request/reply path even when
             # optional offline receipt shipping is temporarily unavailable.
             log("Local receipt delivery deferred: " + type(exc).__name__)
+    if private_mailbox:
+        try:
+            shown = publish_local_feedback_tool_receipts()
+            if shown:
+                log("Uploaded " + str(shown) + " feedback-tool receipt(s)")
+        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
+            log("Feedback-tool receipt delivery deferred: " + type(exc).__name__)
     inbox_git = outbox_git if private_mailbox else git
     ref = "origin/" + INBOX_BRANCH
     checkpoint = STATE / "completed-scan"
