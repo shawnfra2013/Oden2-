@@ -49,6 +49,7 @@ def validate_milestones(events, *, request_id, original_sha):
             raise ValueError("Unexpected SHA change before code stage")
         evidence = event["evidence_ref"]
         if (not isinstance(evidence, str) or not 1 <= len(evidence) <= 300
+                or evidence != evidence.strip()
                 or any(ord(c) < 32 or ord(c) == 127 for c in evidence)):
             raise ValueError("Invalid evidence reference")
         if evidence in seen_evidence:

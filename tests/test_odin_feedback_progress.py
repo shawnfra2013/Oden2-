@@ -77,6 +77,19 @@ class FeedbackProgressTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Replayed evidence reference"):
             self.check(changed)
 
+    def test_blank_or_padded_evidence_reference_rejected(self):
+        previous = self.events[1]["evidence_ref"]
+        for reference in ("", " ", " " + previous, previous + " ", previous + "\u00a0"):
+            with self.subTest(reference=reference):
+                changed = copy.deepcopy(self.events)
+                changed[2]["evidence_ref"] = reference
+                with self.assertRaisesRegex(ValueError, "Invalid evidence reference"):
+                    self.check(changed)
+
+    def test_internal_spaces_in_evidence_reference_preserved(self):
+        self.events[0]["evidence_ref"] = "receipts/first attempt.json"
+        self.assertEqual(self.check()["stage"], "source_verified")
+
     def test_reverse_timestamp_rejected(self):
         changed = copy.deepcopy(self.events)
         changed[2]["checked_at"] = "2026-11-23T05:00:00Z"
