@@ -12,7 +12,7 @@ class CodespacesTests(unittest.TestCase):
     def test_status_does_not_claim_device_access(self):
         with patch.dict("os.environ", {"CODESPACES": "true"}):
             report = dev.status()
-        self.assertEqual(report["scope"], "codespace_source_only")
+        self.assertEqual(report["scope"], "local_source_only")
         self.assertEqual(report["device_connection"], "not_checked")
         self.assertEqual(report["tailscale_connection"], "not_checked")
 
