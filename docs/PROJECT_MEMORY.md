@@ -3,6 +3,10 @@
 
 The [runtime guide](ODIN_RUNTIME.md) lists the supported configuration. Dated records below preserve the state observed when each check ran.
 
+## November 22 · iPhone release checkpoint
+
+The selected release preserves encrypted browser chat and optional online chat. GitHub [project validation](https://github.com/shawnfra2013/Oden2-/actions/runs/45111101669) and [browser acceptance](https://github.com/shawnfra2013/Oden2-/actions/runs/45111101665) passed on `b133ceb`. The tests exercised the documented dashboard listener on a CI runner. Physical installation, private HTTPS routing, and iPhone Home Screen reopen require separate evidence. Use the [runtime guide](ODIN_RUNTIME.md) for the cutover.
+
 For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](STRUCTURE_HARDENING.md).
 
 The active device bridge is the private GitHub mailbox in `shawnfra2013/Odin-private-bridge`. Termux polls `odin-bridge-inbox` and publishes matching receipts on `odin-bridge-outbox`. Use the [private mailbox in a browser](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) or submit a request through the authorized GitHub integration. Browser submissions use GitHub sign-in and the workflow’s repository-scoped token.
