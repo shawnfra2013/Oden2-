@@ -130,6 +130,25 @@ class LocalMemoryTests(unittest.TestCase):
             self.query("mailbox")
         self.assertFalse(target.exists())
 
+    def test_reject_symlinked_parent_of_existing_cache(self):
+        self.query("bridge")
+        external = self.root / "external-state"
+        (self.root / "state").rename(external)
+        (self.root / "state").symlink_to(external, target_is_directory=True)
+        with self.assertRaises(ValueError):
+            self.query("bridge")
+        self.assertTrue((external / "project-memory/index.sqlite3").exists())
+
+    def test_reject_symlinked_cache_directory(self):
+        self.query("bridge")
+        state = self.root / "state"
+        (state / "project-memory").rename(state / "external-memory")
+        (state / "project-memory").symlink_to(
+            state / "external-memory", target_is_directory=True)
+        with self.assertRaises(ValueError):
+            self.query("bridge")
+        self.assertTrue((state / "external-memory/index.sqlite3").exists())
+
     def test_reject_oversized_curated_document(self):
         (self.root / "docs/HANDOFF.md").write_bytes(b"x" * (memory.MAX_DOC_BYTES + 1))
         with self.assertRaises(ValueError):
