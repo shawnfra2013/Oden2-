@@ -14,6 +14,7 @@ Odin's local browser is the **Odin Local Workstation** (historical implementatio
 | Evidence-aware status | [Status guide](docs/PROJECT_STATUS.md) |
 | Architecture decisions | [Decision log](docs/DECISIONS.md) |
 | Session continuation | [Handoff](docs/HANDOFF.md) |
+| Replace old iPhone saved links | [Shortcut cutover](docs/SHORTCUT_CUTOVER.md) |
 | Previous stages, providers, and observations | [Historical archive](docs/archive/README.md) |
 
 **Status rule:** A GitHub merge or passing CI is not proof that the handheld installed it. A website refresh is not proof of a device heartbeat. Only a matched, time-stamped device receipt supports a device claim, and only an actual iPhone cellular test establishes phone acceptance.
