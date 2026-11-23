@@ -2,6 +2,20 @@
 
 **Updated:** November 23, 2026 (Central). This is the current human-reviewed checkpoint. Use [the timestamped snapshot workflow](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-project-snapshot.yml) and the actual GitHub main SHA for subsequent sessions. Historical material is not a deployment guide.
 
+## November 23 fresh read-only device inventory — current evidence supersedes older pings
+
+**Exact-source verification:** public GitHub main was `cc9b588b572dadeabf62c30ad7e8467bec928840` with exact-main Odin validation, browser and CodeQL Python/JavaScript PASS. This contains the direct-script `ai` memory import repair from merged [PR #156](https://github.com/shawnfra2013/Oden2-/pull/156). Git source does **not** establish that an interactive AI answer succeeds.
+
+**Bidirectional private transport (16:37 UTC):** request `b7102026112316364200000000000006` was submitted to the private inbox and returned matching `action=ping`, `status=complete`, `result.alive=true` at **2026-11-23T16:37:40Z**, PID **23216**, running source SHA `cc9b588b572dadeabf62c30ad7e8467bec928840`. This is one verified device response and source revision, not proof of mailbox launcher cwd.
+
+**#71 migration read-only preview (16:38 UTC):** request `b7102026112316375500000000000007` returned matching `action=mailbox_migration_preview` and `status=complete` at **2026-11-23T16:38:49Z**. Result: `preflight_status=READY`, `migration_candidate=true`, `canonical_checkout_confirmed=false`, `reason=none`, PID **23216**, `expected_sha=runtime_sha=cc9b588...`, `device_change_performed=false`. Source `odin_mailbox_migrate.check` confirms a clean canonical main SHA, existing launcher/PID cwd agreement at the **noncanonical** checkout, preserved old private state and no destination collision/pending journal in this snapshot. **This authorizes no migration.** Do not mark canonical process cwd PASS, or say Termux has moved the service.
+
+**Offline/online workstation selection (16:40 UTC):** request `b7102026112316393200000000000008` completed at **2026-11-23T16:40:01Z** with `reachable=true`, `ready=true`, `ai_enabled=true`, `provider=local`, `ai_reason=configured_not_tested`, `disconnect_test_ready=true`. A configured local model is selected; this read-only check did **not** send a model inference request, run the legacy `ai` command or verify iPhone cellular.
+
+**Keep the launcher identity accurate:** owner physically saw lowercase `ai` as the original executable `~/.local/bin/ai`; the optional source Bash hook for mixed-case invocation returned **READY on dry-run**, not installed. Never call the executable a newly found alias or replace it, and do not infer shell-function installation from a Git commit. The presence of an executable does not prove all provider calls work.
+
+**Next exact gate:** read-only physical/service inspection is sufficiently detailed to identify a `READY` state-preserving mailbox migration candidate. A **specific owner approval** is still required before the separately guarded apply that backs up and repoints the launcher, copies rather than moves private state and restarts only `odin-private-mailbox`. After migration, obtain fresh ping, process cwd and mailbox audit receipts. Separately test the original `ai` launcher and decide whether to install the optional Bash hook; no unattended paid inference.
+
 ## November 23 Termux ai traceback and issue #71 preflight evidence
 
 **Operator-reported physical Termux observation:** `~/odin-workspace` had HEAD `312a075fab3a931af3d68d39c6b708bd7c300f28`; `type -a ai AI Ai aI` reported only the original lower-case executable at `~/.local/bin/ai`; the protected Bash-hook installer returned **READY (dry-run only)** and made no shell changes. The read-only `odin_mailbox_migrate.py --expected-sha 9bf0d34a169df05ffb94a939010f00cb828ba13a` check returned **BLOCKED: Canonical checkout is not the approved source SHA**. This is an expected safety gate for a stale checkout versus the requested target, **not** proof of a corrupt mailbox, dirty Git tree, or wrong active process directory.
