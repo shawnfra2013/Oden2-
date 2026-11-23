@@ -4,9 +4,13 @@
 
 ## Workflow
 
-The `.github/workflows/odin-hour-event-evidence.yml` job runs only for a same-repository pull request whose **title starts with `[ODIN-HOUR]`**, and for supported events `opened`, `synchronize`, `reopened`, `ready_for_review` and `review_requested`. It reads the exact original GitHub event payload, captures `pull_request.head.sha`, `pull_request.base.sha`, PR number, event action and Actions run ID, and uploads one immutable, sanitized 14-day Actions artifact. It does not copy the event body or comments, read private GitHub mail, contact the device, or post a review. The script runs from the **trusted base commit**, not unreviewed PR head code. The job has only `contents: read` permissions and a 3-minute deadline.
+The `.github/workflows/odin-hour-event-evidence.yml` job runs only for a same-repository pull request whose **title starts with `[ODIN-HOUR]`**, and for supported events `opened`, `synchronize`, `reopened`, `ready_for_review` and `review_requested`. It reads the exact original GitHub event payload, captures `pull_request.head.sha`, `pull_request.base.sha`, PR number, event action and Actions run ID, and uploads one immutable, sanitized 14-day Actions artifact. It does not copy the event body or comments, read private GitHub mail, contact the device, or post a review. The script runs from the **trusted current `main` checkout**, not unreviewed PR head code. This matters for long-lived draft PRs whose event `base.sha` predates the introduction of the script; the immutable PR event head and base SHAs are read from the original event payload, never inferred from the current checkout. The job has only `contents: read` permissions and a 3-minute deadline.
 
 The artifact provides an independent reference for **the event SHA captured by GitHub Actions**, but not proof of the exact payload delivered to a separate ChatGPT Work task. A Work reviewer must still fetch the current PR head immediately before commenting and decline or rescope when the head changed. A Work review's marker is unique per `PR number + head SHA`, and reviewer-authored comments must never trigger another write to themselves.
+
+## First live failure and reviewed correction
+
+The first post-merge `synchronize` event on draft PR #119 (head `b15f9cfad3269a8016f94e13a88fec559b06a0b5`) reached the new GitHub Actions job, but [run 45147217823](https://github.com/shawnfra2013/Oden2-/actions/runs/45147217823) **failed**: the event's old `base.sha` checkout did not yet contain `scripts/odin_hour_event_receipt.py`. The correct response was FAIL, not a claimed event-evidence PASS. The reviewed fix checks out the trusted current `main` branch; a regression now prevents reintroducing the old base-ref checkout. A new event is required to prove the workflow actually creates the artifact.
 
 ## Evidence and progressive acceptance
 
