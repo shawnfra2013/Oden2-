@@ -6,7 +6,7 @@
 
 - **GitHub:** issues, PRs, source CI, read-only diagnostics, security scan, immutable receipts and exact-SHA evidence. Actions can detect a failure but do not reason or repair by themselves.
 - **Odin coding agent:** under an approved task and session, inspect, branch, propose scoped changes, test, and publish a receipt. No self-started Codespaces, paid models, arbitrary shell, permissions escalation, secret exposure, merge or device deployment.
-- **ChatGPT reviewer:** on demand or on the enabled hourly check, review connected evidence and supply bounded corrections with exact issue, PR, head SHA and prior receipt ID. A GitHub push triggers CI, NOT an immediate ChatGPT conversation. Do not claim the agent read feedback without proof.
+- **ChatGPT reviewer:** on demand, an enabled hourly check, or a separately configured supported **GitHub PR event-triggered Work task**, review evidence with exact issue, PR, current head SHA and prior receipt ID. A real PR-open event did trigger a Work review on #119, but that did not wake this existing chat; its original delivered payload omitted event-time SHA. The event evidence workflow records the GitHub payload SHA in a separate artifact. Do not claim agent read/action from feedback storage.
 - **Operator:** approves task scope, paid/cloud spending settings, security-sensitive work, source merges as gated, physical installation and real phone testing. Routine safe source tests and in-scope revisions need no repeated approval.
 
 ## First coding module — exclusive source-task leases (issue #97)
@@ -31,7 +31,7 @@ The local review-feedback CLI supports an explicit `--inspect ID` action, separa
 
 ## Timing, availability and cost
 
-GitHub checks respond on pushes without a running Codespace. Odin's private mailbox checks approximately once per minute ONLY if the device service is running. ChatGPT's receipt watch checks hourly; it is not a live webhook or guaranteed immediate reply. No unattended model-to-model loop is yet verified.
+GitHub checks respond on pushes without a running Codespace. Odin's private mailbox checks approximately once per minute ONLY if the device service is running. The regular ChatGPT receipt watch checks hourly; a separate configured **Work PR event task** has demonstrated an actual PR-open run but is not a general push-to-chat webhook. [ODIN-HOUR event evidence](ODIN_HOUR_EVENT_EVIDENCE.md) captures immutable PR-event head SHA using GitHub Actions and recommends 4–8 meaningful reviewer activations per hour, not the maximum 30. No unattended model-to-model loop is yet verified.
 
 Prefer no Codespace for GitHub-only work. For authorized coding sessions use a manually started two-core workspace when needed, a target idle timeout of 15 minutes, at most one workspace and up to 60 minutes per session. A 30 two-core-hour monthly planning target is NOT a billing cap; verify GitHub account limits directly before consuming resources. Never silently enable paid APIs.
 
