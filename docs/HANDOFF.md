@@ -13,6 +13,10 @@
 
 [#69](https://github.com/shawnfra2013/Oden2-/issues/69) phone; [#70](https://github.com/shawnfra2013/Oden2-/issues/70) private routing; [#71](https://github.com/shawnfra2013/Oden2-/issues/71) exact-SHA device rollout; [#72](https://github.com/shawnfra2013/Oden2-/issues/72) documentation/release operations.
 
+## Saved viewer link and historical hosting
+
+The uploaded `Odin Viewer.txt` still contains only an older external dashboard URL. The original hosted viewer was introduced by [PR #9](https://github.com/shawnfra2013/Oden2-/pull/9), and its message journal was expanded in [PR #11](https://github.com/shawnfra2013/Oden2-/pull/11). Both are **historical** implementations. A GitHub source cleanup or a new chat does not rewrite the actual iPhone Shortcut or Home Screen bookmark. The supported replacement HTTPS viewer origin is **not yet verified**; follow [the shortcut cutover procedure](SHORTCUT_CUTOVER.md) instead of guessing a destination.
+
 ## Session continuation
 
 1. Check `main` and the latest [source CI](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-checks.yml) for the exact merge SHA; do not reuse the old screenshot revision.
