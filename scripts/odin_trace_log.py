@@ -50,7 +50,8 @@ def normalize(receipt: dict, source_sha: str) -> dict:
         raise ValueError("Invalid trace request ID")
     if not isinstance(action, str) or not ACTION.fullmatch(action):
         raise ValueError("Invalid trace action")
-    if status not in STATES or not isinstance(source_sha, str) or not SHA.fullmatch(source_sha):
+    if (not isinstance(status, str) or status not in STATES
+            or not isinstance(source_sha, str) or not SHA.fullmatch(source_sha)):
         raise ValueError("Invalid trace state or local source SHA")
     _utc(timestamp)
     timing = receipt.get("timing")
@@ -114,7 +115,12 @@ def append_bridge_reply(directory: Path, receipt: dict, source_sha: str) -> bool
         encoded = (json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode()
         if details.st_size + len(encoded) > MAX_LOG_BYTES:
             raise ValueError("Private trace log full")
-        os.write(fd, encoded)
+        remaining = memoryview(encoded)
+        while remaining:
+            written = os.write(fd, remaining)
+            if written <= 0:
+                raise OSError("Incomplete trace append")
+            remaining = remaining[written:]
         os.fsync(fd)
     finally:
         os.close(fd)
