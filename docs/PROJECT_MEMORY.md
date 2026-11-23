@@ -2,6 +2,8 @@
 
 **Source of truth:** GitHub repository `shawnfra2013/Oden2-`, with exact revision, task/PR and evidence links. This document is an entry point for **human or agent retrieval**; its presence in Git does **not** mean the local Odin model automatically ingests or remembers it.
 
+**Latest verified canonical mailbox:** On November 23, 2026, the owner completed the guarded private-mailbox migration, preserving previous state. Fresh GitHub→Odin→GitHub receipts verified PID 9200, running canonical cwd, and a clean metadata audit. See [handoff](HANDOFF.md) and [private mailbox runbook](ODIN_GITHUB_BRIDGE.md). Migration is not an open TODO; model and phone acceptance remain separate.
+
 **Session read-first document:** [Working with Odin](WORK_WITH_ODIN.md) defines the ChatGPT ↔ GitHub ↔ Odin communication procedure, role boundaries, Codespaces/CI delegation, and receipt meanings. Load the current GitHub revision at startup. The user may separately copy a short pointer into ChatGPT Project instructions; files committed to Git do not automatically edit Project settings or account memory.
 
 ## Read this first for an Odin work session
