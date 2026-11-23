@@ -178,6 +178,29 @@ def _create_index(path: Path, files, fingerprint: str, revision: str) -> int:
     return len(rows)
 
 
+def _cache_matches(connection, documents) -> bool:
+    """Require every cached FTS5 row to match approved source text exactly."""
+    expected = [
+        (name, heading, body)
+        for name, content in documents for heading, body in _parts(content)
+    ]
+    if len(expected) > 500:
+        return False
+    # Bound transfer size before reading untrusted cache values into Python.
+    rows = connection.execute(
+        "SELECT typeof(path)='text' AND typeof(heading)='text' AND typeof(body)='text',"
+        " substr(CAST(path AS BLOB),1,?), substr(CAST(heading AS BLOB),1,?),"
+        " substr(CAST(body AS BLOB),1,?) FROM snippets ORDER BY rowid LIMIT 501",
+        (max(len(name.encode()) for name in DOCS) + 1, 801, 4 * MAX_CHUNK_CHARS + 1),
+    )
+    for name, heading, body in expected:
+        if next(rows, None) != (1, name.encode(), heading.encode(), body.encode()):
+            return False
+    return next(rows, None) is None and connection.execute(
+        "PRAGMA integrity_check(1)"
+    ).fetchone() == ("ok",)
+
+
 def ensure_index(root: Path = ROOT, db_path: Path | None = None) -> tuple[Path, str]:
     """Rebuild only when approved local documents change; no GitHub fetch."""
     root = Path(root)
@@ -190,9 +213,10 @@ def ensure_index(root: Path = ROOT, db_path: Path | None = None) -> tuple[Path, 
         try:
             with closing(sqlite3.connect(f"file:{index}?mode=ro", uri=True)) as connection:
                 rows = dict(connection.execute("SELECT key,value FROM meta").fetchall())
-            if (rows.get("schema") == "1" and rows.get("content_sha256") == fingerprint
-                    and rows.get("local_git_sha") == revision):
-                return index, revision
+                if (rows.get("schema") == "1" and rows.get("content_sha256") == fingerprint
+                        and rows.get("local_git_sha") == revision
+                        and _cache_matches(connection, documents)):
+                    return index, revision
         except sqlite3.DatabaseError:
             # Replace only the generated cache; never modify curated source files.
             pass

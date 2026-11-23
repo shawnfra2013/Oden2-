@@ -54,6 +54,31 @@ class LocalMemoryTests(unittest.TestCase):
             out.write("\nA newcandidate is reported separately from old proof.\n")
         self.assertTrue(self.query("newcandidate")["results"])
 
+    def test_modified_cached_body_rebuilt_from_approved_source(self):
+        self.query("delayed mailbox")
+        with contextlib.closing(sqlite3.connect(self.db)) as db:
+            db.execute("UPDATE snippets SET body='injected false claim' WHERE rowid=1")
+            db.commit()
+        result = self.query("delayed mailbox")
+        self.assertIn("delayed GitHub ping", result["results"][0]["excerpt"])
+        self.assertNotIn("injected false claim", str(result))
+
+    def test_cached_blob_type_rebuilt_as_text(self):
+        self.query("delayed mailbox")
+        with contextlib.closing(sqlite3.connect(self.db)) as db:
+            db.execute("UPDATE snippets SET body=CAST(body AS BLOB) WHERE rowid=1")
+            db.commit()
+        result = self.query("delayed mailbox")
+        self.assertIn("delayed GitHub ping", result["results"][0]["excerpt"])
+        json.dumps(result)
+
+    def test_deleted_cached_row_rebuilt(self):
+        self.query("delayed mailbox")
+        with contextlib.closing(sqlite3.connect(self.db)) as db:
+            db.execute("DELETE FROM snippets WHERE rowid=1")
+            db.commit()
+        self.assertIn("delayed GitHub ping", self.query("delayed mailbox")["results"][0]["excerpt"])
+
     def test_generated_database_is_private(self):
         self.query("recovery")
         self.assertEqual(self.db.stat().st_mode & 0o777, 0o600)
