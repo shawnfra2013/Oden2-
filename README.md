@@ -7,6 +7,7 @@ Odin's local browser is the **Odin Local Workstation** (historical implementatio
 | Need | Current document |
 | --- | --- |
 | Session start, roles, receipts, agentic coding and memory | [Working with Odin](docs/WORK_WITH_ODIN.md) |
+| Read-only colorful Termux status and existing `ai` integration | [Termux CLI dashboard](docs/TERMUX_CLI_DASHBOARD.md) |
 | What is actually in use | [Runtime](docs/ODIN_RUNTIME.md) |
 | Working agreement read by GitHub and Odin | [Odin Workflow](ODIN_WORKFLOW.md) |
 | Services and listener defaults | [Service registry](docs/SERVICE_REGISTRY.md) |
