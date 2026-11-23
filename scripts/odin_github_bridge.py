@@ -40,7 +40,7 @@ ORIGINS = {
 }
 POLL_SECONDS = 60
 PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
-PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next", "practice_followup", "regression_details", "review_feedback"})
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next", "practice_followup", "regression_details", "review_feedback", "mailbox_audit"})
 private_mailbox = False
 
 
@@ -340,6 +340,44 @@ def model_capacity():
 
 
 def status_action(action, request=None):
+    if action == "mailbox_audit":
+        if not private_mailbox:
+            raise ValueError("Private mailbox audit requires an authenticated private bridge")
+        if __package__:
+            from .odin_mailbox_audit import inspect_local, save_report
+        else:
+            from odin_mailbox_audit import inspect_local, save_report
+        # Fixed read-only scan of the already-fetched local clone, not a
+        # general purpose CLI or user-selected filesystem/network endpoint.
+        report = inspect_local(OUTBOX, hours=1)
+        save_report(report)
+        safe_codes = frozenset({
+            "malformed_request", "malformed_response", "response_before_request",
+            "response_in_future", "future_request", "orphan_response",
+            "stalled", "expired_without_reply", "rejected_or_failed", "expired",
+            "unverified", "action_mismatch", "ping_not_alive",
+            "unexpected_action_complete",
+        })
+        incidents = [
+            {"id": item["id"], "code": item["code"]}
+            for item in report["incidents"]
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+            and ID_PATTERN.fullmatch(item["id"])
+            and item.get("code") in safe_codes
+        ]
+        return {
+            "scope": "private_mailbox_metadata",
+            "audited_at": report["checked_at"],
+            "revision": git("rev-parse", "HEAD"),
+            "considered": report["considered"],
+            "counts": report["counts"],
+            "max_response_latency_s": report["max_response_latency_s"],
+            "incident_count_shown": min(12, len(incidents)),
+            "incidents": incidents[:12],
+            "incidents_truncated": report["incidents_truncated"] or len(incidents) > 12,
+            "agent_read_verified": False,
+            "device_phone_verified": False,
+        }
     if action == "review_feedback":
         if not private_mailbox or request is None:
             raise ValueError("Private feedback requires a validated request")
