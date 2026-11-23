@@ -5,7 +5,7 @@ and cutover checks. Dated verification is kept in [project history](PROJECT_MEMO
 
 | Module | Responsibilities | Entry point |
 | --- | --- | --- |
-| `stage5/` | Loopback browser workstation with provider selection and SQLite conversation storage | `services/stage5/run` |
+| `stage5/` (compatibility path) | Odin Local Workstation: loopback browser with provider selection and SQLite conversation storage | `services/stage5/run` |
 | `ai/agent/` | Bounded inference, proposals and evidence | `orchestrator.py`, `pipeline.py` |
 | `scripts/odin_worker.py` | Supervised task queue | `odin-task-worker` |
 | `scripts/odin_chat.py` | Termux model conversation | `python -B scripts/odin_chat.py` |

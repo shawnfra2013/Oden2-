@@ -1,0 +1,16 @@
+# Odin architecture decision log
+
+This is the **current decision register**, not a historical status report. Record a new decision and evidence before reversing any of these rules. Latest change: November 22, 2026.
+
+| ID | Decision | Reason and consequence |
+| --- | --- | --- |
+| D-001 | GitHub `main` remains the source repository, with reviewed PRs and exact-SHA CI | Prevents unverified edits and accidental rollout |
+| D-002 | The **private GitHub mailbox** is the source-to-device request/receipt transport | Provides bounded asynchronous diagnostics with no publicly exposed shell |
+| D-003 | User-facing name is **Odin Local Workstation** | The `stage5/`, `odin-stage5`, `stage5_health` names remain internal compatibility identifiers, not active project phases |
+| D-004 | The phone viewer is a **separate** optional Node app behind approved private HTTPS | Loopback-only services are not directly reachable from a cellular iPhone |
+| D-005 | No private network provider is claimed active without a verified connection | Tailscale needs a real operator/device test; track in [#70](https://github.com/shawnfra2013/Oden2-/issues/70) |
+| D-006 | CI, physical Odin, and iPhone cellular acceptance are three different release states | Prevents misleading "fixed" or "online" claims |
+| D-007 | Historical records go in `docs/archive/` and active instructions have one source of truth | Avoids reactivating removed infrastructure |
+| D-008 | No secrets, private chat, pairing codes, or direct terminal endpoints in public issues or CI artifacts | Keeps private mailbox and device access safe |
+
+**Changing a decision:** create a GitHub issue stating the proposed replacement and a migration/test plan, then a reviewed PR updating this log, [runtime](ODIN_RUNTIME.md) and [release gates](RELEASE_GATES.md). Do not edit unrelated service configurations implicitly.

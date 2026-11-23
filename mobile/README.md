@@ -1,5 +1,7 @@
 # Odin Control for iPhone
 
+The source of truth for supported transports is [current Odin runtime](../docs/ODIN_RUNTIME.md). The public dashboard status is **not** a private-device heartbeat. The iPhone over-cellular test remains open in [issue #69](https://github.com/shawnfra2013/Oden2-/issues/69); verify the private network and HTTPS route before considering a Home Screen shortcut complete.
+
 The dashboard shows sanitized GitHub status and keeps optional device chat and
 online chat in separate routes. For device checks without setting up a dashboard,
 open the [private GitHub mailbox](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) in Safari and sign in to GitHub.
