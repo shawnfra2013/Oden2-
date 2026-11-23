@@ -36,6 +36,12 @@ class EventCorrelationTests(unittest.TestCase):
         self.assertIn("duplicate_delivery", str(result["findings"]))
         self.assertIn("duplicate_run", str(result["findings"]))
 
+    def test_reused_run_id_for_distinct_deliveries_is_blocked(self):
+        result = correlate([event("delivery-1"), event("delivery-2")],
+                           [run("delivery-1", "same-run"), run("delivery-2", "same-run")])
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertIn("reused_run_id", str(result["findings"]))
+
     def test_unknown_fields_fail_closed(self):
         with self.assertRaises(ValueError):
             correlate([{**event(), "private_payload": "secret"}], [])
