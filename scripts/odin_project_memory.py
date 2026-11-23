@@ -149,6 +149,7 @@ def ensure_index(root: Path = ROOT, db_path: Path | None = None) -> tuple[Path, 
     """Rebuild only when approved local documents change; no GitHub fetch."""
     root = Path(root)
     documents, fingerprint = _read_documents(root)
+    revision = _revision(root)
     index = _db_path(root, db_path)
     if index.is_symlink():
         raise ValueError("Symlinked memory index")
@@ -156,12 +157,12 @@ def ensure_index(root: Path = ROOT, db_path: Path | None = None) -> tuple[Path, 
         try:
             with closing(sqlite3.connect(f"file:{index}?mode=ro", uri=True)) as connection:
                 rows = dict(connection.execute("SELECT key,value FROM meta").fetchall())
-            if rows.get("schema") == "1" and rows.get("content_sha256") == fingerprint:
-                return index, rows.get("local_git_sha", "unverified")
+            if (rows.get("schema") == "1" and rows.get("content_sha256") == fingerprint
+                    and rows.get("local_git_sha") == revision):
+                return index, revision
         except sqlite3.DatabaseError:
             # Replace only the generated cache; never modify curated source files.
             pass
-    revision = _revision(root)
     _create_index(index, documents, fingerprint, revision)
     return index, revision
 
