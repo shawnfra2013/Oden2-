@@ -32,6 +32,8 @@ def decide(task: dict) -> dict:
         reasons.append("tests_not_passed")
     if task["review"] != "pass":
         reasons.append("review_not_passed")
+    if task["agent_action"] and not task["feedback_read"]:
+        reasons.append("agent_action_without_verified_feedback_read")
     if task["feedback_read"] and not task["agent_action"]:
         reasons.append("feedback_read_without_verified_action")
     if task["device_verified"] and (task["tests"] != "pass" or task["review"] != "pass"):
