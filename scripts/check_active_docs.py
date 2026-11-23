@@ -12,6 +12,8 @@ REQUIRED = (
     "docs/RELEASE_GATES.md", "docs/DECISIONS.md", "docs/TASK_BOARD.md",
     "docs/PROJECT_STATUS.md", "docs/HANDOFF.md", "mobile/README.md",
 )
+JOINED_HEADINGS = re.compile(r"(?m)^#{1,6}[ \t][^\n]*?#{2,6}[ \t]")
+
 BANNED = {
     "retired host/provider": re.compile(r"(?i)vercel|@vercel|\.vercel\.app"),
     "retired-host opt-in": re.compile(r"\bODIN_ENABLE_LEGACY_RELAY\b"),
@@ -31,6 +33,9 @@ def check(root: Path = ROOT) -> list[str]:
             continue
         rel = path.relative_to(root).as_posix()
         content = path.read_text(encoding="utf-8")
+        for match in JOINED_HEADINGS.finditer(content):
+            line = content.count("\n", 0, match.start()) + 1
+            errors.append(f"{rel}:{line}: joined Markdown headings")
         for name, pattern in BANNED.items():
             for match in pattern.finditer(content):
                 line = content.count("\n", 0, match.start()) + 1
