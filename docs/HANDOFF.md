@@ -42,15 +42,19 @@ The bridge **does not yet provide** an authenticated general remote shell or aut
 
 ## Collaboration and incident audit continuation
 
-The November 23 stress-test observations, including the eight-message backlog (8/8 replies over two polling cycles), branch limits, rejected command injection, source fixes, exact receipts and missing ChatGPT push wake-up are in [the dated collaboration trial ledger](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md). An offline-capable, on-demand private mailbox auditor was added in a reviewed source PR. Run it only from an approved checkout with `python -B scripts/odin_mailbox_audit.py --hours 1 --save`. Its local snapshots do **not** establish live ChatGPT wake-up or autonomous Odin coding.
+The November 23 stress-test observations, including the eight-message backlog (8/8 replies over two polling cycles), branch limits, rejected command injection, source fixes, exact receipts and missing ChatGPT push wake-up are in [the dated collaboration trial ledger](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md). An offline-capable, on-demand private mailbox auditor merged in [PR #114](https://github.com/shawnfra2013/Oden2-/pull/114). Run it only from an approved checkout with `python -B scripts/odin_mailbox_audit.py --hours 1 --save`. Its local snapshots do **not** establish live ChatGPT wake-up or autonomous Odin coding.
 
-## Next bridge capability under supervised source review
+## Merged bridge diagnostics awaiting physical update
 
-A scoped `mailbox_audit` private action lets ChatGPT request a read-only, redacted, last-hour inbox/outbox correlation through the existing private GitHub mailbox. It cannot run arbitrary CLI commands and is not an instant ChatGPT wake-up. First verify its PR/CI, then update Odin under the normal release gate before live testing the action. Source tests are not device installation evidence.
+A scoped `mailbox_audit` private action lets ChatGPT request a read-only, redacted, last-hour inbox/outbox correlation through the existing private GitHub mailbox. It cannot run arbitrary CLI commands and is not an instant ChatGPT wake-up. The audited source implementation merged in [PR #115](https://github.com/shawnfra2013/Oden2-/pull/115). The current release must be installed and the service reloaded under the normal release gate before live testing the action. Source tests are not device installation evidence.
 
 ## Pending local feedback presentation acceptance
 
-The review-feedback CLI has a proposed `--inspect ID` path that creates an immutable, **non-executing** tool-presentation record, and the private mailbox can asynchronously forward its metadata. This is source-only until reviewed CI, owner-approved checkout/reload, and a fresh physical tool invocation. The acknowledgment does not certify an AI identity or action. The next test should use a new bounded review note and independently verify both the original storage response and the separate tool-presentation receipt.
+The review-feedback CLI gained a merged [PR #116](https://github.com/shawnfra2013/Oden2-/pull/116) `--inspect ID` path that creates an immutable, **non-executing** tool-presentation record, and the private mailbox can asynchronously forward its metadata. The reviewed source checks passed. Real tool presentation remains a separate event after owner-approved checkout/reload, with a fresh private outbox receipt. The acknowledgment does not certify an AI identity or action. The next test should use a new bounded review note and independently verify both the original storage response and the separate tool-presentation receipt.
+
+## Current device delivery delay
+
+A fresh read-only ping (`c0ad2026000000000000000000000009`) sent after the new source merges had **no matching private outbox response after at least 150 seconds**, while the outbox's last observed commit remained at 07:35:29 UTC. Record this as a delivery stall, not proof of a device shutdown or a failed installation. Before live rollout, collect a new read-only Termux service/status observation or a later matching response. See incident B-018 in [the trial ledger](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md).
 
 ## Next controlled acceptance sequence
 
