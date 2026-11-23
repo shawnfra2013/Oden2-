@@ -16,7 +16,7 @@ def task():
 
 def event(stage, sha=BASE):
     return {"state": stage, "request_id": ID, "head_sha": sha,
-            "checked_at": TIME, "evidence_ref": "evidence:local-only"}
+            "checked_at": TIME, "evidence_ref": f"evidence:local-only:{stage}"}
 
 
 def bench():
@@ -68,6 +68,13 @@ class ProgressDashboardTests(unittest.TestCase):
             dashboard(data)
         data["events"] = [event("submitted", CHANGED)]
         with self.assertRaises(ValueError):
+            dashboard(data)
+
+    def test_rejects_replayed_milestone_evidence(self):
+        data = task()
+        data["events"] = [event("submitted"), event("device_received")]
+        data["events"][1]["evidence_ref"] = data["events"][0]["evidence_ref"]
+        with self.assertRaisesRegex(ValueError, "Replayed evidence reference"):
             dashboard(data)
 
     def test_rejects_injected_private_data(self):
