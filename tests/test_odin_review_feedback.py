@@ -65,6 +65,7 @@ class ReviewFeedbackTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.validate()
         self.req["feedback_note"] = "review"
+        self.req["created_at"] = bridge.iso(self.now - timedelta(minutes=10))
         self.req["expires_at"] = bridge.iso(self.now - timedelta(seconds=1))
         with self.assertRaises(bridge.ExpiredRequest):
             self.validate()
