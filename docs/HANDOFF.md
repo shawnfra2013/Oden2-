@@ -2,6 +2,18 @@
 
 **Updated:** November 23, 2026 (Central). This is the current human-reviewed checkpoint. Use [the timestamped snapshot workflow](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-project-snapshot.yml) and the actual GitHub main SHA for subsequent sessions. Historical material is not a deployment guide.
 
+
+## November 23 verified physical #71 mailbox migration — later evidence supersedes prior READY gate
+
+**Operator-approved device execution:** the guarded one-service `scripts/odin_mailbox_migrate.py --apply --confirm MIGRATE-ODIN-MAILBOX` reported `status=MIGRATED` for the canonical checkout at SHA `1e3f309e6b7b3f84b1a9dc96524b9ace0b369dc2`, new PID **9200**, and `old_private_state_preserved=true`. The existing launcher was backed up to `~/.odin-preservation/`; preserve the original temporary checkout/state and backup. The actual Termux preflight reported **11 PASS / 0 FAIL / 5 UNVERIFIED**, including PASS for canonical `private_mailbox_runtime_checkout`, four runit services, workstation HTTP 200 and local-model TCP. These latter probes do not prove actual inference, iPhone cellular or reboot persistence.
+
+**Matching live post-migration receipts:** (1) ping request `b710202611231656320000000000000a` completed at **2026-11-23T16:57:01Z**, `alive=true`, PID **9200**, revision `1e3f309e6b7b3f84b1a9dc96524b9ace0b369dc2`; (2) migration read-only preview `b710202611231657000000000000000b` completed **16:58:07Z**, `ALREADY_CANONICAL`, `canonical_checkout_confirmed=true`, PID **9200**, no changes; (3) metadata audit request `b710202611231657130000000000000c` completed **16:58:15Z**, considered 7, 6 matched, 1 pending at audit snapshot, 0 malformed, 0 rejected, 0 stalled, **0 incidents**. These are independent private GitHub → Termux → GitHub responses; the pending audit item is not a reported failure.
+
+**GitHub source cross-check:** at the verification snapshot, `main` was `1e3f309e6b7b3f84b1a9dc96524b9ace0b369dc2`, with exact-main Odin validation, browser and CodeQL Python/JavaScript SUCCESS. A later documentation merge will advance `main` without itself updating Termux; do not claim the device matches an uninstalled future SHA.
+
+**#71 scope:** the specific mailbox migration, preservation and post-restart canonical working directory + ping/audit gate are **PASS**, not pending. Keep [issue #71](https://github.com/shawnfra2013/Oden2-/issues/71) OPEN for remaining exact-release/stale-status/reboot acceptance. Model answer, Tailscale HTTPS, iPhone cellular, and mixed-case `ai` hook installation remain UNVERIFIED; do not repeat the migration or delete preserved private data. The requested one-action **Full Sweep** is not yet implemented; existing ping, local preflight, and private audit are distinct checks. Existing user review/approval does not authorize new features, provider spending or other service restarts.
+
+
 ## November 23 fresh read-only device inventory — current evidence supersedes older pings
 
 **Exact-source verification:** public GitHub main was `cc9b588b572dadeabf62c30ad7e8467bec928840` with exact-main Odin validation, browser and CodeQL Python/JavaScript PASS. This contains the direct-script `ai` memory import repair from merged [PR #156](https://github.com/shawnfra2013/Oden2-/pull/156). Git source does **not** establish that an interactive AI answer succeeds.

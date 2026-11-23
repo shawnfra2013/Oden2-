@@ -39,7 +39,7 @@
 | --- | --- | --- |
 | [#69 — iPhone over cellular](https://github.com/shawnfra2013/Oden2-/issues/69) | Planned | Wi-Fi disabled, Home Screen reopen and one matched encrypted reply |
 | [#70 — Tailscale HTTPS](https://github.com/shawnfra2013/Oden2-/issues/70) | Planned | Private route verified from both devices |
-| [#71 — Exact-revision rollout](https://github.com/shawnfra2013/Oden2-/issues/71) | **Physical read-only READY candidate** at 2026-11-23 16:38:49 UTC: fresh ping matches running SHA `cc9b588...`, migration preview shows noncanonical launcher/PID cwd but canonical clean checkout and safe state checks; no apply/restart. Local workstation selected provider `local`, inference untested | Explicit owner approval for migration, preservation+single-service restart, new live canonical PID/cwd and matching post-migration ping/audit; separate `ai` CLI acceptance |
+| [#71 — Exact-revision rollout](https://github.com/shawnfra2013/Oden2-/issues/71) | **Canonical mailbox migration DEVICE VERIFIED**: operator applied one-service guarded migration, PID 9200 at SHA `1e3f309…`; private ping `…000a` alive at 16:57:01Z, canonical preview `…000b` ALREADY_CANONICAL at 16:58:07Z, audit `…000c` 0 incidents at 16:58:15Z; 11 PASS/0 FAIL/5 UNVERIFIED physical preflight | Preserve backup/old state, do not repeat migration; complete remaining stale-status/reboot, release and separate phone/inference acceptance |
 | [#72 — Documentation and release operations](https://github.com/shawnfra2013/Oden2-/issues/72) | In progress | Reviewed PR, exact-SHA CI, dated handoff |
 | [#91 — Free GitHub automation](https://github.com/shawnfra2013/Oden2-/issues/91) | In progress | Dependabot, CodeQL, nightly evidence, optional Codespaces, manual source release |
 | [#92 — Native Android 10 integration](https://github.com/shawnfra2013/Oden2-/issues/92) | Source merged in PR #93; device unverified | Read-only hooks inventory, permission matrix, then authorized companion/device tests |
@@ -50,7 +50,7 @@
 
 ## Current reliability-first delivery order (overlay, not a second task queue)
 
-1. **#71:** Migrate `odin-private-mailbox` launcher and preserved private Git state to canonical `~/odin-workspace` after a fresh operator-approved preflight; verify live cwd and new ping.
+1. **#71:** Canonical one-service mailbox migration, working directory, post-restart ping and audit are **DEVICE VERIFIED**. Preserve the old private state and launcher backup; finish the remaining exact-release/stale-status/reboot evidence without re-running migration.
 2. **#122:** Accept SQLite FTS5 recall on actual Odin using the reviewed source #123; demonstrate three accurate source-backed answers.
 3. **#86:** Accept the new private trace journal #126 plus prior mailbox audits and identify late, orphaned and failed request stages without private payloads.
 4. **#99:** Use the now-proven GitHub Actions event SHA artifact (#124, repair #125) to support meaningful Work PR reviews, then prove distinct feedback storage, authenticated local agent read and source change; no repetitive ping runs.
