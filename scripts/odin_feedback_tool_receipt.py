@@ -184,8 +184,8 @@ def inspect_feedback(
     }
 
 
-def local_candidates(directory: Path = DEFAULT_OBSERVED) -> list[Path]:
-    directory = Path(directory)
+def local_candidates(directory: Path | None = None) -> list[Path]:
+    directory = Path(DEFAULT_OBSERVED if directory is None else directory)
     if directory.is_symlink() or not directory.is_dir():
         return []
     return [
