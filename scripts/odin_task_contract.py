@@ -86,7 +86,9 @@ def evaluate_contract(contract, observed):
     if type(observed["review_round"]) is not int or observed["review_round"] > contract["max_review_rounds"] or observed["review_round"] < 0:
         reasons.append("review_budget_exceeded")
     tests = observed["tests"]
-    if not isinstance(tests, dict) or any(type(k) is not str or type(v) is not bool for k, v in tests.items()):
+    if (not isinstance(tests, dict) or len(tests) > len(ALLOWED_TESTS)
+            or any(type(k) is not str or k not in ALLOWED_TESTS or type(v) is not bool
+                   for k, v in tests.items())):
         reasons.append("invalid_test_evidence")
     else:
         for name in contract["required_tests"]:
