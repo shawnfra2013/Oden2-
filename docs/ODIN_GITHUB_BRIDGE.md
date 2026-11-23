@@ -16,6 +16,32 @@ A runit `odin-private-mailbox` process may be **running** while executing an obs
 
 **Approved migration sequence (operator action, not automatic):** First inspect source/destination private state and service launcher, preserve a copy of the launcher, gracefully stop only `odin-private-mailbox`, recheck pending receipt journals, outbox divergence and uncommitted changes, copy the private bridge state to the canonical checkout without replacing existing files, replace only the launcher `cd` target, start only that service, then verify live process cwd, a fresh matching private `ping` and `mailbox_audit` receipt. Keep the original private state and launcher backup available for rollback. If any path, state collision or pending/unpushed evidence differs, **stop and inspect** rather than resetting or deleting it. The private SSH key stays in Termux's existing `~/.ssh` location and is never copied into GitHub.
 
+## Guarded one-service migration utility (operator-controlled)
+
+After reviewing [the verified launcher mismatch](https://github.com/shawnfra2013/Oden2-/issues/71), Odin now provides a dedicated, fail-closed, **dry-run-first** migration helper. It does not install code or run automatically.
+
+From an exact, approved canonical checkout, preview the move before touching any service:
+
+```bash
+python -B scripts/odin_mailbox_migrate.py --expected-sha "$(git rev-parse HEAD)"
+```
+
+The preview confirms the current `odin-private-mailbox` runit launcher, its live `/proc/PID/cwd`, canonical `main` SHA, no tracked code changes, the exact private outbox remote and branch, no pending source/feedback/response journals, no unpushed private commits, and no conflicting canonical private state. The tool does **not** fetch, push, restart or modify state in preview mode. A prior clean check is only a snapshot: it is repeated after the service is stopped in apply mode.
+
+**Apply is a separate operator authorization.** Run it only after preview reports `READY` and after reviewing the intended state-copy operation:
+
+```bash
+python -B scripts/odin_mailbox_migrate.py \
+  --expected-sha "$(git rev-parse HEAD)" \
+  --apply --confirm MIGRATE-ODIN-MAILBOX
+```
+
+When approved, the helper backs up the original launcher under `~/.odin-preservation/`, stops **only** `odin-private-mailbox`, rechecks all three pending journals and private Git state, copies the private outbox and logs into previously absent canonical `state/github-bridge-private` (never moves or deletes the original), restricts copied file permissions, atomically changes only the launcher's `cd` directory, restarts only the mailbox, and verifies the new live cwd. A failed restart attempts to restore the original launcher and service; copied state and the old checkout are preserved for forensic review. No force push, reset, private key export, change to `odin-git-sync`, or arbitrary shell execution over the bridge.
+
+**Stop conditions:** Unexpected launcher contents, mismatched live PID/cwd, existing canonical private state, unsafe path or symlink, outbox divergence, journal, source SHA mismatch, oversized state, or failed service transition all block further migration. If a staging directory remains after an interrupted copy, preserve it for inspection—do not delete it automatically.
+
+**Post-migration verification:** Run `python -B scripts/odin_preflight.py --mode device`, `sv status "$PREFIX/var/service/odin-private-mailbox"`, and request a **new** matching allowlisted private `ping` plus `mailbox_audit` receipt. A successful launcher migration does not establish phone connectivity or an AI's source-editing capability.
+
 ## Offline development source receipts
 
 A portable test run (`python -B scripts/odin_codespace.py test`) saves a source-only receipt under the canonical Odin checkout at `~/odin-workspace/state/codespace-receipts/<id>.json`. The **existing** supervised private mailbox polls about once per minute when connected and, on this version of the bridge, uploads up to three valid receipts per cycle to the **private** `odin-bridge-outbox` branch at `bridge/local-source-receipts/<id>.json`. No tokens, code, chat transcripts, terminal stdout/stderr, or passwords are copied into the receipts. Uploading is part of the already-authorized private transport; it neither executes a command nor edits source.
