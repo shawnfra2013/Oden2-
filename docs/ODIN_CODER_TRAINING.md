@@ -32,6 +32,12 @@ python -B -m scripts.odin_coder_coach \
 
 The example invocation ID is illustrative. Use the **real** value returned by the proposal builder. A nonzero exit code means the critique needs revision or a safety gate failed; it does not permit an unattended rewrite.
 
+## Advisory feedback on the next coding attempt
+
+When a proposal fails static critique, the reviewer also saves **only fixed category codes and fixed guidance strings** to a separate, ignored `state/coder-coach/lessons/` cache keyed to the exact target module. On the next authorized proposal for that module, the builder reads the small checked record and adds it to the **existing** model request as quoted, non-authoritative context. No new cloud call is initiated. The record contains no candidate source, earlier user task text, secrets or shell commands. Unknown or tampered guidance is rejected, not executed.
+
+The full immutable `critique.json` stays in the old proposal invocation for audit. This lightweight feedback memory is **not** weight training, does not claim a better functional coding score, and never expands the worker's file permissions. A proposal may still fail independent Ruff, unit tests, code review, or physical acceptance.
+
 ## Progressive improvement cycle
 
 1. Use a new in-scope coding task and the exact approved base SHA. Save the first raw attempt separately, its source hash, task ID and model identifier. Never edit or overwrite prior receipts.
