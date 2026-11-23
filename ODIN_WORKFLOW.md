@@ -10,6 +10,8 @@
 - On-device inference is the free-first default. A paid/online provider is used only when explicitly chosen, configured, and covered by a known cost guard. No silent fallback or startup model calls.
 - For active ports and service launchers, use [the registry](config/odin-services.json) and [its guide](docs/SERVICE_REGISTRY.md), not old plans. It distinguishes tracked launchers from device-generated ones.
 
+**Supervised coding and review:** Use [the collaboration framework](docs/COLLABORATION_FRAMEWORK.md) for bounded task acceptance, review receipts, failure investigation, two revision rounds maximum, and verified handoff. The [integrated 20-item GitHub task board](docs/TASK_BOARD.md) is priority order; do not silently start future items or treat a received note as executed work.
+
 ## Standard change workflow
 1. Start with [README](README.md), [runtime truth](docs/ODIN_RUNTIME.md), [current handoff](docs/HANDOFF.md), and [open GitHub issues](docs/TASK_BOARD.md). Archive records are historical only.
 2. Before editing, identify the relevant issue and current main SHA. Record acceptance criteria; do not reopen completed milestones because of old folder names.
