@@ -1,5 +1,31 @@
-# Historical project memory — archive index
+# Odin project memory — source-backed index
 
-Previous dated milestones and raw state records have been moved intact to [historical project memory](archive/PROJECT_MEMORY_before_2026-11-22.md). They are **not** current setup instructions or evidence of today's device state.
+**Source of truth:** GitHub repository `shawnfra2013/Oden2-`, with exact revision, task/PR and evidence links. This document is an entry point for **human or agent retrieval**; its presence in Git does **not** mean the local Odin model automatically ingests or remembers it.
 
-For what Odin currently uses, start with [current runtime](ODIN_RUNTIME.md). For present work and verified evidence see [task board](TASK_BOARD.md) and [status](PROJECT_STATUS.md). For the next session use [handoff](HANDOFF.md).
+## Read this first for an Odin work session
+
+1. [Latest verified collaboration checkpoint — 2026-11-23](audits/ODIN_VERIFIED_MEMORY_2026-11-23.md): what passed, what failed, unresolved conditions, exact source/receipt references, and safe next steps.
+2. [Current handoff](HANDOFF.md): approved resume plan and physical-device blockers.
+3. [Single prioritized task board](TASK_BOARD.md): task owners, acceptance and dependencies; do not create a competing backlog here.
+4. [Dated incident and trial log](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md): test history, failures, remedies and proof limitations.
+5. [Current runtime](ODIN_RUNTIME.md): supported environment and boundary between GitHub source, physical Odin and phone.
+
+## What is and is not retained
+
+**Retained in Git:** reviewed code commits; sanitized decisions, change history, issue comments, test/result links, dated memory checkpoints. Git stores versions for retrieval, not autonomous semantic learning.
+
+**Retained privately:** the physical device's ignored `state/` files, local queue/model records, audit snapshots, and authenticated private mailbox receipts. They are **not** part of the public Git commit history and do not constitute a Git backup.
+
+**Not yet verified:** a startup routine that loads these Git memory notes into Odin's local model, searchable long-term semantic memory, or independently demonstrated learning from prior errors. To claim these, add an explicit retrieval procedure and a before/after memory acceptance test, with no automatic execution of retrieved text.
+
+## Memory update rules
+
+- Add new facts once, in a dated checkpoint or the existing canonical issue/PR; link rather than duplicating whole conversation transcripts.
+- Every claim should include its provenance: UTC observation time, request/receipt ID, Git SHA, CI link, issue/PR, and PASS/FAIL/BLOCKED/UNVERIFIED status.
+- Keep **code merged**, **device installed**, **message stored**, **agent read**, **agent acted**, and **source verified** as different states.
+- Never commit raw private messages, credentials, personal chat, device paths with secrets, or unrestricted device logs.
+- Do not erase historical failures after fixing them. Record the fix, tests, and remaining physical verification separately.
+
+## Historical project memory
+
+Earlier dated milestones and raw historical state records remain intact in the [historical project memory archive](archive/PROJECT_MEMORY_before_2026-11-22.md). Historical files are **not** current setup instructions or proof of today's running device.
