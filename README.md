@@ -18,7 +18,7 @@ Odin's local browser is the **Odin Local Workstation** (historical implementatio
 | Open work | [Task board](docs/TASK_BOARD.md) |
 | Evidence-aware status | [Status guide](docs/PROJECT_STATUS.md) |
 | Architecture decisions | [Decision log](docs/DECISIONS.md) |
-| Session continuation | [Handoff](docs/HANDOFF.md) |
+| Session continuation | [Handoff](docs/HANDOFF.md) and [communication continuity](docs/ODIN_CONNECTION_MEMORY.md) (PR #139 until merged) |
 | Replace old iPhone saved links | [Shortcut cutover](docs/SHORTCUT_CUTOVER.md) |
 | Previous stages, providers, and observations | [Historical archive](docs/archive/README.md) |
 
