@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta name="odin-release" content="9bf2d14756601012">
+<meta name="odin-release" content="2fcb30e4908a1180">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#080b14">
@@ -56,7 +56,7 @@
           <div class="hero-footer"><span>LAST ODIN RESPONSE</span><strong id="lastSeen">—</strong></div>
         </div>
 
-        <div class="section-heading"><h2>System health</h2><span class="section-aside" id="snapshotTime">Live snapshot</span></div>
+        <div class="section-heading"><h2>System health</h2><span class="section-aside" id="snapshotTime">Live snapshot</span><span class="section-aside" id="liveRefreshStatus" role="status"></span></div>
         <div class="metric-grid">
           <div class="metric-card"><div class="metric-icon violet">◎</div><div class="metric-name">Bridge</div><div class="metric-value" id="bridgeState">Checking</div></div>
           <div class="metric-card"><div class="metric-icon blue">⌘</div><div class="metric-name">GitHub CI</div><div class="metric-value" id="ciState">Checking</div></div>
@@ -104,7 +104,7 @@
             <input id="vaultUnlockPassword" type="password" autocomplete="current-password" spellcheck="false" placeholder="Your unlock password" aria-label="Unlock saved Odin access" required>
             <button type="submit" id="vaultUnlockButton">Unlock</button>
           </form>
-          <form id="accessForm" class="connect-row">
+          <form id="accessForm" class="connect-row" hidden>
             <input id="accessToken" type="password" autocomplete="off" spellcheck="false" placeholder="Existing long access token" minlength="32" aria-label="Odin Control access token" required>
             <button type="submit" id="accessButton">Connect</button>
           </form>
@@ -246,10 +246,10 @@
 
   <script src="/vault.js?v=d2bc6bdb1220a95a" defer></script>
   <script src="/chat-route.js?v=97899efb4adef727" defer></script>
-  <script src="/app.js?v=3fb0034264e6bf44" defer></script>
+  <script src="/app.js?v=f80807694f6324f4" defer></script>
   <script src="/encrypted-chat.js?v=d8c8e6676e97dd8a" defer></script>
 <script src="/local-tools.js?v=8ecded70f6483524" defer></script>
 <script src="/ui-settings.js?v=02a07db6a01bac42" defer></script>
-<script src="/app-update.js?v=0f94944aee935642" defer></script>
+<script src="/app-update.js?v=2fe641a8008857a5" defer></script>
 </body>
 </html>

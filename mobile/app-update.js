@@ -6,7 +6,7 @@
   let next="", checking=false;
   function announce(msg){banner.hidden=false;banner.textContent=msg;}
   function busy(){
-    return privateState.sending || relayLocal.sending || document.querySelector('#sealedSend[aria-busy="true"]') ||
+    return state.liveRefresh || privateState.sending || relayLocal.sending || document.querySelector('#sealedSend[aria-busy="true"]') ||
       privateState.token || privateState.history.length || document.querySelector("#sealedAnswer").textContent ||
       Array.from(document.querySelectorAll("input:not([type=checkbox]),textarea")).some(el=>el.value);
   }
@@ -36,7 +36,7 @@
     finally{checking=false;}
   }
   apply.onclick=()=>{if(next && (!busy() || window.confirm("Reload now? Unsaved drafts and this tab’s temporary session may be cleared.")))reload();};
-  document.getElementById("refreshBtn").addEventListener("click",()=>{refresh();checkCapabilities();window.dispatchEvent(new Event("odin-refresh-settings"));check(true);});
+  document.getElementById("refreshBtn").addEventListener("click",()=>{refreshFromDevice();checkCapabilities();window.dispatchEvent(new Event("odin-refresh-settings"));check(true);});
   const tab=location.hash.slice(1);
   if(["overview","activity","chat","system"].includes(tab)) navigate(tab);
   window.addEventListener("pageshow",()=>check());

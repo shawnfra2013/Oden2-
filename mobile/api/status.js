@@ -210,7 +210,7 @@ async function loadStatus() {
 
 module.exports = async function handler(req, res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("Cache-Control", "public, s-maxage=45, stale-while-revalidate=60");
+  res.setHeader("Cache-Control", "no-store");
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method not allowed" });

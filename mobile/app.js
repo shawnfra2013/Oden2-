@@ -1,6 +1,6 @@
 "use strict";
 
-const state = { data: null, filter: "all", loading: false, error: null };
+const state = { data: null, filter: "all", loading: false, error: null, liveRefresh: null };
 const $ = id => document.getElementById(id);
 const SHA = /^[0-9a-f]{40}$/;
 const ACTION_LABELS = {
@@ -326,6 +326,56 @@ function renderAll() {
   renderHero(); renderMetrics(); renderSteps();
   renderActivity(); renderSystem(); renderChat();
 }
+function liveRefreshStatus(request, receipts, now = Date.now()) {
+  if (!request.id) return "Sending health request to Odin…";
+  const receipt = receipts.find(item => item.id === request.id && item.action === "odin_health");
+  if (receipt?.status === "complete" && Date.parse(receipt.checked_at) >= request.created) {
+    return "Odin checked " + time(receipt.checked_at);
+  }
+  if (receipt?.status === "rejected_or_failed") return "Odin health check failed";
+  if (receipt?.status === "expired" || now >= request.expires) return "No fresh reply · last report may be stale";
+  return null;
+}
+
+async function refreshFromDevice() {
+  if (state.liveRefresh) return;
+  if (!privateState.connected || !privateState.diagnostics || !odinRoute.work()) {
+    await refresh();
+    $("liveRefreshStatus").textContent = !privateState.connected
+      ? "Unlock private controls to request a fresh Odin report."
+      : !privateState.diagnostics
+        ? "Live device requests are unavailable on this deployment."
+        : "Enable the bridge and select Work to refresh from Odin.";
+    return;
+  }
+  const request = {};
+  state.liveRefresh = request;
+  $("refreshBtn").disabled = true;
+  $("liveRefreshStatus").textContent = liveRefreshStatus(request, []);
+  try {
+    const result = await authenticatedPost("/api/command", {action:"odin_health"}, privateState.token);
+    const created = Date.parse(result.created_at);
+    const expires = Date.parse(result.expires_at);
+    if (result.accepted !== true || result.action !== "odin_health"
+        || !/^[a-f0-9]{32}$/.test(result.id || "") || !(expires > created)) {
+      throw Error("Invalid health request receipt");
+    }
+    Object.assign(request, {id:result.id, created, expires});
+    while (true) {
+      await refresh();
+      const status = liveRefreshStatus(request, state.data?.receipts || []);
+      $("liveRefreshStatus").textContent = status || "Waiting for Odin’s matching health report…";
+      if (status) break;
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+  } catch (error) {
+    $("liveRefreshStatus").textContent = "Health request unconfirmed: " + error.message;
+  } finally {
+    state.liveRefresh = null;
+    $("refreshBtn").disabled = state.loading;
+  }
+}
+
 async function refresh() {
   if (state.loading) return;
   state.loading=true;
@@ -351,7 +401,7 @@ async function refresh() {
     }
   } finally {
     state.loading=false;
-    $("refreshBtn").disabled=false;
+    $("refreshBtn").disabled=Boolean(state.liveRefresh);
     renderAll();
     renderSecureState();
     if (privateState.connected && document.visibilityState === "visible") refreshRelay();
@@ -471,7 +521,7 @@ function renderSecureState() {
     $("accessState").textContent=capabilities?.access_configured
       ? (savedVaultPresent() && !preferTokenForm
         ? "Enter your saved unlock password; the token stays encrypted on this device."
-        : "Private server configured. Enter your access token to connect.")
+        : "Choose Remember this browser for one-time approval.")
       : "Private server token is not set. See setup instructions in GitHub.";
   } else {
     $("accessState").textContent="Authenticated for this tab. Cloud AI: "
@@ -505,14 +555,15 @@ function savedVaultPresent(){
 function renderVaultUI(){
   const saved=savedVaultPresent();
   const connected=privateState.connected;
-  $("accessForm").hidden=connected || (saved && !preferTokenForm);
+  $("accessForm").hidden=connected || !preferTokenForm;
   $("vaultUnlockForm").hidden=connected || !saved || preferTokenForm;
   $("rememberBrowser").hidden=connected;
   $("vaultSaveForm").hidden=!privateState.token || !connected || (saved && !preferTokenForm);
-  $("vaultManagement").hidden=!saved;
+  $("vaultManagement").hidden=connected && !saved;
+  $("vaultForget").hidden=!saved;
   $("vaultUseToken").hidden=connected;
   $("vaultUseToken").textContent=preferTokenForm
-    ? "Use saved password" : "Use access token instead";
+    ? (saved ? "Use saved password" : "Use browser approval") : "Use access token instead";
 }
 async function connectPrivateAccess(token){
   const result=await authenticatedPost("/api/session",{},token);
@@ -625,7 +676,7 @@ $("vaultForget").addEventListener("click",()=>{
     renderVaultUI();
     $("accessState").textContent=privateState.connected
       ? "Encrypted saved access forgotten. Current session remains connected."
-      : "Saved access forgotten. Enter your long access token to connect.";
+      : "Saved access forgotten. Choose Remember this browser to connect.";
   }catch{
     $("accessState").textContent="Could not clear saved access in this browser.";
   }
@@ -912,10 +963,10 @@ $("rememberBrowser").addEventListener("click",async()=>{
     if (!/^[0-9a-f]{32}$/.test(result.browser_id)) throw Error("Invalid browser ID");
     $("browserPairState").textContent="Send this browser ID to your Odin project chat for approval: "+result.browser_id;
   } catch {
-    $("browserPairState").textContent="Could not register this browser. Open Odin Control in a regular Chrome tab and retry.";
+    $("browserPairState").textContent="Could not register this browser. Open Odin Control in Safari on your iPhone and retry.";
   } finally { button.disabled=false; }
 });
-connectPrivateAccess(null).then(()=>{
+if(!savedVaultPresent())connectPrivateAccess(null).then(()=>{
   renderSecureState();
   renderVaultUI();
   renderRelay();
