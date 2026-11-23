@@ -103,7 +103,7 @@ def audit_messages(
     latencies = []
     considered = 0
     for name, data in sorted(requests.items()):
-        if not name.endswith(".json") or not ID.fullmatch(Path(name).stem):
+        if not name.endswith(".json") or not ID.fullmatch(Path(name).stem) or name != Path(name).stem + ".json":
             counts["malformed"] += 1
             continue
         ident = Path(name).stem
@@ -113,7 +113,11 @@ def audit_messages(
             counts["malformed"] += 1
             incidents.append({"id": ident, "code": "malformed_request"})
             continue
-        if created < cutoff or created > instant + timedelta(minutes=5):
+        if created > instant + timedelta(minutes=5):
+            counts["malformed"] += 1
+            incidents.append({"id": ident, "code": "future_request"})
+            continue
+        if created < cutoff:
             continue
         considered += 1
         filename = ident + ".json"
@@ -134,6 +138,10 @@ def audit_messages(
             counts["malformed"] += 1
             incidents.append({"id": ident, "code": "malformed_response"})
             continue
+        if checked_at > instant + timedelta(minutes=5):
+            counts["malformed"] += 1
+            incidents.append({"id": ident, "code": "response_in_future"})
+            continue
         if checked_at < created - timedelta(seconds=1):
             counts["malformed"] += 1
             incidents.append({"id": ident, "code": "response_before_request"})
@@ -143,6 +151,10 @@ def audit_messages(
             incidents.append({"id": ident, "code": "action_mismatch"})
             continue
         if status == "complete":
+            if action not in ACTIONS_SAFE:
+                counts["malformed"] += 1
+                incidents.append({"id": ident, "code": "unexpected_action_complete"})
+                continue
             if action == "ping" and responses[filename].get("result", {}).get("alive") is not True:
                 counts["malformed"] += 1
                 incidents.append({"id": ident, "code": "ping_not_alive"})
@@ -155,6 +167,17 @@ def audit_messages(
             counts[status] += 1
             incidents.append({"id": ident, "code": status})
         latencies.append(max(0, round((checked_at - created).total_seconds())))
+    # A fresh response without any corresponding local inbox request may be a
+    # replay, partial fetch, or corrupted clone; do not infer its origin.
+    for name, data in sorted(responses.items()):
+        if name in requests:
+            continue
+        try:
+            ident, checked_at, _, _ = _response(name, data)
+        except (ValueError, TypeError):
+            continue
+        if cutoff <= checked_at <= instant + timedelta(minutes=5):
+            incidents.append({"id": ident, "code": "orphan_response"})
     report = {
         "schema": 1,
         "scope": "private_mailbox_metadata",
