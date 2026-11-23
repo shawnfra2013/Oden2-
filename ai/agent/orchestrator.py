@@ -13,6 +13,11 @@ else:
     import pipeline
 
 ROOT = Path(__file__).resolve().parents[2]
+# The legacy ~/.local/bin/ai directly executes this file; Python then adds
+# ai/agent, rather than the checkout root, to sys.path. The bounded project
+# memory module lives under scripts/ at that trusted checkout root.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 API = "https://api.groq.com/openai/v1/chat/completions"
 MODEL = "openai/gpt-oss-120b"
 ROLES = {"research", "coder", "reviewer", "tester", "device"}

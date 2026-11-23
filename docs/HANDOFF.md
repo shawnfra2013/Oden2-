@@ -2,6 +2,13 @@
 
 **Updated:** November 23, 2026 (Central). This is the current human-reviewed checkpoint. Use [the timestamped snapshot workflow](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-project-snapshot.yml) and the actual GitHub main SHA for subsequent sessions. Historical material is not a deployment guide.
 
+## November 23 Termux direct-orchestrator memory import repair (source review)
+
+The operator reproduced an actual `ai` traceback: direct execution of `ai/agent/orchestrator.py` raised `ModuleNotFoundError: No module named 'scripts'` while importing the optional local `odin_project_memory` module. The existing memory unit test imported the orchestrator via the package, masking the direct-entrypoint path. The scoped source fix inserts only the resolved trusted repository root in the direct-entrypoint Python module search path, with a no-inference subprocess regression running outside the checkout. This is a code-path repair, **not** proof of functional model inference or installed device update.
+
+The same physical read-only diagnostic showed local `main` SHA `312a075fab3a931af3d68d39c6b708bd7c300f28`, the original `ai` executable present, and the optional Bash-hook installer preview READY. Issue #71 migration preview returned BLOCKED because expected source `9bf0d34a169df05ffb94a939010f00cb828ba13a` did not match the local SHA. Do not treat this mismatch as a private-state failure or apply the migration before an approved source sync and fresh physical preflight. The prior request `b7102026112315245800000000000005` was answered `status=expired` at 16:21:49 UTC; it is not a fresh liveness pass.
+
+
 
 ## November 23 current #71 and protected AI CLI continuation (source vs device)
 

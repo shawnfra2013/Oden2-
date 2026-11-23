@@ -143,6 +143,36 @@ class LocalMemoryTests(unittest.TestCase):
         with patch.object(memory, "_revision", return_value="b" * 40):
             self.assertEqual(self.query("bridge")["source_sha"], "b" * 40)
 
+    def test_direct_script_imports_project_memory_without_inference(self):
+        # Reproduce the legacy 'ai' direct-file entrypoint with an unrelated
+        # current directory and no inherited checkout PYTHONPATH.
+        import subprocess
+        import sys
+
+        from ai.agent import orchestrator
+
+        agent_file = Path(orchestrator.__file__).resolve()
+        agent_dir = agent_file.parent
+        root = agent_file.parents[2]
+        probe = "\\n".join([
+            "import runpy, sys",
+            f"root = {str(root)!r}",
+            f"agent_dir = {str(agent_dir)!r}",
+            "sys.path = [p for p in sys.path if p != root]",
+            "sys.path.insert(0, agent_dir)",
+            f"runpy.run_path({str(agent_file)!r}, run_name='import_only_probe')",
+            "from scripts.odin_project_memory import context_for",
+            "print('MEMORY_IMPORT_OK')",
+        ])
+        with tempfile.TemporaryDirectory() as unrelated:
+            result = subprocess.run(
+                [sys.executable, "-I", "-B", "-c", probe],
+                cwd=unrelated, capture_output=True, text=True,
+                check=False, timeout=15,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr[-1200:])
+        self.assertIn("MEMORY_IMPORT_OK", result.stdout)
+
     def test_orchestrator_injects_memory_as_data_without_model_network(self):
         from ai.agent import orchestrator
         saved = []
