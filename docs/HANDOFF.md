@@ -76,6 +76,10 @@ The newest source features are all through reviewed, green PR-head checks: [#123
 
 **Physical installation remains distinct:** the last operator-confirmed canonical checkout was `0abab1045650cd6cb8968c61ced4b027974f42b2`, and the private mailbox service last proved running from temporary `odin-pr45-test.iwGRYw`. Do not automatically update, migrate, restart or claim memory ingestion/trace records from GitHub source alone. First follow the [state-preserving launcher migration runbook](ODIN_GITHUB_BRIDGE.md), keeping private outbox history and untracked files. A newly observed matching ping, exact source SHA, running PID/cwd, local memory recall and trace summary are required afterward. Work technical comments on #119/#120 beyond the original PR-open review are not yet independently evidenced.
 
+## Guarded private mailbox launcher migration utility (source only)
+
+A source-reviewed helper now exists at `scripts/odin_mailbox_migrate.py`. Preview mode (`--expected-sha SHA`, without `--apply`) verifies the live launcher and PID/cwd, canonical source SHA, tracked file cleanliness, pending private receipts, private outbox Git branch/remote and unpushed commits, stale copy directories and destination collisions. The **separate operator-owned** `--apply --confirm MIGRATE-ODIN-MAILBOX` is designed to back up the old launcher, stop **only** `odin-private-mailbox`, repeat receipt checks, copy (never delete) private state, atomically repoint the launcher and restart with rollback on failure. Unit tests use entirely fake filesystem and runit interfaces. Until an actual approved device preview and application are observed, the launcher remains **UNVERIFIED / not migrated**. See [private mailbox runbook](ODIN_GITHUB_BRIDGE.md) and [issue #71](https://github.com/shawnfra2013/Oden2-/issues/71).
+
 ## Next controlled acceptance sequence
 
 1. Review exact GitHub main SHA and associated Actions checks after the final docs merge; preserve untracked owner files.
