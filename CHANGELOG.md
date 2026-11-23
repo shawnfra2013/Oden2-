@@ -2,6 +2,33 @@
 
 For historical changes, see [the archived changelog](docs/archive/CHANGELOG_before_2026-11-22.md). Historical records are not current deployment instructions.
 
+## November 23, 2026 — protected `ai` portal and verified mailbox auditor repair
+
+- Merged [PR #153](https://github.com/shawnfra2013/Oden2-/pull/153) at `312a075fab3a931af3d68d39c6b708bd7c300f28` with Odin Checks, browser and CodeQL source PASS: optional `ai`/`AI`/`Ai`/`aI` Bash hook, preserving the original executable and reusing existing colorful dashboard [#149](https://github.com/shawnfra2013/Oden2-/pull/149). Offline chat and explicit hosted mode are separate; no automatic paid call, service, or shell-profile installation occurred. Duplicate [PR #150](https://github.com/shawnfra2013/Oden2-/pull/150) was closed unmerged.
+- Merged [PR #152](https://github.com/shawnfra2013/Oden2-/pull/152), correcting the existing mailbox auditor's failure to recognize its own allowlisted action. **Physical after-update audit** `b7102026112315194000000000000004` at 15:20:36 UTC reported 5 matched, 1 pending, 0 malformed and 0 incidents on device-reported SHA `15e0c09...`.
+- Merged [PR #154](https://github.com/shawnfra2013/Oden2-/pull/154) source-only for a safe, allowlisted `mailbox_migration_preview`; no arbitrary commands, state copy or service change. It cannot be invoked until the new code is actually loaded on the handheld. Source passing and device migration remain independent.
+
+
+## November 23, 2026 — read-only colorful terminal and live mailbox evidence
+
+- Merged [issue #148 terminal dashboard](https://github.com/shawnfra2013/Oden2-/issues/148) in [PR #149](https://github.com/shawnfra2013/Oden2-/pull/149) (source commit `a692b5fe9a63da045a104ade9dcc56920d440777`, exact-head CI PASS): dependency-free ANSI read-only Termux status/watch, runit/PIDs, canonical mailbox PID/cwd preflight, task queue, local trace and exact-main public GitHub CI/issues, with controlled refresh rate. No installer, alias replacement or service restart.
+- Physical issue #71 private transport independently returned `ping` request `b7102026112314520000000000000001`, status complete and alive=true at **14:53:18 UTC**, reporting PID 31499 and source `0a9538a0a02576a70faaf4c4691c276ab1d338ad`. A distinct `mailbox_audit` request `b7112026112314552400000000000001` completed at **14:56:39 UTC** with one matched and one pending, zero recorded incidents and stalls. These prove bounded device responses, not a canonical launcher's current filesystem path or installed terminal dashboard.
+- The expired earlier ping `3c63d6ac4953bba8df7c5f66aa18bda0` was recorded at 14:48:25 UTC, not a liveness PASS. A physical state-preserving migration remains subject to fresh read-only preflight and separate operator approval.
+
+## November 23, 2026 — five free-first agentic upgrades (source-only)
+
+- **Communication:** [PR #143](https://github.com/shawnfra2013/Oden2-/pull/143) adds a matching, freshness-gated private ping verifier; the existing private manual workflow remains the trigger. Live Odin remained UNVERIFIED after a pending request, so no physical liveness claim is made.
+- **Coding delegation:** [PR #144](https://github.com/shawnfra2013/Oden2-/pull/144) adds a contract/SHA/clean-checkout preflight for an expressly attached coding agent. It cannot launch Codespaces or execute a task.
+- **Proof timeline:** [PR #135](https://github.com/shawnfra2013/Oden2-/pull/135) validates event/run correlation; [#138](https://github.com/shawnfra2013/Oden2-/pull/138) gates supervision evidence on timestamp freshness; [#146](https://github.com/shawnfra2013/Oden2-/pull/146) renders a claimed-stage timeline without calling it authenticated agent action.
+- **Measurable learning:** [#136](https://github.com/shawnfra2013/Oden2-/pull/136) checks two-round repair and changed SHAs; [#137](https://github.com/shawnfra2013/Oden2-/pull/137) compares bounded held-out pass counts; [#146](https://github.com/shawnfra2013/Oden2-/pull/146) presents the counts. No independently measured Odin improvement or weight update is claimed.
+- **Offline-first phone:** [#145](https://github.com/shawnfra2013/Oden2-/pull/145) preserves a previously approved encrypted request across a network dropout, retries it after reconnect and displays explicit expired/rejected response states without exposing private content. Real iPhone cellular test pending.
+- All related PR-head source checks passed before merge; verify the final exact-main-SHA push checks separately. Source changes do not reload Termux processes or approve device deployment.
+
+## November 23, 2026 — consolidated agent operating instructions (merged PR #142)
+
+- Established one [read-first collaboration guide](docs/WORK_WITH_ODIN.md), linked from the coding agent entry point, README, workflow, architecture, memory, runtime, and handoff. The guide states the verified GitHub ↔ private mailbox ↔ Odin path, bounded command receipts, current ChatGPT watcher/event limitations, source/agent/device evidence stages, and free-first Codespaces delegation. This documentation and its SQLite source allowlist were merged after source review, but are not an Odin device install or permanent ChatGPT terminal.
+- Reconciled prior communication-handoff proposal [PR #139](https://github.com/shawnfra2013/Oden2-/pull/139) under the single [PR #142](https://github.com/shawnfra2013/Oden2-/pull/142). Historical failure and request IDs remain preserved in existing dated audits. GitHub exact-head CI validates the documentation; live mailbox/phone/agent action requires separate evidence.
+
 ## November 23, 2026 — live device-to-GitHub testing and supervised source fixes
 
 - Coding critic lessons now produce fixed-category, target-bound advisory feedback, loaded on the next authorized proposal with no additional inference request. The immutable full review stays separate; the lesson cache is local and not weight fine-tuning.

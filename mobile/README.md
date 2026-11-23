@@ -31,6 +31,8 @@ from the old dashboard.
 | Optional public diagnostic mailbox submission | `ODIN_GITHUB_TOKEN`, and an explicitly enrolled public diagnostic service |
 | Optional paid online chat | `OPENAI_API_KEY`, `ODIN_OPENAI_MODEL`, positive `ODIN_CLOUD_CHAT_DAILY_LIMIT`, and a durable TLS Redis ledger configured as `ODIN_CHAT_REDIS_URL` |
 
+**Offline-first encrypted chat (source behavior):** After the user approves a send, the browser saves its sealed request ID and ciphertext in IndexedDB before submitting. If the connection drops, the same request may be checked again after reconnect without creating a new ID; the browser's online event retries only an existing saved request while unlocked and in local-device mode. An expired or rejected receipt now reports a fixed failure state, retaining the encrypted draft until the user explicitly dismisses it. No automatic new prompt, plaintext transfer, repeated paid call or device command is introduced. This is browser/source behavior, not proof of the iPhone cellular route; verify it with a real paired phone and [issue #78](https://github.com/shawnfra2013/Oden2-/issues/78).
+
 Phone refresh reads dashboard and GitHub data. Open the private workflow to
 request a new device receipt. The legacy message composer, service restart
 buttons and wake endpoint are retired. A mobile host is optional for Odin

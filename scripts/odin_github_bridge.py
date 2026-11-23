@@ -40,7 +40,7 @@ ORIGINS = {
 }
 POLL_SECONDS = 60
 PRIVATE_ORIGIN = "git@github.com:shawnfra2013/Odin-private-bridge.git"
-PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next", "practice_followup", "regression_details", "review_feedback", "mailbox_audit"})
+PRIVATE_ACTIONS = frozenset({"ping", "stage5_health", "staging_probe", "inference_probe", "encrypted_chat", "install_offline_model", "stage5_note_check", "stage5_source_check", "stage5_coding_review", "practice_next", "practice_followup", "regression_details", "review_feedback", "mailbox_audit", "mailbox_migration_preview", "full_sweep"})
 private_mailbox = False
 
 
@@ -98,6 +98,10 @@ def validate_request(raw, expected_id, now=None):
     if not isinstance(payload, dict):
         raise TypeError("Invalid request object")
     required = REQUEST_KEYS | ({"expected_sha"} if payload.get("action") in REVISION_ACTIONS else set())
+    if private_mailbox and payload.get("action") == "mailbox_migration_preview":
+        required = required | {"expected_sha"}
+        if not isinstance(payload.get("expected_sha"), str) or not SHA_PATTERN.fullmatch(payload["expected_sha"]):
+            raise ValueError("Invalid migration preview SHA")
     if private_mailbox and payload.get("action") == "install_offline_model":
         required = required | {"expected_sha"}
         if not isinstance(payload.get("expected_sha"), str) or not SHA_PATTERN.fullmatch(payload["expected_sha"]):
@@ -341,6 +345,61 @@ def model_capacity():
 
 
 def status_action(action, request=None):
+    if action == "full_sweep":
+        if not private_mailbox or request is None:
+            raise ValueError("Full sweep is private-only and requires a validated request")
+        if __package__:
+            from .odin_full_sweep import inspect
+        else:
+            from odin_full_sweep import inspect
+        # Only fixed local read-only diagnostics; no inference, Git fetch,
+        # remote shell, service mutation, or private payload echo.
+        return inspect(request, status_fn=status_action, health_fn=health_summary,
+                       outbox=OUTBOX)
+    if action == "mailbox_migration_preview":
+        if not private_mailbox or request is None:
+            raise ValueError("Private migration preview requires a validated private request")
+        if __package__:
+            from .odin_mailbox_migrate import MigrationBlocked, check
+        else:
+            from odin_mailbox_migrate import MigrationBlocked, check
+        expected = request["expected_sha"]
+        # Fixed local read-only preview: no GitHub fetch, no shell interpretation,
+        # no service stop/up, no state copy, and no secrets in the response.
+        source_sha = git("rev-parse", "HEAD")
+        result = {"preflight_status": "BLOCKED", "reason": "unverified",
+                  "expected_sha": expected, "runtime_sha": source_sha,
+                  "device_change_performed": False}
+        prefix = os.environ.get("PREFIX")
+        if not prefix:
+            result["reason"] = "termux_prefix_unavailable"
+            return result
+        if expected != source_sha:
+            result["reason"] = "running_revision_mismatch"
+            return result
+        try:
+            plan = check(Path.home(), Path(prefix), expected)
+        except (MigrationBlocked, OSError, ValueError) as exc:
+            reason = str(exc)
+            # Only fixed reason *categories* are exposed. Do not echo private
+            # filenames, paths, untrusted subprocess output, or credentials.
+            lookup = {
+                "Canonical checkout is not the approved source SHA": "canonical_revision_mismatch",
+                "Canonical private state already exists; manual reconciliation required": "destination_collision",
+                "Unsent private receipt journal; reconcile first": "pending_receipt_journal",
+                "Unpushed private outbox commits": "unpushed_outbox",
+                "Private outbox has pending file changes": "dirty_outbox",
+                "Launcher and live process use different checkout": "launcher_process_mismatch",
+                "Missing or unsafe canonical checkout/service": "missing_canonical_service",
+            }
+            result["reason"] = lookup.get(reason, "preflight_blocked")
+            return result
+        result["preflight_status"] = plan["status"]
+        result["reason"] = "none"
+        result["pid"] = plan["pid"]
+        result["canonical_checkout_confirmed"] = plan["status"] == "ALREADY_CANONICAL"
+        result["migration_candidate"] = plan["status"] == "READY"
+        return result
     if action == "mailbox_audit":
         if not private_mailbox:
             raise ValueError("Private mailbox audit requires an authenticated private bridge")

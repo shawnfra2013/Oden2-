@@ -14,7 +14,9 @@
 **Supervised coding and review:** Use [the collaboration framework](docs/COLLABORATION_FRAMEWORK.md) for bounded task acceptance, review receipts, failure investigation, two revision rounds maximum, and verified handoff. The [integrated 20-item GitHub task board](docs/TASK_BOARD.md) is priority order; do not silently start future items or treat a received note as executed work.
 
 ## Standard change workflow
-1. Start with [README](README.md), [runtime truth](docs/ODIN_RUNTIME.md), [current handoff](docs/HANDOFF.md), and [open GitHub issues](docs/TASK_BOARD.md). Archive records are historical only.
+**Start-of-session entry:** [Working with Odin](docs/WORK_WITH_ODIN.md) supplies the quick read, live GitHub/receipt checks, tool/agent roles, and persistence boundaries. It must be read before choosing a task, but it does not override the controls in this file, [release gates](docs/RELEASE_GATES.md), or [collaboration proof](docs/COLLABORATION_FRAMEWORK.md).
+
+1. Start with the [read-first guide](docs/WORK_WITH_ODIN.md), [README](README.md), [runtime truth](docs/ODIN_RUNTIME.md), [current handoff](docs/HANDOFF.md), and [open GitHub issues](docs/TASK_BOARD.md). Validate current GitHub SHA and matched private receipts; archive records are historical only.
 2. Before editing, identify the relevant issue and current main SHA. Record acceptance criteria; do not reopen completed milestones because of old folder names.
 3. Make the smallest reviewable branch/PR, preserving credentials and device state. Do not add hosting or services without a reviewed architecture change.
 4. Run **source checks**: unit tests, syntax, lint, tracked file/path integrity, listener collision detection, active-document guard, and secret checks. Never describe a passing source check as a physical-device test.
@@ -23,6 +25,8 @@
 7. Record evidence and remaining blockers on the GitHub issue, update docs/DECISIONS.md for architecture changes, and refresh docs/HANDOFF.md for the next session.
 
 ## Cost and safety rules
+- Use the authorized GitHub connection and pre-existing allowlisted private device mailbox rather than copying commands when supported. A GitHub Action, a mailbox acknowledgment, a Codespaces shell, and an Odin agent execution are different capabilities; never conflate them.
+- Use an attached, operator-authorized Codespaces shell for bounded source work only when available; GitHub Actions handles deterministic tests without an interactive workspace. Neither service is an implicit permanent free shell or a direct device terminal.
 - No automatic cloud model requests for reading this policy, validating files, CI, startup, or status checks.
 - Do not publish tokens, pairing secrets, private user messages, SSH keys, or personal addresses.
 - Never use force-push, hard reset, remove live services, expose a public port, or auto-restart the device without explicit review.

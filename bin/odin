@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+# Source-only dispatcher. No install, no alias changes, no automatic daemon.
+set -eu
+root="$HOME/odin-workspace"
+if [ ! -f "$root/scripts/odin_terminal.py" ]; then
+  printf 'Odin source missing at %s\n' "$root" >&2
+  exit 2
+fi
+cd "$root"
+if [ "$#" -eq 0 ]; then action="status"; else action="$1"; shift; fi
+case "$action" in
+  status) exec python -B -m scripts.odin_terminal "$@" ;;
+  watch) exec python -B -m scripts.odin_terminal --watch "$@" ;;
+  chat) exec python -B "$root/scripts/odin_chat.py" "$@" ;;
+  preflight) exec python -B "$root/scripts/odin_preflight.py" --mode device "$@" ;;
+  *) printf 'Usage: odin {status|watch|chat|preflight} [options]\n' >&2; exit 2 ;;
+esac

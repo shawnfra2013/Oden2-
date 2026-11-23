@@ -71,6 +71,12 @@ class FeedbackProgressTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.check(changed)
 
+    def test_reused_evidence_reference_rejected(self):
+        changed = copy.deepcopy(self.events)
+        changed[2]["evidence_ref"] = changed[1]["evidence_ref"]
+        with self.assertRaisesRegex(ValueError, "Replayed evidence reference"):
+            self.check(changed)
+
     def test_reverse_timestamp_rejected(self):
         changed = copy.deepcopy(self.events)
         changed[2]["checked_at"] = "2026-11-23T05:00:00Z"

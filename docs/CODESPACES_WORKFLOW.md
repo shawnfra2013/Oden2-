@@ -3,6 +3,8 @@
 **Current scope:** Run source code and tests in a terminal. The same Python entrypoint runs in GitHub Codespaces when online or on Odin in Termux while offline, provided its tools and dependencies are already installed. This is not a remote Termux shell, device deployment, model endpoint, or private receipt bridge.
 
 ## Use now (no editor installation)
+**Delegation boundary:** [Working with Odin](WORK_WITH_ODIN.md) assigns GitHub Actions routine deterministic CI; ChatGPT coordinates approved issues and reviews. A separately authorized, **actually running and attached** coding agent in Codespaces can implement and test scoped changes, then publish a source PR. A GitHub API connection or CI check cannot conjure a Codespaces shell or make that cloud workspace execute Termux device commands. The cost and idle-time controls below still apply. The physical device has its own private mailbox and local agent acceptance gates.
+
 
 - Online: open the GitHub repository in a **manually started GitHub Codespace**, open its terminal, and run the commands below. A Codespace uses cloud compute and **does not run offline**. GitHub account usage, storage, and idle-time charges/limits remain the owner's controls.
 - Offline: open **Termux on Odin** in the checked-out `~/odin-workspace` repository. Run the same commands. Editing and tests can continue without internet, and Git pushes wait until connectivity returns.
@@ -21,6 +23,10 @@ The source test loop runs active-doc checks, source structure checks, Python tes
 **Offline-to-private receipt sync on Odin:** When this revision is installed and the existing `odin-private-mailbox` service is restarted with owner approval, that service reads receipts from the canonical `~/odin-workspace/state/codespace-receipts/` queue. Once internet returns it submits validated summaries to the **private** GitHub repository's `odin-bridge-outbox` branch under `bridge/local-source-receipts/<id>.json`. It preserves local originals, ignores malformed or symlinked files, caps uploads at three per poll, retries interrupted commits/pushes, and rejects conflicting IDs. A private `ping` may report `last_source_receipt_push` with the latest successful upload time. This is not a device-health receipt and is separate from private request/response IDs.
 
 **Codespaces:** Cloud-generated receipts stay local to the Codespace; its GitHub Actions source checks provide durable cloud evidence. No Codespace is granted access to the handheld's private mailbox key or allowed to impersonate Odin. Running the source CLI does not automatically push source changes to GitHub. Approved source changes still require Git commits, PR review and CI.
+
+## Scoped agent task preflight (source-only)
+
+From an already operator-authorized and actually attached Codespaces or local shell, save the reviewed issue's exact task contract privately, then run `python -B -m scripts.odin_agent_handoff --contract /private/scoped-task.json`. The read-only result checks the task schema, current checkout SHA and tracked cleanliness and returns allowed paths/tests/maximum two review rounds. `READY_FOR_OPERATOR_ATTACHED_AGENT` is **not** evidence of a coding agent being attached or authorized; the owner must independently establish tool permissions and context. The command cannot start Codespaces, run model inference, execute arbitrary task text, clone private keys, create commits or install code. A delegated coding agent must separately publish a scoped PR, test receipts and exact-head CI before implementation can be credited. See [collaboration proof](COLLABORATION_FRAMEWORK.md).
 
 ## Existing receipt and release process
 

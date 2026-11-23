@@ -14,13 +14,13 @@ import sqlite3
 import stat
 import subprocess
 import tempfile
-from contextlib import closing
+from contextlib import closing, contextmanager
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = (
     "docs/PROJECT_MEMORY.md",
-    "docs/ODIN_CONNECTION_MEMORY.md",
+    "docs/WORK_WITH_ODIN.md",
     "docs/HANDOFF.md",
     "docs/TASK_BOARD.md",
     "docs/ODIN_RUNTIME.md",
@@ -29,6 +29,9 @@ DOCS = (
 )
 MAX_DOC_BYTES = 96000
 MAX_CHUNK_CHARS = 1100
+MAX_SNIPPETS = 500
+MAX_INDEX_BYTES = 16 * 1024 * 1024
+MAX_SQLITE_VALUE_BYTES = 64 * 1024
 WORD = re.compile(r"[a-zA-Z0-9]{3,}")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 
@@ -159,7 +162,7 @@ def _create_index(path: Path, files, fingerprint: str, revision: str) -> int:
                 (name, heading, body)
                 for name, content in files for heading, body in _parts(content)
             ]
-            if len(rows) > 500:
+            if len(rows) > MAX_SNIPPETS:
                 raise ValueError("Too many memory snippets")
             connection.executemany(
                 "INSERT INTO snippets(path,heading,body) VALUES(?,?,?)", rows,
@@ -178,40 +181,61 @@ def _create_index(path: Path, files, fingerprint: str, revision: str) -> int:
     return len(rows)
 
 
-def ensure_index(root: Path = ROOT, db_path: Path | None = None) -> tuple[Path, str]:
-    """Rebuild only when approved local documents change; no GitHub fetch."""
+def _cache_matches(db, documents, fingerprint, revision):
+    # This transaction stays open through retrieval. A replacement can publish
+    # a new index without changing which source and rows this reader observes.
+    db.execute("BEGIN")
+    db.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, MAX_SQLITE_VALUE_BYTES)
+    page_count = db.execute("PRAGMA page_count").fetchone()[0]
+    page_size = db.execute("PRAGMA page_size").fetchone()[0]
+    if page_count * page_size > MAX_INDEX_BYTES:
+        return False
+    meta = dict(db.execute("SELECT key,value FROM meta LIMIT 4"))
+    if meta != {"schema": "1", "content_sha256": fingerprint, "local_git_sha": revision}:
+        return False
+    # Limit by bytes before transferring untrusted fields to Python. One byte
+    # of slack makes an overlong value distinguishable from any valid prefix.
+    rows = db.execute(
+        "SELECT substr(CAST(path AS BLOB),1,?), substr(CAST(heading AS BLOB),1,?),"
+        " substr(CAST(body AS BLOB),1,?) FROM snippets ORDER BY rowid LIMIT ?",
+        (max(len(name.encode()) for name in DOCS) + 1, 4 * 200 + 1,
+         4 * MAX_CHUNK_CHARS + 1, MAX_SNIPPETS + 1),
+    )
+    for name, content in documents:
+        for heading, body in _parts(content):
+            if next(rows, None) != (name.encode(), heading.encode(), body.encode()):
+                return False
+    if next(rows, None) is not None:
+        return False
+    return db.execute("PRAGMA quick_check(1)").fetchone() == ("ok",)
+
+
+@contextmanager
+def _validated_index(root, db_path):
     root = Path(root)
-    documents, fingerprint = _read_documents(root)
-    revision = _revision(root)
     index = _db_path(root, db_path)
-    if (index.is_symlink() or index.parent.is_symlink()
-            or index.parent.parent.is_symlink()):
-        raise ValueError("Symlinked memory index or parent directory")
-    if index.is_file():
-        try:
-            with closing(sqlite3.connect(f"file:{index}?mode=ro", uri=True)) as connection:
-                rows = dict(connection.execute("SELECT key,value FROM meta").fetchall())
-            # Metadata alone is not proof that the FTS cache still contains the
-            # approved source paragraphs. A damaged or edited cache must never
-            # be presented as verified project memory.
-            expected = [
-                (name, heading, body)
-                for name, content in documents for heading, body in _parts(content)
-            ]
-            with closing(sqlite3.connect(f"file:{index}?mode=ro", uri=True)) as connection:
-                integrity = connection.execute("PRAGMA integrity_check").fetchone()
-                actual = connection.execute(
-                    "SELECT path,heading,body FROM snippets ORDER BY rowid"
-                ).fetchall()
-            if (rows.get("schema") == "1" and rows.get("content_sha256") == fingerprint
-                    and rows.get("local_git_sha") == revision
-                    and integrity == ("ok",) and actual == expected):
-                return index, revision
-        except sqlite3.DatabaseError:
-            # Replace only the generated cache; never modify curated source files.
-            pass
-    _create_index(index, documents, fingerprint, revision)
-    return index, revision
+    _safe_index(index)
+    for attempt in range(2):
+        documents, fingerprint = _read_documents(root)
+        revision = _revision(root)
+        if index.is_file():
+            with closing(sqlite3.connect(index.resolve().as_uri() + "?mode=ro", uri=True)) as db:
+                try:
+                    matches = _cache_matches(db, documents, fingerprint, revision)
+                except sqlite3.DatabaseError:
+                    matches = False
+                if matches:
+                    yield db, index, revision
+                    return
+        if attempt == 0:
+            _create_index(index, documents, fingerprint, revision)
+    raise ValueError("Project memory index changed during validation")
+
+
+def ensure_index(root: Path = ROOT, db_path: Path | None = None) -> tuple[Path, str]:
+    """Return the generated cache path and the revision observed during validation."""
+    with _validated_index(root, db_path) as (_, index, revision):
+        return index, revision
 
 
 def search(query: str, *, root: Path = ROOT, db_path: Path | None = None,
@@ -224,13 +248,12 @@ def search(query: str, *, root: Path = ROOT, db_path: Path | None = None,
     terms = list(dict.fromkeys(WORD.findall(query.lower())))[:8]
     if not terms:
         return {"source_sha": "unverified", "results": [], "verified_externally": False}
-    index, revision = ensure_index(root, db_path)
     # Require all meaningful query terms first. Only fall back to broad
     # relevance when exact coverage cannot fill the result budget.
     expressions = (" AND ".join(term + "*" for term in terms),
                    " OR ".join(term + "*" for term in terms))
     hits, seen = [], set()
-    with closing(sqlite3.connect(f"file:{index}?mode=ro", uri=True)) as db:
+    with _validated_index(root, db_path) as (db, _, revision):
         for expression in dict.fromkeys(expressions):
             rows = db.execute(
                 "SELECT path,heading,body FROM snippets WHERE snippets MATCH ? "

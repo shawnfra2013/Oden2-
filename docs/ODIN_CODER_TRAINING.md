@@ -50,6 +50,14 @@ The full immutable `critique.json` stays in the old proposal invocation for audi
 
 **Training is not ordinary Git memory retrieval:** retrieval improves context without modifying weights; adapter training changes candidate weights but is not automatically better. The observed local model server is an OpenAI-compatible loopback endpoint and does not, by itself, prove compatible Qwen2 base weights or an available training accelerator.
 
+## Held-out comparison guard (source merged in PR #137)
+
+The source-only `scripts/odin_coding_benchmark.py` accepts a bounded, metadata-only held-out report. It **does not** run model inference, train an adapter, authenticate self-reported grader flags, or authorize activation. In [PR #137](https://github.com/shawnfra2013/Oden2-/pull/137) its source decision rule rejects identical baseline/candidate revision SHAs; a candidate with **more** independently claimed passing cases receives a comparison `PASS`, fewer is `FAIL`, and a tie is `BLOCKED` with `no_measured_gain`. It explicitly sets `promotion_authorized=false` and `grader_claims_authenticated=false` in every comparison outcome. A report cannot be considered proof of real weight improvement without separately authenticated holdout grading, compatible local training and a reviewed reversible promotion gate. The source implementation is merged; actual unseen functional grading, compatible on-device training and physical acceptance remain UNVERIFIED.
+
+## Inspecting claimed coding progression
+
+The source-only `scripts/odin_progress_dashboard.py` CLI can show a supervised task's ordered claim stages and the before/after pass counts from `odin_coding_benchmark.compare`. It labels the output UNVERIFIED until an independently authenticated grader, actual functional tests, exact-head CI and operator acceptance are present. The CLI does not create held-out examples, train a model or alter live weights. Compare evidence over time in reviewed issue attachments, not a self-reported chart that silently turns claims green.
+
 ## Acceptance matrix
 
 | Gate | Evidence required | Meaning |
