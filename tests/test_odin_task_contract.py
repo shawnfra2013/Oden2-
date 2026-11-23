@@ -104,7 +104,7 @@ class OdinTaskContractTests(unittest.TestCase):
             self.evaluate()
 
     def test_control_character_paths_are_rejected(self):
-        for invalid in ("scripts/hello\\n.py", "scripts/hello\\x00.py", "scripts/test\\t.py"):
+        for invalid in ("scripts/hello" + chr(10) + ".py", "scripts/hello" + chr(0) + ".py", "scripts/test" + chr(9) + ".py"):
             with self.subTest(invalid=invalid):
                 self.observed["changed_paths"] = [invalid]
                 self.assertIn("invalid_changed_paths", self.evaluate()["reasons"])
