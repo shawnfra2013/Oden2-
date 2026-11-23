@@ -56,6 +56,12 @@ The review-feedback CLI gained a merged [PR #116](https://github.com/shawnfra201
 
 A fresh read-only ping (`c0ad2026000000000000000000000009`) sent after the new source merges had **no matching private outbox response after at least 150 seconds**, while the outbox's last observed commit remained at 07:35:29 UTC. Record this as a delivery stall, not proof of a device shutdown or a failed installation. Before live rollout, collect a new read-only Termux service/status observation or a later matching response. See incident B-018 in [the trial ledger](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md).
 
+## Latest physical bridge launcher discovery
+
+At 2026-11-23 08:20–08:23 UTC, a read-only Termux check confirmed that the active `odin-private-mailbox` runit launcher and process cwd were in `~/odin-pr45-test.iwGRYw` rather than the canonical `~/odin-workspace`. The previous missing `agent.log` was a lookup under the wrong state directory. Both checkouts had Git SHA `d12f965128bc3ef479c00e1fdc85546371a46d93`. The private staging outbox was clean, with zero unpushed commits and neither pending receipt journal; canonical outbox was absent. A fresh matching ping completed at 08:21:59 UTC, and the allowlisted remote mailbox audit completed at 08:23:08 UTC (12 considered, 11 matched, one pending, zero stalls; longest reply 756s). The cause of the earlier delay remains unknown.
+
+**Next operator gate:** preserve private outbox/history and launcher backup, migrate only the private mailbox state/launcher to the canonical checkout, and restart only the private mailbox runit service after a final collision check. Never remove staging logs, reset branches or overwrite canonical private state. The device preflight now reports FAIL when either the launcher or running process uses a noncanonical checkout. See [private mailbox runbook](ODIN_GITHUB_BRIDGE.md).
+
 ## Next controlled acceptance sequence
 
 1. Review exact GitHub main SHA and associated Actions checks after the final docs merge; preserve untracked owner files.

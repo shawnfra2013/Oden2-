@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import shutil
 import socket
 import subprocess
@@ -128,6 +129,73 @@ def service_status(name: str, *, prefix: Path | None, runner=run_command) -> dic
                   "Unrecognized supervisor response (not promoted to PASS)", required=required)
 
 
+
+def private_mailbox_launch_path(
+    *, prefix: Path | None, home: Path, proc_root: Path = Path("/proc"),
+    runner=run_command,
+) -> dict:
+    """Read-only: verify both runit launcher and live process use canonical Odin.
+
+    This catches the case where GitHub/~/odin-workspace is updated, but runit
+    continues executing an older checkout under a temporary test directory.
+    No service restart, process signal, or command taken from the launcher.
+    """
+    label = "private_mailbox_runtime_checkout"
+    if prefix is None:
+        return record(label, "UNVERIFIED", "Termux service root unavailable", required=True)
+    service = prefix / "var/service/odin-private-mailbox"
+    launcher = service / "run"
+    try:
+        source = launcher.read_text(encoding="utf-8")
+    except OSError:
+        return record(label, "UNVERIFIED", "Cannot inspect mailbox launcher", required=True)
+    if len(source) > 8192:
+        return record(label, "FAIL", "Unexpectedly large mailbox launcher", required=True)
+    expected = (home / "odin-workspace").resolve()
+    targets = []
+    for line in source.splitlines():
+        if not re.match(r"^\s*cd\s+", line):
+            continue
+        try:
+            fields = shlex.split(line, comments=True)
+        except ValueError:
+            return record(label, "UNVERIFIED", "Cannot parse mailbox launcher directory", required=True)
+        if len(fields) != 2 or fields[0] != "cd":
+            return record(label, "UNVERIFIED", "Unrecognized mailbox launcher directory", required=True)
+        target_text = fields[1]
+        if target_text == "$HOME":
+            target_text = str(home)
+        elif target_text.startswith("$HOME/"):
+            target_text = str(home / target_text[6:])
+        target = Path(target_text)
+        if not target.is_absolute():
+            return record(label, "UNVERIFIED", "Relative mailbox launcher directory", required=True)
+        targets.append(target.resolve())
+    if len(targets) != 1:
+        return record(label, "UNVERIFIED", "Mailbox launcher directory not uniquely identified",
+                      required=True)
+    if targets[0] != expected:
+        return record(label, "FAIL", "Mailbox launcher targets a noncanonical checkout",
+                      required=True)
+    result = runner(["sv", "status", str(service)], timeout=5)
+    if result is None or result.returncode:
+        return record(label, "UNVERIFIED", "Cannot obtain running mailbox PID", required=True)
+    match = re.search(r"\(pid ([0-9]{1,9})\)", result.stdout)
+    if not result.stdout.startswith("run:") or match is None:
+        return record(label, "UNVERIFIED", "Mailbox service is not confirmed running",
+                      required=True)
+    try:
+        observed = (proc_root / match[1] / "cwd").resolve(strict=True)
+    except OSError:
+        return record(label, "UNVERIFIED", "Cannot inspect live mailbox process directory",
+                      required=True)
+    if observed != expected:
+        return record(label, "FAIL", "Running mailbox process uses a noncanonical checkout",
+                      required=True)
+    return record(label, "PASS", "Launcher and running mailbox use canonical checkout",
+                  required=True)
+
+
 def workstation_status(opener=urlopen) -> dict:
     try:
         with opener("http://127.0.0.1:8765/api/health", timeout=3) as response:
@@ -185,6 +253,7 @@ def device_checks(prefix: Path | None = None, home: Path | None = None) -> list[
         for name in ("odin-private-mailbox", "odin-git-sync",
                      "odin-task-worker", "odin-stage5")
     ]
+    checks.append(private_mailbox_launch_path(prefix=root, home=user_home))
     checks.extend((
         workstation_status(),
         local_model_status(user_home),
