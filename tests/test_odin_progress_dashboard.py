@@ -16,7 +16,7 @@ def task():
 
 def event(stage, sha=BASE):
     return {"state": stage, "request_id": ID, "head_sha": sha,
-            "checked_at": TIME, "evidence_ref": "evidence:local-only"}
+            "checked_at": TIME, "evidence_ref": f"evidence:local-only:{stage}"}
 
 
 def bench():
