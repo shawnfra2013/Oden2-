@@ -6,7 +6,6 @@ import fcntl
 import hashlib
 import json
 import os
-import sqlite3
 import subprocess
 import sys
 import time
@@ -101,21 +100,6 @@ def failure_record(
     }
 
 
-def investigate(data, phase, reason):
-    try:
-        try:
-            from scripts.odin_relay_journal import failure
-        except ImportError:
-            from odin_relay_journal import failure
-        goal = str(data.get("goal", "")).strip().lower()
-        action = ("worker_proposal" if goal.startswith("propose ") else
-                  "worker_git_status" if goal in {"git status", "check git status", "show git status", "git status --short"}
-                  else "worker_conversation")
-        failure(ROOT / "state" / "odin-relay", data.get("id"), action, phase, reason)
-    except (sqlite3.Error, OSError) as error:
-        print("Worker investigation journal unavailable:", type(error).__name__, file=sys.stderr)
-
-
 def fail_task(source, error, *, kind="execution_error", phase="execute"):
     raw = pipeline.read(ROOT, source.relative_to(ROOT).parts, 262144)
     try:
@@ -136,7 +120,6 @@ def fail_task(source, error, *, kind="execution_error", phase="execute"):
     if pipeline.read(ROOT, source.relative_to(ROOT).parts, 262144) != raw:
         raise RuntimeError("Queue source changed during failure recording")
     pipeline.unlink(ROOT, source.relative_to(ROOT).parts)
-    investigate(data, phase, kind + "_" + type(error).__name__)
     return data
 
 
@@ -216,7 +199,6 @@ def recover():
                 ROOT, path.relative_to(ROOT).parts
             )
 
-            investigate(data, "recovery", "outcome_unknown")
             print(
                 f"TASK {path.stem}: "
                 "interrupted - manual review required",

@@ -6,7 +6,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from scripts import odin_relay_client as relay
 from scripts import odin_service_restart as restart
 
 
@@ -18,17 +17,7 @@ class OdinServiceRestartTests(unittest.TestCase):
         self.assertTrue(restart.reserve_restart(mid, state_dir=state, clock=lambda: 1000))
         return state / (mid + ".json")
 
-    def test_exact_language_matches_only_allowed_restart(self):
-        for text in ("/restart-services", "/restart-all-services",
-                     "restart all services", "Restart Odin Services",
-                     "restart odin"):
-            self.assertEqual(relay.normalized_action(text), "restart_services")
-        for text in ("/restart-services; reboot", "restart my phone",
-                     "/restart-services --force", "please restart all services",
-                     "run sv restart sshd"):
-            self.assertNotEqual(relay.normalized_action(text), "restart_services")
-
-    def test_restarting_requires_existing_supervised_services_and_relay_last(self):
+    def test_restarting_requires_existing_supervised_services(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             state_dir = root / "state"
@@ -55,7 +44,7 @@ class OdinServiceRestartTests(unittest.TestCase):
             self.assertIn("odin-github-bridge:not_configured", data["reply"])
             self.assertEqual(
                 [name for verb, name in invoked if verb == "restart"],
-                ["odin-git-sync", "odin-task-worker", "odin-private-relay"],
+                ["odin-git-sync", "odin-task-worker"],
             )
             self.assertEqual(restart.run_restarts(
                 self.MID, state_dir=state_dir, prefix=prefix, call=fake_call), 2)
@@ -64,7 +53,7 @@ class OdinServiceRestartTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             state = root / "state"
-            service = "odin-private-relay"
+            service = "odin-stage5"
             for name in restart.SERVICES:
                 path = root / "var" / "service" / name
                 path.mkdir(parents=True)
@@ -76,8 +65,6 @@ class OdinServiceRestartTests(unittest.TestCase):
                 self.assertEqual(path.name, service)
                 return SimpleNamespace(returncode=0, stdout="run: ok")
             self.assertEqual(restart.run_restarts(self.MID, state_dir=state, prefix=root, call=call), 0)
-            self.assertEqual(relay.restart_target("/restart-service odin-private-relay"), service)
-            self.assertIsNone(relay.restart_target("/restart-service sshd"))
 
     def test_runit_symlink_service_entry_is_supported(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -102,7 +89,7 @@ class OdinServiceRestartTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertEqual(json.loads(record.read_text())["phase"], "finished")
             self.assertEqual([n for a, n in invoked if a == "restart"],
-                             ["odin-git-sync", "odin-task-worker", "odin-private-relay"])
+                             ["odin-git-sync", "odin-task-worker"])
 
     def test_health_failure_cannot_claim_verified(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -159,40 +146,10 @@ class OdinServiceRestartTests(unittest.TestCase):
             self.assertTrue(popen.call_args.kwargs["close_fds"])
             self.assertNotIn("token", " ".join(argv).lower())
 
-    def test_result_retry_after_relay_restart_is_idempotent(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            record = self.create(root)
-            entry = json.loads(record.read_text())
-            entry.update(phase="finished", reply="ODIN_SERVICES_RESTART_RESULT verified=true")
-            restart.save_record(record, entry)
-            sent = []
-            def failure(*args):
-                raise RuntimeError("Odin relay transport unavailable")
-            self.assertEqual(restart.publish_pending("not-a-real-token", failure,
-                                                    state_dir=record.parent), 0)
-            self.assertEqual(restart.publish_pending(
-                "not-a-real-token",
-                lambda _token, body: sent.append(body), state_dir=record.parent), 1)
-            self.assertEqual(sent[0]["type"], "reply")
-            self.assertEqual(sent[0]["for"], self.MID)
-            self.assertEqual(restart.publish_pending(
-                "not-a-real-token", lambda *_: self.fail("duplicate reply"),
-                state_dir=record.parent), 0)
-
-    def test_interrupted_helper_yields_failure_not_success(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            record = self.create(root)
-            entries = restart.pending_replies(state_dir=record.parent, clock=lambda: 1000 + 310)
-            self.assertEqual(len(entries), 1)
-            self.assertIn("verified=false", entries[0][1]["reply"])
-            self.assertIn("helper_interrupted", entries[0][1]["reply"])
-
     def test_bad_id_does_not_become_shell_argv(self):
         with tempfile.TemporaryDirectory() as folder, self.assertRaises(ValueError):
             restart.reserve_restart("abc; reboot", state_dir=Path(folder))
-        self.assertEqual(restart.SERVICES[-1], "odin-private-relay")
+        self.assertEqual(restart.SERVICES[-1], "odin-stage5")
         self.assertNotIn("sshd", restart.SERVICES)
 
 

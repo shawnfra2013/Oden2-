@@ -48,42 +48,15 @@ jobs:
       - name: Check sync launch permissions
         run: test -x scripts/git-sync.sh && test -x services/git-sync/run
 
-      - name: Verify hosted app release fingerprint
-        run: |
-          python scripts/stamp_mobile.py
-          git diff --exit-code -- mobile/index.html
-
       - name: Stage 4 offline regression
         run: python -B -m unittest discover -s tests -p 'test*.py' -v
 
       - name: Stage 5 offline regression
         run: python -B -m unittest discover -s stage5 -p 'test_*.py' -v
 
-      - name: Install private relay SDK for dashboard tests
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install mobile dependencies
-        run: npm ci --prefix mobile --no-audit --no-fund --ignore-scripts
-
-      - name: Verify Odin iPhone dashboard
-        shell: bash
+      - name: Verify local web app scripts
         run: |
-          set -euo pipefail
-          node --check mobile/app.js
-          node --check mobile/api/status.js
-          node --check mobile/api/session.js
-          node --check mobile/api/command.js
-          node --check mobile/api/chat.js
-          node --check mobile/api/capabilities.js
-          node --check mobile/api/relay.js
-          node --check mobile/lib/relay.js
-          node --check mobile/lib/access.js
-          node --check mobile/tests/status.test.js
-          node --check mobile/tests/control.test.js
-          node --check mobile/tests/relay.test.js
-          node --test mobile/tests/*.test.js
+          for file in stage5/*.js; do node --check "$file"; done
 
       - name: Lint Python
         run: ruff check .

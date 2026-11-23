@@ -1,3 +1,11 @@
+## Unreleased · Odin-hosted phone access
+
+- Serve the same Odin web app on the handheld and to its enrolled iPhone over Tailscale.
+- Use only on-device inference in the web app. Refresh reads Odin directly.
+- Keep confirmed service restarts with a receipt that survives app reload.
+- Remove the old hosting config, relay, wake hooks, and associated dependencies.
+- Add a cutover and live verification runbook.
+
 ## November 20 · Structure audit repairs
 
 [Offline model and encrypted chat setup](docs/OFFLINE_CHAT.md).
@@ -245,7 +253,7 @@ Remaining limitations:
   boundaries. AI responses remain unverified model text, not evidence
   of actions or shell execution.
 - Add device-only AI environment readiness and a fixed failure-code
-  protocol for private messages, validated by Vercel and shown in the
+  protocol for private messages, validated by the former hosted app and shown in the
   existing iPhone interface. No secret contents appear in replies.
 - Add Python and Node regression tests; a live reply from an AI model,
   unlike the already proven Git task, still requires separate verification.

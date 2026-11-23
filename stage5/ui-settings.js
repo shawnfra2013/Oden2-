@@ -8,12 +8,6 @@
     heading.textContent = settings.heading || original;
   }
   const panel = document.getElementById("uiEdits");
-  if (!panel) {
-    const refresh = () => fetch("/ui-settings.json",{cache:"no-store"}).then(r => r.json()).then(paint).catch(() => {});
-    window.addEventListener("odin-refresh-settings",refresh);
-    refresh();
-    return;
-  }
   const el = id => document.getElementById(id);
   const status = text => { el("editStatus").textContent = text; };
   let saved, busy = false;
