@@ -40,6 +40,10 @@ This table records observations at the cited private receipt times. Do not copy 
 
 The bridge **does not yet provide** an authenticated general remote shell or automatically start a Codespace. A received feedback note is not proof of local agent read, generated change, or independently reviewed PR. Priorities and issue states remain in [the single task board](TASK_BOARD.md).
 
+## Collaboration and incident audit continuation
+
+The November 23 stress-test observations, including the eight-message backlog (8/8 replies over two polling cycles), branch limits, rejected command injection, source fixes, exact receipts and missing ChatGPT push wake-up are in [the dated collaboration trial ledger](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md). An offline-capable, on-demand private mailbox auditor was added in a reviewed source PR. Run it only from an approved checkout with `python -B scripts/odin_mailbox_audit.py --hours 1 --save`. Its local snapshots do **not** establish live ChatGPT wake-up or autonomous Odin coding.
+
 ## Next controlled acceptance sequence
 
 1. Review exact GitHub main SHA and associated Actions checks after the final docs merge; preserve untracked owner files.
