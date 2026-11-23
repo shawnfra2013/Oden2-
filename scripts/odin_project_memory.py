@@ -183,8 +183,9 @@ def ensure_index(root: Path = ROOT, db_path: Path | None = None) -> tuple[Path, 
     documents, fingerprint = _read_documents(root)
     revision = _revision(root)
     index = _db_path(root, db_path)
-    if index.is_symlink():
-        raise ValueError("Symlinked memory index")
+    if (index.is_symlink() or index.parent.is_symlink()
+            or index.parent.parent.is_symlink()):
+        raise ValueError("Symlinked memory index or parent directory")
     if index.is_file():
         try:
             with closing(sqlite3.connect(f"file:{index}?mode=ro", uri=True)) as connection:
