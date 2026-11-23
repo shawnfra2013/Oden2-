@@ -1,5 +1,7 @@
 # Odin 2 — Safe self-update and useful device tasks
 
+See the [current runtime guide](ODIN_RUNTIME.md) for supported hosts and post-update checks.
+
 For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](STRUCTURE_HARDENING.md).
 
 Current device transport and November 20 verification are documented in [the private GitHub mailbox runbook](ODIN_GITHUB_BRIDGE.md). Use that mailbox for device checks.
@@ -212,7 +214,7 @@ the iPhone message field. Follow up with a normal question and confirm
 an actual on-device model response before declaring this milestone done.
 
 No device credential is automatically inferred from the hosted
-Vercel cloud AI capability flag; those are independent providers.
+former host cloud AI capability flag; those are independent providers.
 
 ## 2026-11-19 — On-demand verified supervised service restart
 

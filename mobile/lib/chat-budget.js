@@ -1,5 +1,5 @@
 "use strict";
-const {withClient}=require("./wake");
+const {withClient}=require("./redis-client");
 const {createHash}=require("node:crypto");
 const reserveScript=`
   if redis.call('EXISTS', KEYS[1]) == 1 then return 'duplicate' end
@@ -14,7 +14,7 @@ function dailyLimit(){
   return /^([1-9]|[1-9][0-9]{1,2})$/.test(value)?Number(value):0;
 }
 function configured(){
-  return Boolean(dailyLimit() && process.env.ODIN_WAKE_REDIS_URL?.startsWith("rediss://"));
+  return Boolean(dailyLimit() && process.env.ODIN_CHAT_REDIS_URL?.startsWith("rediss://"));
 }
 async function reserve(id){
   const day=new Date().toISOString().slice(0,10);

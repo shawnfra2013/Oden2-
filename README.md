@@ -1,5 +1,9 @@
 # Oden2-
 
+Start with the [current Odin runtime and cutover guide](docs/ODIN_RUNTIME.md). The dated checkpoints below record earlier configurations.
+
+The [iPhone setup guide](mobile/README.md) covers remembered browser access, password recovery, and the cellular Home Screen test. A passing repository check verifies the published code; check the handset separately after each rollout.
+
 [Offline model and encrypted chat setup](docs/OFFLINE_CHAT.md).
 
 For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](docs/STRUCTURE_HARDENING.md).
@@ -234,7 +238,7 @@ are bounded verifiable tasks, not arbitrary shell or unreviewed code execution.
 The mobile interface offers shortcuts that fill the composer; the user still
 presses Send. Cloud AI messages are separate from this ChatGPT conversation.
 
-**Verification distinction:** GitHub green CI and a Vercel READY deployment do
+**Verification distinction:** GitHub green CI and a successful web deployment do
 not prove that Odin has installed/restarted the new revision or that a fresh
 private iPhone message received a live reply. Those are separate acceptance
 gates documented in the roadmap.

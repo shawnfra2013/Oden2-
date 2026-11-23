@@ -354,7 +354,6 @@ async function refresh() {
     $("refreshBtn").disabled=false;
     renderAll();
     renderSecureState();
-    if (privateState.connected && document.visibilityState === "visible") refreshRelay();
   }
 }
 
@@ -400,7 +399,7 @@ refresh();
 // The unlock password is never transmitted or stored, and is not a server key.
 const privateState = {
   token:null, connected:false, cloud:false, diagnostics:false,
-  history:[], cloudEvents:[], pending:null, capabilities:null, sending:false
+  history:[], pending:null, capabilities:null, sending:false
 };
 
 function addChatLine(role,text) {
@@ -411,27 +410,18 @@ function addChatLine(role,text) {
   container.append(label,bubble);
   $("chatLog").append(container);
   $("chatLog").scrollTop=$("chatLog").scrollHeight;
-  privateState.cloudEvents.push({
-    id:"cloud-"+privateState.cloudEvents.length,
-    sender:role==="user"?"you-cloud":role==="error"?"cloud-error":"cloud-ai",
-    text,at:new Date().toISOString(),
-    status:role==="user"?"Sent to cloud provider":
-      role==="error"?"Cloud AI failed":"Cloud AI replied"
-  });
-  renderRelay();
+
 }
 let pendingCloudTurn=null;
 function clearPrivateChat() {
   pendingCloudTurn=null;
   privateState.history=[];
-  privateState.cloudEvents=[];
-  renderRelay();
   $("chatLog").replaceChildren(create("div","empty-state",
     "New local tab conversation. Nothing was sent to Odin."));
   $("chatSendStatus").textContent="Conversation cleared";
 }
 async function authenticatedPost(path, body, token) {
-  if ((path==="/api/command" || path==="/api/relay") && !odinRoute.work()) throw Error("Turn on the bridge and select Work for device actions.");
+  if (path==="/api/command" && !odinRoute.work()) throw Error("Turn on the bridge and select Work for device actions.");
   if (path==="/api/encrypted-chat" && (!odinRoute.bridge || odinRoute.model!=="local")) throw Error("Device chat paused in this browser.");
   if (path==="/api/chat" && odinRoute.model!=="cloud") throw Error("Select the online model first.");
   const response=await fetch(path,{
@@ -471,7 +461,7 @@ function renderSecureState() {
     $("accessState").textContent=capabilities?.access_configured
       ? (savedVaultPresent() && !preferTokenForm
         ? "Enter your saved unlock password; the token stays encrypted on this device."
-        : "Private server configured. Enter your access token to connect.")
+        : "Choose Remember this browser for one-time approval.")
       : "Private server token is not set. See setup instructions in GitHub.";
   } else {
     $("accessState").textContent="Authenticated for this tab. Cloud AI: "
@@ -505,14 +495,15 @@ function savedVaultPresent(){
 function renderVaultUI(){
   const saved=savedVaultPresent();
   const connected=privateState.connected;
-  $("accessForm").hidden=connected || (saved && !preferTokenForm);
+  $("accessForm").hidden=connected || !preferTokenForm;
   $("vaultUnlockForm").hidden=connected || !saved || preferTokenForm;
   $("rememberBrowser").hidden=connected;
   $("vaultSaveForm").hidden=!privateState.token || !connected || (saved && !preferTokenForm);
-  $("vaultManagement").hidden=!saved;
+  $("vaultManagement").hidden=connected && !saved;
+  $("vaultForget").hidden=!saved;
   $("vaultUseToken").hidden=connected;
   $("vaultUseToken").textContent=preferTokenForm
-    ? "Use saved password" : "Use access token instead";
+    ? (saved ? "Use saved password" : "Use browser approval") : "Use access token instead";
 }
 async function connectPrivateAccess(token){
   const result=await authenticatedPost("/api/session",{},token);
@@ -521,10 +512,7 @@ async function connectPrivateAccess(token){
   privateState.connected=true;
   privateState.cloud=result.cloud_chat_configured===true;
   privateState.diagnostics=result.device_diagnostics_configured===true;
-  privateState.relay=result.legacy_relay_enabled===true && result.private_relay_configured===true;
-  privateState.paired=result.odin_pairing_configured===true;
   $("accessToken").value="";
-  refreshRelay();
 }
 function lockPrivateAccess(){
   window.dispatchEvent(new Event("odin-session-lock"));
@@ -535,17 +523,9 @@ function lockPrivateAccess(){
   privateState.connected=false;
   privateState.cloud=false;
   privateState.diagnostics=false;
-  privateState.relay=false;
-  privateState.paired=false;
   $("accessToken").value="";
   $("vaultUnlockPassword").value="";
   $("vaultSavePassword").value="";
-  relayLocal.messages=[];
-  relayLocal.acknowledged.clear();
-  pendingRelaySends.clear();
-  relayLocal.error=null;
-  relayLocal.notice=null;
-  relayLocal.lastUpdated=null;
   clearPrivateChat();
 }
 $("accessForm").addEventListener("submit",async event=>{
@@ -625,7 +605,7 @@ $("vaultForget").addEventListener("click",()=>{
     renderVaultUI();
     $("accessState").textContent=privateState.connected
       ? "Encrypted saved access forgotten. Current session remains connected."
-      : "Saved access forgotten. Enter your long access token to connect.";
+      : "Saved access forgotten. Choose Remember this browser to connect.";
   }catch{
     $("accessState").textContent="Could not clear saved access in this browser.";
   }
@@ -706,204 +686,7 @@ for(const button of document.querySelectorAll("[data-odin-action]")){
 checkCapabilities();
 
 
-// PRIVATE RELAY: phone <-> Odin, independent from the public GitHub mailbox.
-// Status values are based on server-stored receipts, never inferred from a
-// model prediction. No arbitrary device action can be transported here.
-const relayLocal = {messages:[], acknowledged:new Set(), loading:false, sending:false, error:null, notice:null, lastUpdated:null};
-const restartLocal = {id:null};
-const pendingRelaySends = new Map();
-const RESTART_COMMANDS=new Set([
-  "/restart-services", "/restart-all-services", "restart all services",
-  "restart odin services", "restart odin"
-]);
-function restartTarget(text){
-  const command=text.trim().toLowerCase().replace(/\s+/g," ");
-  if(RESTART_COMMANDS.has(command))return "all managed Odin services";
-  const match=command.match(/^\/restart-service (odin-(?:git-sync|task-worker|github-bridge|private-relay))$/);
-  return match ? match[1] : null;
-}
-function isRestartCommand(text){
-  return restartTarget(text)!==null;
-}
-const RELAY_FAILURE_LABELS=Object.freeze({
-  ai_disabled:"AI is disabled on Odin; enable the local provider",
-  credential_missing:"AI provider key is not available to the Odin relay",
-  model_missing:"AI model name is not configured on Odin",
-  invalid_provider:"Unsupported Odin AI provider selected",
-  provider_unavailable:"Odin AI provider request failed",
-  provider_timeout:"Odin AI request timed out",
-  model_response_invalid:"Odin AI returned an invalid response",
-  task_failed:"Verified read-only task failed on Odin",
-  status_unavailable:"Odin AI status could not be checked"
-});
-function renderRelay(){
-  for(const panel of document.querySelectorAll("[data-legacy-relay]"))panel.hidden=!privateState.relay || !odinRoute.work();
-  const unlocked=privateState.connected && privateState.relay===true && odinRoute.work();
-  $("relayMessage").disabled=!unlocked;
-  $("inferenceProof").disabled=!unlocked||!privateState.paired||relayLocal.sending;
-  $("relaySendButton").disabled=!unlocked||relayLocal.sending;
-  $("restartAllButton").disabled=!unlocked||!privateState.paired||relayLocal.sending;
-  let restartStatus=!unlocked?"Unlock private controls to restart Odin services.":
-    !privateState.paired?"Odin device pairing is not configured.":
-    "Ready to request a confirmed restart. Odin will send the final result.";
-  if(unlocked&&restartLocal.id){
-    const request=relayLocal.messages.find(m=>m.id===restartLocal.id);
-    const response=relayLocal.messages.find(m=>m.sender==="odin"&&m.reply_to===restartLocal.id);
-    if(response)restartStatus=response.text;
-    else if(request?.status==="read")restartStatus=
-      "Odin read the request. Restart/health checks may be in progress; awaiting final result.";
-    else if(request?.status==="failed")restartStatus="Restart request failed before completion.";
-    else restartStatus="Restart request queued. Waiting for Odin to receive it.";
-  }
-  $("restartAllStatus").textContent=restartStatus;
-  const count=relayLocal.messages.filter(m=>m.sender==="odin"&&
-    !["read","replied"].includes(m.status)).length;
-  const badge=$("relayBadge");
-  const inboxConfirmed=unlocked && !relayLocal.error && relayLocal.lastUpdated &&
-    Date.now()-Date.parse(relayLocal.lastUpdated)<90000;
-  badge.className="live-pill "+(inboxConfirmed?"good":"warn");
-  badge.lastChild.textContent=!unlocked?"Private access locked"
-    : relayLocal.error?"Inbox sync failed"
-    : !inboxConfirmed?"Checking inbox"
-    : (count?count+" unread":"Inbox checked");
-  $("relayState").textContent=relayLocal.error || relayLocal.notice || (!privateState.connected
-    ? "Connect your private session"
-    : !privateState.relay?"Private storage unavailable"
-    : !privateState.paired?"Odin has not been paired with its relay token"
-    : relayLocal.lastUpdated ? "Last relay refresh "+time(relayLocal.lastUpdated)
-    : "Checking private message inbox…");
-  // Source labels prevent cloud API messages from being mistaken for
-  // physical Odin replies or this exact ChatGPT application conversation.
-  const events=[...relayLocal.messages,...privateState.cloudEvents]
-    .sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)).slice(-35);
-  replaceChildren("relayMessages",events.length
-    ? events.map(m=>{
-      const fromCloud=typeof m.sender==="string" &&
-        (m.sender==="cloud-ai"||m.sender==="cloud-error"||m.sender==="you-cloud");
-      const actor=m.sender==="odin"?"ODIN DEVICE":
-        m.sender==="cloud-ai"?"CLOUD AI (API)":
-        m.sender==="cloud-error"?"CLOUD AI ERROR":
-        m.sender==="you-cloud"?"YOU → CLOUD AI":"YOU → ODIN";
-      const row=create("div","relay-entry "+(fromCloud?"cloud":
-        m.sender==="odin"?"odin":"iphone"));
-      row.append(create("div","relay-entry-label",actor+" · "+time(m.at)));
-      row.append(create("div","relay-entry-text",m.text));
-      let stateLabel=m.status;
-      if(!fromCloud && m.sender==="iphone" &&
-         ["queued","delivered","read"].includes(m.status)){
-        const age=Date.now()-Date.parse(m.at);
-        if(m.status==="queued" && age>120000)stateLabel="Queued · Odin has not acknowledged (delayed)";
-        else if(m.status==="read" && age>90000)stateLabel="Read by Odin · awaiting response";
-        else if(m.status==="delivered")stateLabel="Delivered to Odin · awaiting processing";
-      }
-      if(m.status==="failed")stateLabel="Failed · "+
-        (RELAY_FAILURE_LABELS[m.failure_reason]||
-          "Review Odin relay status; no verified answer was returned");
-      row.append(create("div","relay-entry-status",stateLabel));
-      return row;
-    }) : [create("div","empty-state","No messages or replies yet")]);
-  document.title=count?"("+count+") Odin Control":"Odin — Control Center";
-}
-async function refreshRelay(){
-  if(!odinRoute.work()||relayLocal.loading||!privateState.connected||!privateState.relay)return;
-  relayLocal.loading=true;
-  try{
-    const resp=await fetch("/api/relay",{
-      headers:{"Accept":"application/json",
-        ...(privateState.token ? {"Authorization":"Bearer "+privateState.token} : {})},
-      cache:"no-store",signal:AbortSignal.timeout(12000)
-    });
-    const payload=await resp.json().catch(()=>({}));
-    if(!resp.ok)throw Error(typeof payload.error==="string"
-      ? payload.error.slice(0,150) : "Relay HTTP "+resp.status);
-    if(!Array.isArray(payload.messages)||payload.source!=="private-odin-relay")
-      throw Error("Unexpected relay response");
-    relayLocal.messages=payload.messages;
-    relayLocal.error=null;
-    relayLocal.notice=null;
-    relayLocal.lastUpdated=new Date().toISOString();
-    renderRelay();
-    const activeChat=$("view-chat").classList.contains("active") &&
-      document.visibilityState==="visible";
-    if(activeChat){
-      for(const msg of payload.messages){
-        if(msg.sender==="odin"&&msg.to==="iphone"&&msg.status==="queued" &&
-           !relayLocal.acknowledged.has(msg.id)){
-          relayLocal.acknowledged.add(msg.id);
-          authenticatedPost("/api/relay",{
-            type:"receipt",for:msg.id,state:"read"
-          },privateState.token).catch(()=>{
-            relayLocal.acknowledged.delete(msg.id);
-          });
-        }
-      }
-    }
-  }catch(err){
-    relayLocal.error="Message sync failed: "+err.message;
-    renderRelay();
-  }finally{relayLocal.loading=false;}
-}
-async function queuePrivateRelayMessage(text){
-  if(!privateState.connected||!privateState.relay||relayLocal.sending)return;
-  if(!text||text.length>2000)return;
-  relayLocal.sending=true;
-  relayLocal.error=null;
-  relayLocal.notice="Sending securely…";
-  renderRelay();
-  try{
-    let id=pendingRelaySends.get(text);
-    if(!id){
-      id=crypto.randomUUID().replaceAll("-","");
-      pendingRelaySends.set(text,id);
-    }
-    const result=await authenticatedPost("/api/relay",{type:"message",text,id},privateState.token);
-    if(result.id!==id||result.status!=="queued")throw Error("Message confirmation unavailable");
-    pendingRelaySends.delete(text);
-    if(isRestartCommand(text))restartLocal.id=result.id;
-    if($("relayMessage").value.trim()===text)$("relayMessage").value="";
-    relayLocal.notice=isRestartCommand(text)
-      ?"Restart request queued; Odin will report the requested service checks."
-      :"Queued for Odin; waiting for a delivery receipt";
-    await refreshRelay();
-  }catch(err){
-    relayLocal.error="Send not confirmed. Retry the same message in this tab. "+err.message;
-    relayLocal.notice=null;
-  }finally{
-    relayLocal.sending=false;
-    renderRelay();
-  }
-}
-function confirmRestart(target="all managed Odin services"){
-  return window.confirm("Restart "+target+" now? "+
-    "This may interrupt active work and temporarily disconnect messages. "+
-    "Odin will report service health after reconnecting.");
-}
-$("relaySendForm").addEventListener("submit",async event=>{
-  event.preventDefault();
-  const text=$("relayMessage").value.trim();
-  if(isRestartCommand(text)&&!confirmRestart(restartTarget(text)))return;
-  await queuePrivateRelayMessage(text);
-});
-$("restartAllButton").addEventListener("click",async()=>{
-  if(!privateState.connected||!privateState.relay||!privateState.paired)return;
-  if(!confirmRestart())return;
-  await queuePrivateRelayMessage("/restart-services");
-});
-$("inferenceProof").addEventListener("click",()=>queuePrivateRelayMessage("/ai-proof"));
-for(const button of document.querySelectorAll("[data-relay-quick]")){
-  button.addEventListener("click",()=>{
-    if(!privateState.connected || !privateState.relay)return;
-    $("relayMessage").value=button.dataset.relayQuick;
-    $("relayMessage").focus();
-  });
-}
-$("relayRefresh").addEventListener("click",refreshRelay);
-setInterval(()=>{
-  if(document.visibilityState==="visible")refreshRelay();
-},15000);
 renderVaultUI();
-renderRelay();
-
 $("rememberBrowser").addEventListener("click",async()=>{
   const button=$("rememberBrowser");
   button.disabled=true;
@@ -912,13 +695,12 @@ $("rememberBrowser").addEventListener("click",async()=>{
     if (!/^[0-9a-f]{32}$/.test(result.browser_id)) throw Error("Invalid browser ID");
     $("browserPairState").textContent="Send this browser ID to your Odin project chat for approval: "+result.browser_id;
   } catch {
-    $("browserPairState").textContent="Could not register this browser. Open Odin Control in a regular Chrome tab and retry.";
+    $("browserPairState").textContent="Could not register this browser. Reconnect to your private network and reopen the same HTTPS address in Safari.";
   } finally { button.disabled=false; }
 });
 connectPrivateAccess(null).then(()=>{
   renderSecureState();
   renderVaultUI();
-  renderRelay();
 }).catch(()=>{});
 
-window.addEventListener("odin-route-change",()=>{renderSecureState();renderRelay();});
+window.addEventListener("odin-route-change",renderSecureState);

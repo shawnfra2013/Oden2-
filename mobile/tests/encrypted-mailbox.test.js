@@ -1,4 +1,5 @@
 "use strict";
+process.env.ODIN_CONTROL_ORIGIN = "https://odin.example.test";
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const handler = require("../api/encrypted-chat");
@@ -19,7 +20,7 @@ test("private mailbox rejects unauthorized and plaintext input; retry reuses the
   });
   async function post(body, authorized=true) {
     const res={setHeader(){},status(n){this.code=n;return this},json(data){this.data=data}};
-    await handler({method:"POST",headers:{origin:"https://odin-control.vercel.app",authorization:"Bearer "+(authorized?token:"none"),
+    await handler({method:"POST",headers:{origin:"https://odin.example.test",authorization:"Bearer "+(authorized?token:"none"),
       "content-type":"application/json","content-length":String(Buffer.byteLength(JSON.stringify(body)))},body},res);
     return res;
   }

@@ -451,26 +451,11 @@ def main(argv=None):
         except (FileNotFoundError, OSError, ValueError):
             print("Private relay status: no completed poll record")
         return
-    if not legacy_origin():
-        if args.serve:
-            while True:
-                time.sleep(3600)
-        print("Legacy relay disabled")
-        return
-    token = read_token()
+    print("Legacy relay retired. Use the private GitHub mailbox.", flush=True)
     if args.serve:
-        try:
-            from .odin_wake import wait_for_work
-        except ImportError:
-            from odin_wake import wait_for_work
+        # An already-installed runit entry must not restart in a tight loop.
         while True:
-            try:
-                poll_once(token)
-            except (RuntimeError, ValueError, OSError) as error:
-                print(f"Private relay poll failed: {error}", file=sys.stderr, flush=True)
-            wait_for_work("relay", POLL_SECONDS)
-    else:
-        print("Handled private messages:", poll_once(token))
+            time.sleep(3600)
 
 
 if __name__ == "__main__":

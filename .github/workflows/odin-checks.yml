@@ -59,13 +59,57 @@ jobs:
       - name: Stage 5 offline regression
         run: python -B -m unittest discover -s stage5 -p 'test_*.py' -v
 
-      - name: Install private relay SDK for dashboard tests
+      - name: Set up Node for dashboard tests
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
       - name: Install mobile dependencies
         run: npm ci --prefix mobile --no-audit --no-fund --ignore-scripts
+
+      - name: Reject retired hosting in active launch paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in vercel.json mobile/vercel.json .vercel/project.json mobile/.vercel/project.json; do
+            if [[ -e "$file" ]]; then
+              echo "::error file=$file::Retired deployment configuration"
+              exit 1
+            fi
+          done
+          if git grep -inEI '([[:alnum:]-]+\.)+vercel\.app|@vercel/blob' -- \
+            mobile ':!mobile/tests/**' ':!mobile/*.md' scripts services stage5 \
+            ':!stage5/test*.py' README.md docs/ODIN_RUNTIME.md; then
+            echo "::error::Retired hosting reference in a runtime or setup path"
+            exit 1
+          else
+            rc=$?
+            [[ "$rc" == 1 ]] || exit "$rc"
+          fi
+
+      - name: Verify documented dashboard listener
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint=$(python - <<'PY'
+          from pathlib import Path
+          import re
+          doc = Path("mobile/README.md").read_text()
+          match = re.search(r"listens on `(127\.0\.0\.1:[0-9]+)` by default", doc)
+          if not match:
+              raise SystemExit("Document the dashboard's default loopback listener in mobile/README.md")
+          print("http://" + match[1])
+          PY
+          )
+          env -u ODIN_MOBILE_PORT node mobile/server.js &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --retry 8 --retry-connrefused --retry-delay 1 \
+            --max-time 3 "$endpoint/" -o "$RUNNER_TEMP/odin-dashboard.html"
+          kill -0 "$server_pid"
+          grep -Fq 'name="odin-release"' "$RUNNER_TEMP/odin-dashboard.html"
+          curl --fail --silent --show-error --max-time 3 "$endpoint/api/capabilities" |
+            python -c 'import json, sys; assert isinstance(json.load(sys.stdin)["access_configured"], bool)'
 
       - name: Verify Odin iPhone dashboard
         shell: bash
@@ -77,12 +121,9 @@ jobs:
           node --check mobile/api/command.js
           node --check mobile/api/chat.js
           node --check mobile/api/capabilities.js
-          node --check mobile/api/relay.js
-          node --check mobile/lib/relay.js
           node --check mobile/lib/access.js
           node --check mobile/tests/status.test.js
           node --check mobile/tests/control.test.js
-          node --check mobile/tests/relay.test.js
           node --test mobile/tests/*.test.js
 
       - name: Lint Python

@@ -6,7 +6,7 @@
   let next="", checking=false;
   function announce(msg){banner.hidden=false;banner.textContent=msg;}
   function busy(){
-    return privateState.sending || relayLocal.sending || document.querySelector('#sealedSend[aria-busy="true"]') ||
+    return privateState.sending || document.querySelector('#sealedSend[aria-busy="true"]') ||
       privateState.token || privateState.history.length || document.querySelector("#sealedAnswer").textContent ||
       Array.from(document.querySelectorAll("input:not([type=checkbox]),textarea")).some(el=>el.value);
   }

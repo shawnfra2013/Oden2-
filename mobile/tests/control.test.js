@@ -1,4 +1,5 @@
 "use strict";
+process.env.ODIN_CONTROL_ORIGIN = "https://odin.example.test";
 const test=require("node:test");
 const assert=require("node:assert/strict");
 
@@ -9,7 +10,7 @@ const session=require("../api/session.js");
 const capability=require("../api/capabilities.js");
 const old=process.env.ODIN_CONTROL_ACCESS_TOKEN;
 const TOKEN="test-token-1234567890-abcdef1234567890";
-const ORIGIN="https://odin-control.vercel.app";
+const ORIGIN="https://odin.example.test";
 
 function response(){
   return {

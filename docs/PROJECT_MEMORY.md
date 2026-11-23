@@ -1,6 +1,12 @@
 <!-- ODIN_STAGE4_CHECKPOINT_2026-11-10 -->
 # Odin — Technical Project Memory
 
+The [runtime guide](ODIN_RUNTIME.md) lists the supported configuration. Dated records below preserve the state observed when each check ran.
+
+## November 22 · iPhone release checkpoint
+
+The selected release preserves encrypted browser chat and optional online chat. GitHub [project validation](https://github.com/shawnfra2013/Oden2-/actions/runs/45111101669) and [browser acceptance](https://github.com/shawnfra2013/Oden2-/actions/runs/45111101665) passed on `b133ceb`. The tests exercised the documented dashboard listener on a CI runner. Physical installation, private HTTPS routing, and iPhone Home Screen reopen require separate evidence. Use the [runtime guide](ODIN_RUNTIME.md) for the cutover.
+
 For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](STRUCTURE_HARDENING.md).
 
 The active device bridge is the private GitHub mailbox in `shawnfra2013/Odin-private-bridge`. Termux polls `odin-bridge-inbox` and publishes matching receipts on `odin-bridge-outbox`. Use the [private mailbox in a browser](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) or submit a request through the authorized GitHub integration. Browser submissions use GitHub sign-in and the workflow’s repository-scoped token.
@@ -288,8 +294,7 @@ Remaining limitations:
   `main` as `1e8f73f10958cc66159861c05a9d9e4ee80ce77b`.
 - GitHub Actions PR validation `44478622727` passed, including Python,
   Stage 5, Node module syntax and authenticated relay handler tests.
-- Vercel existing project: `odin-control`, domain
-  `https://odin-control.vercel.app/`. Production deploy
+- Former hosted project: `odin-control`. Production deploy
   `dpl_Ana2JCHZFYEimuv2ztbQ9u2wgjtS` reported READY.
   Verified public `/`, `/api/capabilities`, and `/api/status` returned
   HTTP 200. Unauthenticated `/api/relay` returned HTTP 403 as expected.
@@ -297,16 +302,16 @@ Remaining limitations:
   unverified**; never substitute offline tests for that proof.
 - Root cause of observed private inbox failure: `mobile/api/relay.js`
   called `validOrigin`, but `mobile/lib/access.js` did not export it.
-  Vercel runtime errors showed five `TypeError: validOrigin is not a
+  Former host runtime errors showed five `TypeError: validOrigin is not a
   function` failures. Export fixed; CI now tests the full protected
   handler and refusal paths. Sanitized storage failure stages added.
-- Existing production Vercel environment configuration checked:
+- Former production environment configuration checked:
   `ODIN_CONTROL_ACCESS_TOKEN`, `ODIN_DEVICE_RELAY_TOKEN`,
   `BLOB_READ_WRITE_TOKEN`, and `ODIN_OPENAI_MODEL` exist.
   `OPENAI_API_KEY` and `ODIN_GITHUB_TOKEN` do not exist; therefore
   hosted cloud AI chat and app-originated GitHub diagnostic writes remain
   disabled. Do not publish any token values. Private Blob store connected.
-- Vercel project feature flags: no active flags and no Flags settings
+- Former project feature flags: no active flags and no Flags settings
   configured; no new feature flag platform or monitoring service created.
 - User's last on-device Termux output showed `main` at `12e861d`,
   `odin-private-relay` runit PID 4646 and successful zero-message
@@ -335,7 +340,7 @@ compilation, Bash syntax, secret scanning, and repository sanity.
 
 **Existing iPhone deployment:** `odin-control` production deployment
 `dpl_AgEhBdNf9DpYHv59agr3N91sLvba` was **READY** at
-`https://odin-control.vercel.app/`.
+the retired dashboard address.
 Live unauthenticated checks:
 - `/` HTTP 200; device task shortcuts and private message view present.
 - `/api/status` HTTP 200 and reported reviewed GitHub commit
@@ -343,7 +348,7 @@ Live unauthenticated checks:
 - `/api/capabilities` HTTP 200; access/pairing/private relay configured,
   hosted cloud API model **not** configured.
 - Unauthenticated `/api/relay` HTTP 403 (expected protection).
-- Latest sampled Vercel `/api/relay` runtime error query returned no
+- Latest sampled former host `/api/relay` runtime error query returned no
   errors in the selected 15-minute window. This does **not** establish
   authenticated message acceptance or device-origin replies.
 

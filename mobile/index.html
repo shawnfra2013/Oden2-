@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta name="odin-release" content="9bf2d14756601012">
+<meta name="odin-release" content="f294025f4a8c7df2">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#080b14">
@@ -12,7 +12,7 @@
   <title>Odin — Control Center</title>
   <link rel="manifest" href="/manifest.webmanifest?v=aa4aeab53a39866b">
   <link rel="icon" type="image/svg+xml" href="/icon.svg?v=004640e6f72c31d1">
-  <link rel="stylesheet" href="/styles.css?v=6ec75986e145b610">
+  <link rel="stylesheet" href="/styles.css?v=43414714d9e70fb3">
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div>
@@ -104,7 +104,7 @@
             <input id="vaultUnlockPassword" type="password" autocomplete="current-password" spellcheck="false" placeholder="Your unlock password" aria-label="Unlock saved Odin access" required>
             <button type="submit" id="vaultUnlockButton">Unlock</button>
           </form>
-          <form id="accessForm" class="connect-row">
+          <form id="accessForm" class="connect-row" hidden>
             <input id="accessToken" type="password" autocomplete="off" spellcheck="false" placeholder="Existing long access token" minlength="32" aria-label="Odin Control access token" required>
             <button type="submit" id="accessButton">Connect</button>
           </form>
@@ -120,7 +120,7 @@
             <button class="text-link" type="button" id="vaultUseToken">Use access token instead</button>
             <button class="text-link" type="button" id="vaultForget">Forget saved access on this device</button>
           </div>
-          <div class="connect-state" id="accessState" role="status">Not connected. Set up the server secrets first.</div>
+          <div class="connect-state" id="accessState" role="status">Checking remembered browser access…</div>
           <button class="text-link" id="disconnectButton" type="button" disabled>Lock private session</button>
         </div>
         <section id="deviceWorkPanel" hidden class="panel" aria-label="Private GitHub mailbox">
@@ -148,30 +148,6 @@
  <p>Save this link as a bookmark. Open a page, select text and activate the bookmark to copy an excerpt for Odin. You can also copy selected text directly.</p>
  <a id="clipBookmark">Clip for Odin</a></details>
         </section>
-        <div class="panel relay-panel" data-legacy-relay hidden>
-          <div class="relay-header">
-            <div><strong>Messages & responses</strong><p>iPhone ↔ Odin receipts and cloud AI replies, clearly identified by source</p></div>
-            <span class="live-pill neutral" id="relayBadge"><span class="status-dot"></span> Not paired</span>
-          </div>
-          <div class="relay-messages" id="relayMessages" aria-live="polite">
-            <div class="empty-state">Connect private access to view Odin messages.</div>
-          </div>
-          <div class="relay-shortcuts" aria-label="Safe Odin checks">
-            <button type="button" data-relay-quick="/ping">Ping</button>
-            <button type="button" data-relay-quick="/status">Device status</button>
-            <button type="button" data-relay-quick="/task git-status">Git task</button>
-            <button type="button" data-relay-quick="/task queue-status">Queue task</button>
-            <button type="button" data-relay-quick="/ai-status">AI status</button>
-            <button type="button" id="inferenceProof" disabled>Verify Odin GPT</button>
-            <button type="button" data-relay-quick="/ai-test">Test AI</button>
-            <button type="button" data-relay-quick="/restart-services">Restart services command</button>
-          </div>
-          <form id="relaySendForm" class="chat-composer">
-            <input id="relayMessage" maxlength="2000" disabled aria-label="Message Odin agent privately" placeholder="Write to Odin (requires private pairing)">
-            <button id="relaySendButton" type="submit" disabled aria-label="Send to Odin">↗</button>
-          </form>
-          <div class="chat-tools"><span id="relayState">Messages only, no remote shell commands</span><button type="button" class="text-link" id="relayRefresh">Check messages</button></div>
-        </div>
         <div id="onlineChatPanel" hidden class="panel chat-panel">
           <div class="chat-banner"><span class="status-dot amber-dot"></span><span id="cloudChatBanner">Cloud AI chat — requires private connection</span></div>
           <div class="chat-log" id="chatLog" aria-live="polite">
@@ -200,7 +176,7 @@
           <div class="setting-row"><div><span class="setting-label">Revision alignment</span><p>GitHub vs. latest device report</p></div><strong id="alignment">Unknown</strong></div>
           <div class="setting-row"><div><span class="setting-label">Git sync</span><p>Last service-health receipt</p></div><strong id="syncState">Unknown</strong></div>
           <div class="setting-row"><div><span class="setting-label">Worker</span><p>Last service-health receipt</p></div><strong id="workerDetail">Unknown</strong></div>
-          <div class="setting-row"><div><span class="setting-label">Public relay</span><p>Read-only status access</p></div><strong>Connected</strong></div>
+          <div class="setting-row"><div><span class="setting-label">Public relay</span><p>Read-only status access</p></div><strong>GitHub</strong></div>
           <div class="setting-row"><div><span class="setting-label">Device commands</span><p>Remote shell and deployment</p></div><strong>Locked</strong></div>
           <div class="setting-row"><div><span class="setting-label">ChatGPT thread</span><p>Direct message synchronization</p></div><strong>Not linked</strong></div>
         </div>
@@ -219,17 +195,7 @@
           <div class="action-status" id="actionStatus">Connect your private session to submit read-only device requests.</div>
           <div class="device-notice">These public GitHub diagnostics are read-only. No arbitrary commands or package installation.</div>
         </div>
-        <div class="section-heading" data-legacy-relay hidden><h2>Service controls</h2><span class="section-aside">PRIVATE DEVICE CONTROL</span></div>
-        <div class="panel controls-panel" id="restartControls" data-legacy-relay hidden>
-          <div class="setting-row">
-            <div><span class="setting-label">Restart all Odin services</span>
-              <p>Restart the existing supervised Git sync, task worker, optional GitHub bridge and private relay. Odin stays powered on.</p>
-            </div>
-          </div>
-          <button id="restartAllButton" type="button" class="secondary-action" disabled>Restart all services</button>
-          <div class="action-status" id="restartAllStatus" role="status">Unlock private controls to restart services.</div>
-          <p class="fine-print">Confirmation required. This may briefly interrupt running tasks and messages. A successful result appears only after Odin checks services again.</p>
-        </div>
+        <a class="secondary-action" href="https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml" target="_blank" rel="noopener noreferrer">Run a private device check on GitHub</a>
         <div class="section-heading"><h2>Verified checks</h2></div>
         <div class="panel" id="testResults"><div class="empty-state">No recent device checks loaded.</div></div>
         <a class="secondary-action" href="https://github.com/shawnfra2013/Oden2-" target="_blank" rel="noopener noreferrer">Open GitHub repository <span aria-hidden="true">↗</span></a>
@@ -246,10 +212,10 @@
 
   <script src="/vault.js?v=d2bc6bdb1220a95a" defer></script>
   <script src="/chat-route.js?v=97899efb4adef727" defer></script>
-  <script src="/app.js?v=3fb0034264e6bf44" defer></script>
+  <script src="/app.js?v=ecd0156a058f0417" defer></script>
   <script src="/encrypted-chat.js?v=d8c8e6676e97dd8a" defer></script>
 <script src="/local-tools.js?v=8ecded70f6483524" defer></script>
 <script src="/ui-settings.js?v=02a07db6a01bac42" defer></script>
-<script src="/app-update.js?v=0f94944aee935642" defer></script>
+<script src="/app-update.js?v=60a855eb006f47ce" defer></script>
 </body>
 </html>

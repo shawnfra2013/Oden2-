@@ -80,11 +80,15 @@ async function refreshHealth(){
   el("health").textContent="Backend: "+health.status+
     " | "+(health.provider==="local"?"On-device model · zero OpenAI usage":health.provider)+" | AI: "+(health.ai_enabled?"enabled":"disabled");
   el("localOptions").hidden=health.provider!=="local";
-  aiReady=health.ai_enabled===true;
+  aiReady=health.ai_configured===true;
   el("send").disabled=sending||!aiReady;
-  if(!sending)el("chatStatus").textContent=health.ai_enabled?
-    "AI available. Responses are not independently verified.":
-    "AI disabled during isolated testing.";
+  if(!sending)el("chatStatus").textContent=({
+    configured_not_tested:"Model configured. Send a message to check inference.",
+    ai_disabled:"AI is disabled on Odin.",
+    credential_missing:"The selected provider needs a credential on Odin.",
+    model_missing:"The selected model needs configuration on Odin.",
+    invalid_provider:"The configured AI provider is unsupported."
+  }[health.ai_reason] || "Model status unavailable.");
  }catch(e){
   aiReady=false;
   el("health").textContent="Backend unavailable: "+e.message;

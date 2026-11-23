@@ -19,8 +19,6 @@ module.exports = function handler(req,res) {
     device_diagnostics_configured:access && github,
     private_odin_conversation_connected:false,
     arbitrary_shell_enabled:false,
-    private_relay_configured:process.env.ODIN_ENABLE_LEGACY_RELAY==="1" && Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_OIDC_TOKEN),
-    odin_pairing_configured:process.env.ODIN_ENABLE_LEGACY_RELAY==="1" && Boolean(process.env.ODIN_DEVICE_RELAY_TOKEN),
     exact_chatgpt_thread_connected:false
   });
 };
