@@ -2,6 +2,12 @@
 
 **Updated:** November 23, 2026 (Central). This is the current human-reviewed checkpoint. Use [the timestamped snapshot workflow](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-project-snapshot.yml) and the actual GitHub main SHA for subsequent sessions. Historical material is not a deployment guide.
 
+## Continuity update — GitHub-only observation, November 23, 2026
+
+Read [Working with Odin](WORK_WITH_ODIN.md) at session start. This review extends the read-first guide and reconciles prior parallel documentation PRs #139 and #142 into one review branch. At the review cutoff public `main` was `6585082b09acde9dedac2bdb3f375f372abe58f1` with successful exact-SHA GitHub source checks. A new bounded private `ping` request ID `3c63d6ac4953bba8df7c5f66aa18bda0` was submitted to the private inbox at 13:37:09 UTC; the matching response was **not yet visible at the last read**, and the private outbox head was `65e71811898b9a97656ece80ece4d655cea9ce10` (08:23:08 UTC). This is **UNVERIFIED** device connectivity, not a failed or successful live device execution. Refresh the private response/outbox before drawing a new conclusion; expiry alone does not establish cause. No remote shell, Codespaces session or model training was activated by this documentation work.
+
+The previously observed private mailbox launcher/process working-directory mismatch remains a separate physical [#71](https://github.com/shawnfra2013/Oden2-/issues/71) acceptance gate. Source documentation, CI and PR events do not move that running service. First obtain a fresh read-only preview and operator decision, then a matched new `ping` and `mailbox_audit`; afterward validate a supervised issue #99 coding cycle and issue #122 local recall. The [private mailbox runbook](ODIN_GITHUB_BRIDGE.md) controls safe request shape and migration.
+
 ## Verified Git project memory (not automatic model recall)
 
 The current sanitized, source-backed memory checkpoint is [November 23 verified collaboration memory](audits/ODIN_VERIFIED_MEMORY_2026-11-23.md); the read-first index and retention rules are in [project memory](PROJECT_MEMORY.md). These documents preserve decisions, the newest relevant GitHub PR/receipt IDs, observed errors, tested fixes, and remaining physical gates. They do **not** mean the device model automatically loads them, that its ignored local state is backed up to public Git, or that a reviewer comment triggered an agent action. Confirm a fresh SHA/receipt before treating a saved checkpoint as live.

@@ -1,0 +1,59 @@
+# Working with Odin 2 — read this first
+
+**Purpose:** The single short operating entry point for ChatGPT, Codex, an authorized local Odin agent, and the operator. Read this before every new Odin work session. It describes **how to collaborate**; [ODIN_WORKFLOW.md](../ODIN_WORKFLOW.md) remains the canonical security and change-control policy, and [ODIN_RUNTIME.md](ODIN_RUNTIME.md) defines the supported runtime. Neither a guide nor an old receipt establishes a currently running device.
+
+## 60-second startup checklist
+
+1. Read this guide, then [README](../README.md) and [AGENTS.md](../AGENTS.md). Consult the current [workflow](../ODIN_WORKFLOW.md), [runtime](ODIN_RUNTIME.md), [handoff](HANDOFF.md), [project-memory index](PROJECT_MEMORY.md), and [task board](TASK_BOARD.md) for the actual issue. Do not scan years of archived conversations before every routine task.
+2. Read **live** GitHub `shawnfra2013/Oden2-`: current `main` SHA, active issue/PR, latest PR head, exact-head CI, and unresolved review. A worktree, checkout, or cached model excerpt may be older.
+3. For device claims, inspect the authenticated private `Odin-private-bridge` outbox and the latest receipt-watch result. Match request ID, action, UTC time, status, and reported device revision. If no **fresh** matching receipt exists, state `UNVERIFIED` and avoid claiming Odin is online.
+4. Resume the existing approved task and evidence trail. Use the best available authorized execution path rather than creating new transport or asking the operator to copy commands unnecessarily.
+5. After meaningful work, update the existing issue, decision log if necessary, and [handoff](HANDOFF.md) with sanitized exact-SHA evidence, tests, blockers, and next action. A memory update is a reviewed documentation/source change, not a change to model weights or this ChatGPT conversation's built-in memory.
+
+## Who does what
+
+| Participant | Authorized role | What is NOT automatically proven |
+| --- | --- | --- |
+| **ChatGPT / connected GitHub tools** | Coordinate, read current source, propose/review scoped changes, submit bounded private requests, compare receipts, review CI and report evidence | A permanent shell, active device process, or unattended ChatGPT wake-up |
+| **GitHub Actions** | Run deterministic source checks, security scans, snapshot artifacts, event evidence, and approved fixed workflows | Autonomous reasoning, the physical Odin install, or a local model reply |
+| **Authorized coding agent / Codespaces** | In an **actually attached, operator-authorized** workspace, inspect an approved issue, branch, implement, run tests, create PR and publish source receipts | That a Codespace is already running, free forever, or connected to physical Termux |
+| **Odin (Termux)** | Run local worker, supported inference, offline tests and supervised services; poll the private inbox, validate the allowlist and return device receipts | Unrestricted remote shell access, current source SHA after a GitHub push, or spontaneous model self-training |
+| **Operator** | Set scope and priorities; approve spending, security-sensitive changes, new permissions, physical rollouts and phone acceptance | Responsibility for manually relaying routine actions that tools can safely perform |
+
+Routine source inspection, GitHub PR edits, exact-head CI, and in-scope non-destructive tests can proceed under an already approved task. New infrastructure, paid models, sensitive credentials, physical changes, restart/migration and deployment require their separate gates.
+
+## As-live-as-possible two-way communication
+
+**Working route:** ChatGPT GitHub connection → private `shawnfra2013/Odin-private-bridge` branch `odin-bridge-inbox` → running Termux `odin-private-mailbox` → branch `odin-bridge-outbox` → GitHub-connected ChatGPT review or scheduled receipt watch. This is **asynchronous**: it is not a live SSH session. The existing device worker polls around once per minute when connected and processes up to five bounded requests per cycle; offline source receipts are queued separately.
+
+To check Odin, prefer the private `odin-private-mailbox.yml` manual workflow; an authorized GitHub connection can alternatively submit an existing allowlisted request to `bridge/requests/<id>.json`. Generate a new 32-character lowercase hex ID, use protocol version 1, exact action and the required `created_at`/`expires_at` UTC fields (expiry at most one hour). Submit to the **private inbox branch**, save the resulting request commit and ID, and read `bridge/responses/<id>.json` from the **private outbox branch**. Validate the response status and action-specific result. Do not retry with a second request ID while the first is still live. Check near the poll interval, with an explicit deadline and backoff; do not flood the queue.
+
+- **Liveness:** `ping` is valid only with matching `status=complete` and `result.alive=true`; `stage5_health` checks local workstation readiness at that instant.
+- **Bounded local verification:** Source-reviewed actions include `staging_probe`, `mailbox_audit`, `regression_details`, `stage5_source_check`, `stage5_coding_review`, and other documented allowlisted actions. Availability depends on the **running** installed revision, not GitHub source alone. Some local model checks may consume resources. `inference_probe` can use a configured hosted provider and is NOT a free liveness ping.
+- **Private feedback:** `review_feedback` may store a bounded note with `action_executed=false`. A separate local tool presentation receipt is **not** proof an authenticated coding model read, understood or implemented it. Require distinct evidence for agent read, proposal, changed source, functional test and exact-head CI.
+- **Private chat:** `encrypted_chat` requires the paired encrypted browser path; diagnostic GitHub requests do not substitute for arbitrary conversational turns. Browser vault unlock, chat pairing and GitHub credentials are separate.
+- **Delivery to ChatGPT:** A configured hourly receipt-watch and a supported PR event-triggered Work task exist. They do **not** mean this open conversation wakes for every mailbox reply; GitHub Actions event artifacts independently preserve event-time PR SHA without proving the event's payload arrived in ChatGPT.
+
+Never place command text into a mailbox request hoping Odin will run it. The existing allowlist deliberately rejects `shell`, extra `command` fields, expired requests, and unknown actions. A future richer tool runner must use separately authenticated, narrowly scoped permissions and a reviewed threat model; do not silently turn the private mailbox into arbitrary shell access.
+
+On delayed or missing replies: inspect the exact request and expiry, most recent private outbox commit and response files, then check the known Termux launcher/process working-directory mismatch from [issue #71](https://github.com/shawnfra2013/Oden2-/issues/71) using the **read-only** [mailbox migration preview](ODIN_GITHUB_BRIDGE.md). The prior launcher ran from a temporary checkout. Do not infer current PID/cwd from an old ping. Migrating/restarting that service requires separate operator approval and preservation of the private state/outbox; never reset or delete it.
+
+## Coding agent and verifiable improvement
+
+The goal is a supervised **assign → implement → independently test → publish receipt → review → revise → verify** loop, not ChatGPT hand-authoring all code. For each job use one approved GitHub issue, base SHA, owner, exact permitted paths, acceptance tests, isolated proposal/branch and **maximum two** review-directed revisions. Source-only tests may run in GitHub Actions without a Codespace. Open a cloud shell only when authorized and connected, monitor actual free-tier/usage limits and idle timeout, and do not copy Odin's private SSH key there. A GitHub Actions workflow is not an attached interactive Codespace terminal.
+
+GitHub can hold scoped PRs and CI evidence while Odin works offline and later synchronizes its own source-test receipts. The receipt alone does not publish a PR or prove code changed. For a real coding trial collect separate facts: task accepted; code proposal with hash; critic verdict; changed source head; independent tests and security checks; review decision; approved release; new physical device receipt. Fail closed when any link is missing or stale. See the [collaboration proof contract](COLLABORATION_FRAMEWORK.md) and [coding/training gates](ODIN_CODER_TRAINING.md).
+
+**Learning has three distinct meanings:** (1) locally retrieving curated project notes with the allowlisted SQLite FTS5 index (source-merged, device acceptance open); (2) recalling accepted fixed-category feedback for the next source proposal; (3) training separate candidate model weights after a reviewed dataset, hardware check and unseen functional benchmark. Neither (1) nor (2) changes model weights, and (3) is not proven running on Odin. Do not let model self-ratings replace independent tests.
+
+## Evidence contract and memory
+
+For every claim distinguish `REQUESTED`, `RECEIVED`, `RECORDED`, `TOOL_PRESENTED`, `AGENT_ACTED`, `SOURCE_TESTED`, `MERGED`, `DEVICE_INSTALLED`, `DEVICE_RESPONDED`, and `PHONE_ACCEPTED`. Classify each gate `PASS`, `FAIL`, `BLOCKED`, or `UNVERIFIED`. Include UTC observation time, request ID, branch, exact SHA, issue/PR, CI run and sanitized receipt link when available. A green source check cannot be promoted to a device pass.
+
+[PROJECT_MEMORY.md](PROJECT_MEMORY.md) is a **retrieval index and retention policy**; [HANDOFF.md](HANDOFF.md) is the current continuation; [TASK_BOARD.md](TASK_BOARD.md) links the only ranked work queue; [DECISIONS.md](DECISIONS.md) preserves architecture choices; dated [verified observations](audits/ODIN_VERIFIED_MEMORY_2026-11-23.md) and [trials](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md) retain prior facts. Historical checkpoints and the uploaded October source-audit archive are **not** a current checkout. A project viewer bookmark is **not** iPhone-to-Odin acceptance. Avoid copying raw private receipts, tokens, pairing secrets, arbitrary logs and conversations into the public repo. Do not delete older failures; link the later fix and independent retest.
+
+The local project-memory index can retrieve only its curated allowlisted Git documents into untrusted, bounded context when that exact implementation is installed. It does not automatically read every chat, remember changes in ChatGPT's account memory, or retrain Odin. Keep the project instructions short enough to point every future session to this read-first document; update the source record through an approved PR when material facts change.
+
+## Finish a session
+
+Return a short factual report: **what changed; exact source/PR and CI; which device requests and receipts actually matched; what failed or remains unverified; next safe action; what specifically needs operator approval**. Continue verified GitHub work when Odin is unreachable; never fabricate a successful ping, active shell, device installation or autonomous learning. The highest-priority practical acceptance is [#71 device mailbox migration](https://github.com/shawnfra2013/Oden2-/issues/71), then [#99 two-way feedback/agent action](https://github.com/shawnfra2013/Oden2-/issues/99), [#122 local recall](https://github.com/shawnfra2013/Oden2-/issues/122), [#100 bounded coding improvements](https://github.com/shawnfra2013/Oden2-/issues/100), and the real iPhone network test.

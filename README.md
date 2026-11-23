@@ -1,11 +1,12 @@
 # Odin 2 — current operating guide
 
-**Start here: [Current Odin runtime](docs/ODIN_RUNTIME.md).** It is the only source of truth for the actively supported architecture and the device/phone acceptance boundaries. Do not infer current state from a dated checkpoint.
+**Every session: [Working with Odin — 60-second quickstart](docs/WORK_WITH_ODIN.md).** For supported environment and real device/phone acceptance boundaries, consult [Current Odin runtime](docs/ODIN_RUNTIME.md). Operational policy remains [ODIN_WORKFLOW.md](ODIN_WORKFLOW.md); a dated checkpoint is not current runtime proof.
 
 Odin's local browser is the **Odin Local Workstation** (historical implementation path `stage5/`). The working communication path is the **private GitHub mailbox**; the optional iPhone viewer needs its own approved HTTPS origin and has not yet passed the cellular acceptance test.
 
 | Need | Current document |
 | --- | --- |
+| Session start, roles, receipts, agentic coding and memory | [Working with Odin](docs/WORK_WITH_ODIN.md) |
 | What is actually in use | [Runtime](docs/ODIN_RUNTIME.md) |
 | Working agreement read by GitHub and Odin | [Odin Workflow](ODIN_WORKFLOW.md) |
 | Services and listener defaults | [Service registry](docs/SERVICE_REGISTRY.md) |

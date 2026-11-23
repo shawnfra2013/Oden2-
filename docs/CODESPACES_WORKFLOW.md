@@ -3,6 +3,8 @@
 **Current scope:** Run source code and tests in a terminal. The same Python entrypoint runs in GitHub Codespaces when online or on Odin in Termux while offline, provided its tools and dependencies are already installed. This is not a remote Termux shell, device deployment, model endpoint, or private receipt bridge.
 
 ## Use now (no editor installation)
+**Delegation boundary:** [Working with Odin](WORK_WITH_ODIN.md) assigns GitHub Actions routine deterministic CI; ChatGPT coordinates approved issues and reviews. A separately authorized, **actually running and attached** coding agent in Codespaces can implement and test scoped changes, then publish a source PR. A GitHub API connection or CI check cannot conjure a Codespaces shell or make that cloud workspace execute Termux device commands. The cost and idle-time controls below still apply. The physical device has its own private mailbox and local agent acceptance gates.
+
 
 - Online: open the GitHub repository in a **manually started GitHub Codespace**, open its terminal, and run the commands below. A Codespace uses cloud compute and **does not run offline**. GitHub account usage, storage, and idle-time charges/limits remain the owner's controls.
 - Offline: open **Termux on Odin** in the checked-out `~/odin-workspace` repository. Run the same commands. Editing and tests can continue without internet, and Git pushes wait until connectivity returns.

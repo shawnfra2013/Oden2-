@@ -1,7 +1,6 @@
 # Odin 2 / Termux system architecture
 
-Read the [workflow](../ODIN_WORKFLOW.md), [service registry](SERVICE_REGISTRY.md), and [runtime guide](ODIN_RUNTIME.md) for supported addresses, dependencies,
-and cutover checks. Dated verification is kept in [project history](PROJECT_MEMORY.md).
+For each new session start with [Working with Odin](WORK_WITH_ODIN.md). Use the [workflow](../ODIN_WORKFLOW.md), [service registry](SERVICE_REGISTRY.md), and [runtime guide](ODIN_RUNTIME.md) for supported addresses, dependencies, and cutover checks. Dated verification is kept in [project history](PROJECT_MEMORY.md).
 
 | Module | Responsibilities | Entry point |
 | --- | --- | --- |

@@ -2,6 +2,8 @@
 
 **Status:** Source-level framework; NOT a claim that Odin can yet independently operate in Codespaces or that this version is installed on the handheld.
 
+**Startup and tool routing:** Read [Working with Odin](WORK_WITH_ODIN.md). Prefer the connected GitHub source API and fixed CI workflows for non-device tasks; use the existing authenticated private mailbox for allowlisted physical queries; delegate to an explicitly attached, authorized Codespaces/local coding agent only when one is actually available. No tool connection itself proves agent code execution, and a scheduled event check is not a continuous chat terminal.
+
 ## Responsibilities
 
 - **GitHub:** issues, PRs, source CI, read-only diagnostics, security scan, immutable receipts and exact-SHA evidence. Actions can detect a failure but do not reason or repair by themselves.
