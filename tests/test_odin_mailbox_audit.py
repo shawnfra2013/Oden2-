@@ -111,6 +111,34 @@ class MailboxAuditTests(unittest.TestCase):
         self.assertEqual(report["counts"]["malformed"], 2)
         self.assertIn("malformed_request", [x["code"] for x in report["incidents"]])
 
+    def test_unexpected_completed_shell_action_is_not_treated_as_success(self):
+        request = {**self.request, "action": "shell"}
+        reply = {**self.response, "action": "shell"}
+        result = self.run_audit(req=request, reply=reply)
+        self.assertEqual(result["counts"]["matched"], 0)
+        self.assertEqual(result["incidents"][0]["code"], "unexpected_action_complete")
+
+    def test_future_messages_and_orphan_responses_reported(self):
+        request = {
+            **self.request,
+            "created_at": "2026-11-23T08:00:00Z",
+            "expires_at": "2026-11-23T08:15:00Z",
+        }
+        result = self.run_audit(req=request, reply=False)
+        self.assertEqual(result["incidents"][0]["code"], "future_request")
+        response = {**self.response, "checked_at": "2026-11-23T08:00:00Z"}
+        result = self.run_audit(reply=response)
+        self.assertEqual(result["incidents"][0]["code"], "response_in_future")
+        result = audit.audit_messages({}, {self.ident + ".json": self.response}, now=self.now)
+        self.assertEqual(result["incidents"][0]["code"], "orphan_response")
+
+    def test_reject_directory_segment_even_with_valid_hex_filename(self):
+        result = audit.audit_messages(
+            {"../" + self.ident + ".json": self.request},
+            {}, now=self.now,
+        )
+        self.assertEqual(result["counts"]["malformed"], 1)
+
     def test_strict_bounded_config(self):
         for kwargs in ({"hours": 0}, {"hours": 25}, {"pending_after_seconds": 5}):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
