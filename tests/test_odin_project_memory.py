@@ -76,8 +76,8 @@ class LocalMemoryTests(unittest.TestCase):
     def test_connection_handoff_is_indexed_as_untrusted_source_when_present(self):
         handoff = self.root / "docs/ODIN_CONNECTION_MEMORY.md"
         handoff.write_text(
-            "# Odin connection handoff\\n\\n"
-            "Read the canonical workflow before remote supervision.\\n",
+            "# Odin connection handoff\n\n"
+            "Read the canonical workflow before remote supervision.\n",
             encoding="utf-8",
         )
         result = self.query("canonical workflow remote supervision")
