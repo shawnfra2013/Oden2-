@@ -2,9 +2,18 @@
 
 For historical changes, see [the archived changelog](docs/archive/CHANGELOG_before_2026-11-22.md). Historical records are not current deployment instructions.
 
-## November 23, 2026 — consolidated agent operating instructions (review PR #142)
+## November 23, 2026 — five free-first agentic upgrades (source-only)
 
-- Established one [read-first collaboration guide](docs/WORK_WITH_ODIN.md), linked from the coding agent entry point, README, workflow, architecture, memory, runtime, and handoff. The guide states the verified GitHub ↔ private mailbox ↔ Odin path, bounded command receipts, current ChatGPT watcher/event limitations, source/agent/device evidence stages, and free-first Codespaces delegation. This documentation and its SQLite source allowlist are **proposed for review**, not a new device install or permanent ChatGPT terminal.
+- **Communication:** [PR #143](https://github.com/shawnfra2013/Oden2-/pull/143) adds a matching, freshness-gated private ping verifier; the existing private manual workflow remains the trigger. Live Odin remained UNVERIFIED after a pending request, so no physical liveness claim is made.
+- **Coding delegation:** [PR #144](https://github.com/shawnfra2013/Oden2-/pull/144) adds a contract/SHA/clean-checkout preflight for an expressly attached coding agent. It cannot launch Codespaces or execute a task.
+- **Proof timeline:** [PR #135](https://github.com/shawnfra2013/Oden2-/pull/135) validates event/run correlation; [#138](https://github.com/shawnfra2013/Oden2-/pull/138) gates supervision evidence on timestamp freshness; [#146](https://github.com/shawnfra2013/Oden2-/pull/146) renders a claimed-stage timeline without calling it authenticated agent action.
+- **Measurable learning:** [#136](https://github.com/shawnfra2013/Oden2-/pull/136) checks two-round repair and changed SHAs; [#137](https://github.com/shawnfra2013/Oden2-/pull/137) compares bounded held-out pass counts; [#146](https://github.com/shawnfra2013/Oden2-/pull/146) presents the counts. No independently measured Odin improvement or weight update is claimed.
+- **Offline-first phone:** [#145](https://github.com/shawnfra2013/Oden2-/pull/145) preserves a previously approved encrypted request across a network dropout, retries it after reconnect and displays explicit expired/rejected response states without exposing private content. Real iPhone cellular test pending.
+- All related PR-head source checks passed before merge; verify the final exact-main-SHA push checks separately. Source changes do not reload Termux processes or approve device deployment.
+
+## November 23, 2026 — consolidated agent operating instructions (merged PR #142)
+
+- Established one [read-first collaboration guide](docs/WORK_WITH_ODIN.md), linked from the coding agent entry point, README, workflow, architecture, memory, runtime, and handoff. The guide states the verified GitHub ↔ private mailbox ↔ Odin path, bounded command receipts, current ChatGPT watcher/event limitations, source/agent/device evidence stages, and free-first Codespaces delegation. This documentation and its SQLite source allowlist were merged after source review, but are not an Odin device install or permanent ChatGPT terminal.
 - Reconciled prior communication-handoff proposal [PR #139](https://github.com/shawnfra2013/Oden2-/pull/139) under the single [PR #142](https://github.com/shawnfra2013/Oden2-/pull/142). Historical failure and request IDs remain preserved in existing dated audits. GitHub exact-head CI validates the documentation; live mailbox/phone/agent action requires separate evidence.
 
 ## November 23, 2026 — live device-to-GitHub testing and supervised source fixes
