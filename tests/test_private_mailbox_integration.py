@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts import odin_github_bridge as bridge
+from scripts import odin_receipt_sync as offline_receipts
 
 
 def git(directory, *args):
@@ -22,6 +23,10 @@ class PrivateMailboxIntegrationTests(unittest.TestCase):
         temporary = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(temporary)
         self.enterContext(patch.object(Path, "home", return_value=self.root))
+        # This process also runs on real Odin: isolate production offline receipts.
+        self.enterContext(patch.object(
+            offline_receipts, "RECEIPT_DIR", self.root / "test-source-receipts",
+        ))
         self.remote = self.root / "mailbox.git"
         self.seed = self.root / "seed"
         git(self.root, "init", "--bare", str(self.remote))
@@ -37,6 +42,13 @@ class PrivateMailboxIntegrationTests(unittest.TestCase):
         ))
         self.enterContext(patch.object(bridge, "checked_origin", return_value=str(self.remote)))
         self.enterContext(patch.object(bridge, "mailbox_git_args", return_value=["git"]))
+
+    def test_disposable_outbox_cannot_see_device_source_receipts(self):
+        self.assertEqual(
+            offline_receipts.RECEIPT_DIR, self.root / "test-source-receipts",
+        )
+        self.assertEqual(offline_receipts.local_candidates(), [])
+        self.assertFalse(offline_receipts.RECEIPT_DIR.exists())
 
     def request(self, number, **overrides):
         request_id = f"{number:032x}"
