@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts import odin_mailbox_audit as audit
 
