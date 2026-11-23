@@ -202,10 +202,11 @@ def _verify_started(service: Path, canonical: Path,
     raise MigrationBlocked("Restarted service did not reach canonical checkout")
 
 
-def apply(home: Path, prefix: Path, expected_sha: str, confirmation: str) -> dict:
+def apply(home: Path, prefix: Path, expected_sha: str, confirmation: str, *,
+          proc_root: Path = Path("/proc")) -> dict:
     if confirmation != CONFIRM:
         raise MigrationBlocked("Explicit migration approval phrase required")
-    plan = check(home, prefix, expected_sha)
+    plan = check(home, prefix, expected_sha, proc_root=proc_root)
     if plan["status"] == "ALREADY_CANONICAL":
         return plan
     canonical, source = Path(plan["canonical"]), Path(plan["source"])
@@ -238,6 +239,10 @@ def apply(home: Path, prefix: Path, expected_sha: str, confirmation: str) -> dic
         try:
             shutil.copytree(previous, staging, symlinks=False)
             _safe_tree(staging)
+            for walk_root, walk_dirs, walk_files in os.walk(staging):
+                os.chmod(walk_root, 0o700)
+                for name in walk_files:
+                    os.chmod(Path(walk_root) / name, 0o600)
             if destination.exists() or destination.is_symlink():
                 raise MigrationBlocked("Canonical destination collision")
             staging.rename(destination)
@@ -248,7 +253,7 @@ def apply(home: Path, prefix: Path, expected_sha: str, confirmation: str) -> dic
         _atomic_launcher(launcher, replacement, launcher.stat().st_mode & 0o777)
         changed = True
         _sv("up", service)
-        new_pid = _verify_started(service, canonical)
+        new_pid = _verify_started(service, canonical, proc_root=proc_root)
         return {"status": "MIGRATED", "sha": expected_sha, "pid": new_pid,
                 "launcher_backup": str(backup),
                 "old_private_state_preserved": True}
