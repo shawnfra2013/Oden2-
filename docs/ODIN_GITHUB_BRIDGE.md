@@ -8,6 +8,8 @@ The device bridge uses the **private** repository `shawnfra2013/Odin-private-bri
 
 A successful request submission, previous receipt, or passing source-code tests cannot establish current connectivity. A `stage5_health` receipt proves the local HTTP service was reachable **at that receipt time**, not that a particular source revision or iPhone route was installed.
 
+**ChatGPT operating quickstart:** [Working with Odin](WORK_WITH_ODIN.md) specifies the route and receipt stages. Prefer the existing private dispatch workflow or an authorized GitHub write to a fresh `bridge/requests/<id>.json` in `odin-bridge-inbox`, then inspect the exact matching `bridge/responses/<id>.json` on `odin-bridge-outbox`. The request is version 1 with 32 lowercase hexadecimal ID, allowlisted action, UTC creation and positive expiry of at most an hour. A `ping` passes only when the corresponding `complete` response reports `result.alive=true`. Check near the normal minute polling interval with a deadline and avoid repeat pings. If no response is observed, report UNVERIFIED and use the launcher preflight below; do not send arbitrary shell requests or claim an always-on ChatGPT session.
+
 ## Canonical Termux launcher and state migration
 
 A runit `odin-private-mailbox` process may be **running** while executing an obsolete temporary checkout. Check both the launcher `$PREFIX/var/service/odin-private-mailbox/run` and the running process's `/proc/<pid>/cwd` against `~/odin-workspace`. The device preflight now labels a mismatched launcher or live process **FAIL**, never PASS because `sv status` is green. A fresh `ping` reports the repository SHA seen by the running process but is not, alone, evidence of its filesystem location.

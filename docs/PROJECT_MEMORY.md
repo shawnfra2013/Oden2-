@@ -2,11 +2,13 @@
 
 **Source of truth:** GitHub repository `shawnfra2013/Oden2-`, with exact revision, task/PR and evidence links. This document is an entry point for **human or agent retrieval**; its presence in Git does **not** mean the local Odin model automatically ingests or remembers it.
 
+**Session read-first document:** [Working with Odin](WORK_WITH_ODIN.md) defines the ChatGPT ↔ GitHub ↔ Odin communication procedure, role boundaries, Codespaces/CI delegation, and receipt meanings. Load the current GitHub revision at startup. The user may separately copy a short pointer into ChatGPT Project instructions; files committed to Git do not automatically edit Project settings or account memory.
+
 ## Read this first for an Odin work session
 
 Read [Working with Odin](WORK_WITH_ODIN.md) for responsibilities, private request and receipt handling, and the live verification order.
 
-1. [Latest verified collaboration checkpoint — 2026-11-23](audits/ODIN_VERIFIED_MEMORY_2026-11-23.md): what passed, what failed, unresolved conditions, exact source/receipt references, and safe next steps.
+1. [Working with Odin](WORK_WITH_ODIN.md): quickstart and persistent two-way workflow, followed by [latest verified collaboration checkpoint — 2026-11-23](audits/ODIN_VERIFIED_MEMORY_2026-11-23.md).
 2. [Current handoff](HANDOFF.md): approved resume plan and physical-device blockers.
 3. [Single prioritized task board](TASK_BOARD.md): task owners, acceptance and dependencies; do not create a competing backlog here.
 4. [Dated incident and trial log](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md): test history, failures, remedies and proof limitations.
