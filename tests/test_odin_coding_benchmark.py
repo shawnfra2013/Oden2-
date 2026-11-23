@@ -18,6 +18,22 @@ class BenchmarkTests(unittest.TestCase):
         self.assertFalse(result["promotion_authorized"])
         self.assertFalse(result["grader_claims_authenticated"])
 
+    def test_identical_revision_cannot_prove_training_improvement(self):
+        data = report()
+        data["candidate_sha"] = data["baseline_sha"]
+        with self.assertRaises(ValueError):
+            compare(data)
+
+    def test_unchanged_accuracy_blocks_improvement_claim(self):
+        data = report()
+        for case in data["cases"]:
+            case["candidate_pass"] = case["baseline_pass"]
+        result = compare(data)
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertEqual(result["reason"], "no_measured_gain")
+        self.assertFalse(result["improvement_observed"])
+        self.assertFalse(result["promotion_authorized"])
+
     def test_regression_fails(self):
         data = report()
         for case in data["cases"]:
