@@ -6,6 +6,7 @@ if [ ! -f "$root/scripts/odin_terminal.py" ]; then
   printf 'Odin source missing at %s\n' "$root" >&2
   exit 2
 fi
+cd "$root"
 if [ "$#" -eq 0 ]; then action="status"; else action="$1"; shift; fi
 case "$action" in
   status) exec python -B -m scripts.odin_terminal "$@" ;;

@@ -45,6 +45,7 @@
 | [#92 — Native Android 10 integration](https://github.com/shawnfra2013/Oden2-/issues/92) | Source merged in PR #93; device unverified | Read-only hooks inventory, permission matrix, then authorized companion/device tests |
 | [#94 — Two-way private review feedback](https://github.com/shawnfra2013/Oden2-/issues/94) | Source merged in PR #95; physical round-trip unverified | Receive/store/acknowledge private feedback, then separately prove read/action with #99 |
 | [#96 — Collaboration safeguards umbrella](https://github.com/shawnfra2013/Oden2-/issues/96) | Split into prioritized #97–#101 | Parent for the five additional safeguards; **not a 21st ranked task** |
+| [#148 — Colorful read-only Odin CLI runner/status](https://github.com/shawnfra2013/Oden2-/issues/148) | Source review [PR #149](https://github.com/shawnfra2013/Oden2-/pull/149); physical terminal activation pending | Exact-head CI, read-only local service/cwd and public CI view, no secret logs, no alias/service change |
 | [#122 — Source-backed local memory recall](https://github.com/shawnfra2013/Oden2-/issues/122) | Source merged in [#123](https://github.com/shawnfra2013/Oden2-/pull/123); physical recall unverified | Curated Git notes, no private content, exact local SHA; real Termux FTS5/inference acceptance needed |
 
 ## Current reliability-first delivery order (overlay, not a second task queue)

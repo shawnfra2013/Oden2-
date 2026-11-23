@@ -2,6 +2,12 @@
 
 For historical changes, see [the archived changelog](docs/archive/CHANGELOG_before_2026-11-22.md). Historical records are not current deployment instructions.
 
+## November 23, 2026 — read-only colorful terminal and live mailbox evidence
+
+- Proposed [issue #148 terminal dashboard](https://github.com/shawnfra2013/Oden2-/issues/148) in [PR #149](https://github.com/shawnfra2013/Oden2-/pull/149): dependency-free ANSI read-only Termux status/watch, runit/PIDs, canonical mailbox PID/cwd preflight, task queue, local trace and exact-main public GitHub CI/issues, with controlled refresh rate. No installer, alias replacement or service restart.
+- Physical issue #71 private transport independently returned `ping` request `b7102026112314520000000000000001`, status complete and alive=true at **14:53:18 UTC**, reporting PID 31499 and source `0a9538a0a02576a70faaf4c4691c276ab1d338ad`. A distinct `mailbox_audit` request `b7112026112314552400000000000001` completed at **14:56:39 UTC** with one matched and one pending, zero recorded incidents and stalls. These prove bounded device responses, not a canonical launcher's current filesystem path or installed terminal dashboard.
+- The expired earlier ping `3c63d6ac4953bba8df7c5f66aa18bda0` was recorded at 14:48:25 UTC, not a liveness PASS. A physical state-preserving migration remains subject to fresh read-only preflight and separate operator approval.
+
 ## November 23, 2026 — five free-first agentic upgrades (source-only)
 
 - **Communication:** [PR #143](https://github.com/shawnfra2013/Oden2-/pull/143) adds a matching, freshness-gated private ping verifier; the existing private manual workflow remains the trigger. Live Odin remained UNVERIFIED after a pending request, so no physical liveness claim is made.
