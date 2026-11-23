@@ -189,6 +189,8 @@ def ensure_outbox(origin):
     if git("remote", "get-url", "origin", cwd=OUTBOX) != origin:
         raise RuntimeError("Unexpected outbox origin")
     recover_pending_receipt()
+    if private_mailbox:
+        recover_pending_source_receipt()
     if git("status", "--porcelain", cwd=OUTBOX):
         raise RuntimeError("Outbox has uncommitted changes; refusing edits")
     outbox_git("pull", "--ff-only", "origin", OUTBOX_BRANCH, timeout=90)
@@ -432,6 +434,14 @@ def status_action(action, request=None):
         result = {"alive": True, "bridge_version": 1}
         if private_mailbox:
             result.update(revision=git("rev-parse", "HEAD"), pid=os.getpid(), model_capacity=model_capacity())
+            try:
+                raw = (STATE / "source-receipt-last-push.json").read_bytes()
+                latest = json.loads(raw) if len(raw) <= 512 else {}
+                if (isinstance(latest, dict)
+                        and ID_PATTERN.fullmatch(str(latest.get("receipt_id", "")))):
+                    result["last_source_receipt_push"] = latest
+            except (OSError, ValueError, TypeError):
+                pass
         return result
     if action == "repo_status":
         tracked_clean = (
@@ -629,6 +639,83 @@ def send_response(request_id, payload):
     outbox_git("push", "origin", "HEAD:refs/heads/" + OUTBOX_BRANCH, timeout=90)
 
 
+def source_receipt_module():
+    if __package__:
+        from . import odin_receipt_sync
+    else:
+        import odin_receipt_sync
+    return odin_receipt_sync
+
+
+def recover_pending_source_receipt():
+    """Finish a source-receipt commit after interruption without losing evidence."""
+    intent = STATE / "pending-source-receipt.json"
+    if not intent.exists():
+        return
+    # The journal records only previously validated, bounded local source evidence.
+    raw = intent.read_bytes()
+    if len(raw) > 4096:
+        raise RuntimeError("Oversized source receipt journal")
+    module = source_receipt_module()
+    try:
+        item = json.loads(raw)
+        receipt_id = item["id"]
+        module.validate_bytes(raw, receipt_id)
+    except (ValueError, TypeError, KeyError, AttributeError) as exc:
+        raise RuntimeError("Invalid pending source receipt") from exc
+    relative = module.remote_path(receipt_id)
+    destination = OUTBOX / relative
+    if destination.is_symlink():
+        raise RuntimeError("Unsafe source receipt destination")
+    if destination.exists() and destination.read_bytes() != raw:
+        raise RuntimeError("Conflicting private source receipt")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not destination.exists():
+        atomic_state_file(destination, raw)
+    git("add", "--", relative, cwd=OUTBOX)
+    if git("diff", "--cached", "--name-only", "--", relative, cwd=OUTBOX):
+        git("commit", "--only", "-m", "Odin local source receipt " + receipt_id,
+            "--", relative, cwd=OUTBOX)
+    intent.unlink()
+
+
+def publish_local_source_receipts(max_per_poll=3):
+    """Retry immutable local receipts through the current private outbox clone."""
+    if not private_mailbox:
+        return 0
+    module = source_receipt_module()
+    published = 0
+    for candidate in module.local_candidates():
+        if published >= max_per_poll:
+            break
+        try:
+            raw = module.load_local(candidate)
+        except (OSError, ValueError, TypeError):
+            log("Skipping invalid offline source receipt")
+            continue
+        relative = module.remote_path(candidate.stem)
+        destination = OUTBOX / relative
+        if destination.is_symlink():
+            raise RuntimeError("Unsafe private source receipt path")
+        if destination.exists():
+            if destination.read_bytes() != raw:
+                raise RuntimeError("Conflicting source receipt ID in private mailbox")
+            continue  # Already committed and pushed, or ahead for retry on next poll.
+        journal = STATE / "pending-source-receipt.json"
+        if journal.exists():
+            recover_pending_source_receipt()
+        atomic_state_file(journal, raw)
+        recover_pending_source_receipt()
+        # On a network failure, the committed outbox stays ahead; ensure_outbox
+        # retries the push on the next poll. Never delete the local receipt.
+        outbox_git("push", "origin", "HEAD:refs/heads/" + OUTBOX_BRANCH, timeout=90)
+        atomic_state_file(STATE / "source-receipt-last-push.json",
+                          json.dumps({"receipt_id": candidate.stem,
+                                      "checked_at": iso(utcnow())}).encode())
+        published += 1
+    return published
+
+
 def process_once():
     # One writer at a time: avoid two agent instances publishing duplicate
     # receipts or running concurrent check requests on the same checkout.
@@ -648,6 +735,15 @@ def process_locked():
     origin = checked_origin()
     ensure_outbox(PRIVATE_ORIGIN if private_mailbox else origin)
     fetch_inbox()
+    if private_mailbox:
+        try:
+            sent = publish_local_source_receipts()
+            if sent:
+                log("Uploaded " + str(sent) + " private source receipt(s)")
+        except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
+            # Preserve the existing diagnostic request/reply path even when
+            # optional offline receipt shipping is temporarily unavailable.
+            log("Local receipt delivery deferred: " + type(exc).__name__)
     inbox_git = outbox_git if private_mailbox else git
     ref = "origin/" + INBOX_BRANCH
     checkpoint = STATE / "completed-scan"
