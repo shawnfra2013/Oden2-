@@ -2,6 +2,18 @@
 
 **Updated:** November 23, 2026 (Central). This is the current human-reviewed checkpoint. Use [the timestamped snapshot workflow](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-project-snapshot.yml) and the actual GitHub main SHA for subsequent sessions. Historical material is not a deployment guide.
 
+## November 23 — Issue #71 physically migrated and independently verified
+
+**Approved physical action:** The owner ran the guarded local `scripts/odin_mailbox_migrate.py` at canonical `~/odin-workspace` for exact target `1e3f309e6b7b3f84b1a9dc96524b9ace0b369dc2` with explicit `--apply --confirm MIGRATE-ODIN-MAILBOX`. Termux reported `status=MIGRATED`, new PID **9200**, `old_private_state_preserved=true`, and a launcher backup under the private local `~/.odin-preservation/` directory. The local `sv status` reported PID 9200 running. Physical `odin_preflight.py --mode device` returned **11 PASS, 0 FAIL, 5 UNVERIFIED**, including `private_mailbox_runtime_checkout=PASS` (both launcher and live process use canonical checkout), all four reported runit services, local HTTP and local model TCP. Its five UNVERIFIED gates were Tailscale CLI state, remote main comparison, actual model inference, Tailscale HTTPS, and iPhone cellular. Local inference and smartphone routing remain untested.
+
+**Post-migration independently matched private receipts (all November 23 UTC):**
+- Ping request `b710202611231656320000000000000a` responded **16:57:01Z** with `action=ping`, `status=complete`, `alive=true`, **PID 9200**, `revision=1e3f309e6b7b3f84b1a9dc96524b9ace0b369dc2`. This matched the observed GitHub main SHA with all four exact-main source CI checks successful.
+- Read-only migration-preview request `b710202611231657000000000000000b` responded **16:58:07Z** with `preflight_status=ALREADY_CANONICAL`, `canonical_checkout_confirmed=true`, `pid=9200`, matching exact revision and `device_change_performed=false`. This independently proves the *current running* mailbox process now uses the canonical checkout.
+- Metadata audit request `b710202611231657130000000000000c` responded **16:58:15Z** `status=complete`, revision `1e3f309...`, with **6 matched, 1 pending, 0 malformed, 0 stalled, 0 expired, 0 rejected, 0 audit incidents** among 7 considered. The one pending request was part of the audit snapshot; do not mark it failed or infer future status. `agent_read_verified=false`, `device_phone_verified=false`.
+
+**Issue #71 migration acceptance:** **PASS** for exact running source SHA, preserved state/backup, canonical launcher/live cwd, post-restart fresh ping and metadata audit. The broader release/phone acceptance issue remains **OPEN**, because full reboot persistence, actual local model reply, Tailscale HTTPS, real iPhone cellular, and a complete one-action sweep are not verified. Do not repeat the migration or touch the preserved old checkout. Follow the existing task board for remaining separately approved work.
+
+
 ## November 23 fresh read-only device inventory — current evidence supersedes older pings
 
 **Exact-source verification:** public GitHub main was `cc9b588b572dadeabf62c30ad7e8467bec928840` with exact-main Odin validation, browser and CodeQL Python/JavaScript PASS. This contains the direct-script `ai` memory import repair from merged [PR #156](https://github.com/shawnfra2013/Oden2-/pull/156). Git source does **not** establish that an interactive AI answer succeeds.
