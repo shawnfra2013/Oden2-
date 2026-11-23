@@ -42,7 +42,8 @@ def _read_documents(root: Path) -> tuple[list[tuple[str, str]], str]:
         path = root / relative
         if not path.exists() and not path.is_symlink():
             continue
-        if path.is_symlink() or path.parent.is_symlink():
+        if (path.is_symlink() or path.parent.is_symlink()
+                or not path.resolve().is_relative_to(root.resolve())):
             raise ValueError("Unsafe project memory path")
         descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
         try:
