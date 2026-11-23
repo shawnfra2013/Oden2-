@@ -2,6 +2,10 @@
 
 **Updated:** November 23, 2026 (Central). This is the current human-reviewed checkpoint. Use [the timestamped snapshot workflow](https://github.com/shawnfra2013/Oden2-/actions/workflows/odin-project-snapshot.yml) and the actual GitHub main SHA for subsequent sessions. Historical material is not a deployment guide.
 
+## Verified Git project memory (not automatic model recall)
+
+The current sanitized, source-backed memory checkpoint is [November 23 verified collaboration memory](audits/ODIN_VERIFIED_MEMORY_2026-11-23.md); the read-first index and retention rules are in [project memory](PROJECT_MEMORY.md). These documents preserve decisions, the newest relevant GitHub PR/receipt IDs, observed errors, tested fixes, and remaining physical gates. They do **not** mean the device model automatically loads them, that its ignored local state is backed up to public Git, or that a reviewer comment triggered an agent action. Confirm a fresh SHA/receipt before treating a saved checkpoint as live.
+
 ## Canonical architecture
 
 - [Current runtime truth](ODIN_RUNTIME.md) and [source/workflow rules](../ODIN_WORKFLOW.md) control the supported stack.
