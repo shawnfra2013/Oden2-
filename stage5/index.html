@@ -4,11 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Odin AI Workstation</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Odin">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header><h1>ODIN</h1>
-<small>AI Workstation · Stage 5.5</small>
+<small>AI Workstation</small>
+<button id="refreshApp" type="button">Refresh app</button>
 <nav aria-label="Odin menu">
 <a href="#chat">AI Chat</a>
 <a href="#tasks-panel">Tasks</a>
@@ -24,8 +28,9 @@
 <button type="button" id="buttonBind">Assign next press</button><button type="button" id="buttonCancel">Cancel</button>
 <button type="button" id="buttonRemove">Remove assignment</button>
 <p id="buttonStatus" role="status"></p><ul id="buttonList"></ul></details>
-<details id="disconnectTest"><summary>Wi-Fi disconnect test</summary>
-<p id="disconnectStatus">Waiting for test status…</p></details><p id="health">Checking backend...</p>
+<button id="restartServices" type="button">Restart Odin services</button>
+<p id="restartStatus" role="status"></p>
+<p id="health">Checking backend...</p>
 <button id="reconnect">Check connection</button>
 </section>
 <section class="card" id="chat">

@@ -1,11 +1,11 @@
 <!-- ODIN_STAGE4_CHECKPOINT_2026-11-10 -->
 # Odin — Technical Project Memory
 
-For verified browser and device receipts, supported transports, repair status and release acceptance, see [the November 20 hardening record](STRUCTURE_HARDENING.md).
+Current access and cutover instructions are in [Odin on iPhone](ODIN_PHONE_ACCESS.md). The dated entries below record earlier checkpoints.
 
 The active device bridge is the private GitHub mailbox in `shawnfra2013/Odin-private-bridge`. Termux polls `odin-bridge-inbox` and publishes matching receipts on `odin-bridge-outbox`. Use the [private mailbox in a browser](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) or submit a request through the authorized GitHub integration. Browser submissions use GitHub sign-in and the workflow’s repository-scoped token.
 
-On November 20, a fresh [private ping receipt](https://github.com/shawnfra2013/Odin-private-bridge/blob/odin-bridge-outbox/bridge/responses/0cd4560ddc8e4b7183f172e2bef883fc.json) confirmed `alive: true` at 17:01:16 UTC. The mailbox accepts `ping`, `stage5_health`, `staging_probe` and `inference_probe`. Only the last check calls the model. Cloud chat and the older Blob-backed message journal are separate features. Restoring Blob storage is outside the mailbox acceptance criteria.
+On November 20, a fresh [private ping receipt](https://github.com/shawnfra2013/Odin-private-bridge/blob/odin-bridge-outbox/bridge/responses/0cd4560ddc8e4b7183f172e2bef883fc.json) confirmed `alive: true` at 17:01:16 UTC. The mailbox accepts `ping`, `stage5_health`, `staging_probe` and `inference_probe`. Only the last check calls the model.
 
 
 On November 20 at 10:29 a.m. Central, the physical Odin completed the private GitHub mailbox → OpenAI → mailbox challenge. The receipt matched the submitted ID and expected answer, reported model `gpt-4.1-mini-2025-04-14`, included a provider response ID, and measured 2,320 ms on the device. The private outbox holds the full receipt.
@@ -27,7 +27,7 @@ The later live acceptance result is recorded above.
 - The GitHub bridge runs fixed on-device commands and returns a receipt. Interactive SSH remains unverified. Reuse the receipts above for this revision.
 - The private relay process was running but its last recorded poll was 10,519 seconds old. An authenticated production `/ai-test` submission returned HTTP 503 at queue time. Production logs recorded storage authentication failures during reads. A successful private model reply remains open.
 - The hosted OpenAI chat returned HTTP 503. Production configuration lists `ODIN_OPENAI_MODEL` and lacks `OPENAI_API_KEY`. The separate Termux model-list call authenticated; its generation attempt returned `model_not_found`.
-- Prioritize restoring the existing private storage connection and hosted credential, then obtain a correlated device reply and a hosted OpenAI reply. Physical iPhone acceptance remains open. Feature expansion is paused.
+- These were open checks for the former hosted setup.
 
 ## Historical checkpoints
 
@@ -282,49 +282,6 @@ Remaining limitations:
   boundaries and verify persistence, bounded history, and per-conversation
   isolation against the exact GitHub revision being reviewed.
 
-## Hosted iPhone relay stabilization — 2026-11-19 (latest checkpoint)
-
-- Repository: `shawnfra2013/Oden2-`. Relay repair PR #13 merged to
-  `main` as `1e8f73f10958cc66159861c05a9d9e4ee80ce77b`.
-- GitHub Actions PR validation `44478622727` passed, including Python,
-  Stage 5, Node module syntax and authenticated relay handler tests.
-- Vercel existing project: `odin-control`, domain
-  `https://odin-control.vercel.app/`. Production deploy
-  `dpl_Ana2JCHZFYEimuv2ztbQ9u2wgjtS` reported READY.
-  Verified public `/`, `/api/capabilities`, and `/api/status` returned
-  HTTP 200. Unauthenticated `/api/relay` returned HTTP 403 as expected.
-  A **new authenticated end-to-end phone ↔ Odin `/ping` round-trip remains
-  unverified**; never substitute offline tests for that proof.
-- Root cause of observed private inbox failure: `mobile/api/relay.js`
-  called `validOrigin`, but `mobile/lib/access.js` did not export it.
-  Vercel runtime errors showed five `TypeError: validOrigin is not a
-  function` failures. Export fixed; CI now tests the full protected
-  handler and refusal paths. Sanitized storage failure stages added.
-- Existing production Vercel environment configuration checked:
-  `ODIN_CONTROL_ACCESS_TOKEN`, `ODIN_DEVICE_RELAY_TOKEN`,
-  `BLOB_READ_WRITE_TOKEN`, and `ODIN_OPENAI_MODEL` exist.
-  `OPENAI_API_KEY` and `ODIN_GITHUB_TOKEN` do not exist; therefore
-  hosted cloud AI chat and app-originated GitHub diagnostic writes remain
-  disabled. Do not publish any token values. Private Blob store connected.
-- Vercel project feature flags: no active flags and no Flags settings
-  configured; no new feature flag platform or monitoring service created.
-- User's last on-device Termux output showed `main` at `12e861d`,
-  `odin-private-relay` runit PID 4646 and successful zero-message
-  private poll at that time. This does **not** verify the later live
-  iPhone-to-Odin test or continued background uptime.
-- Device checkout had five preserved untracked files; no reset, deletion,
-  or forced update approved or performed.
-- Existing `odin-git-sync` fetches and conditionally pushes; it **does not**
-  automatically pull/restart latest code. Existing read-only log is
-  `logs/git-sync.log`; wrapper now emits nonzero exit status rather than
-  `|| true`. Safe reviewed manual update remains
-  `scripts/odin-safe-pull.sh`.
-- Odin-side source and any running Python service do not update solely
-  because GitHub `main` was merged. Autopull with CI gates and boot
-  persistence remain separate work, deferred to avoid unsafe hot updates.
-- Current architecture source-of-truth: `docs/architecture.md`;
-  private pairing and test instructions: `docs/ODIN_PRIVATE_RELAY.md`.
-
 ## Odin 10-point stabilization and safe update release — 2026-11-19
 
 **Canonical reviewed code release:** `b6fedfc70b027ca66afe48853b668fdd3f2d9121`
@@ -332,20 +289,6 @@ Remaining limitations:
 `44486431089` concluded **success**; checks included 94 Stage 4/bridge
 Python tests, 32 Stage 5 Python tests, 29 Node tests, Ruff, Python
 compilation, Bash syntax, secret scanning, and repository sanity.
-
-**Existing iPhone deployment:** `odin-control` production deployment
-`dpl_AgEhBdNf9DpYHv59agr3N91sLvba` was **READY** at
-`https://odin-control.vercel.app/`.
-Live unauthenticated checks:
-- `/` HTTP 200; device task shortcuts and private message view present.
-- `/api/status` HTTP 200 and reported reviewed GitHub commit
-  `b6fedfc70b027ca66afe48853b668fdd3f2d9121` and CI success.
-- `/api/capabilities` HTTP 200; access/pairing/private relay configured,
-  hosted cloud API model **not** configured.
-- Unauthenticated `/api/relay` HTTP 403 (expected protection).
-- Latest sampled Vercel `/api/relay` runtime error query returned no
-  errors in the selected 15-minute window. This does **not** establish
-  authenticated message acceptance or device-origin replies.
 
 **Device execution state:** The last user-provided Termux update proved
 the Odin checkout had fast-forwarded to `523f7769ea15d311dbf0b9320a5d28e64b428b40`
@@ -391,7 +334,7 @@ The physical Odin was manually verified at
 `539ca3e7a791c5ff54106827f32b17432789c93d`. Termux preserved all five
 untracked files and confirmed all four runit services after a local restart.
 Odin subsequently returned an exact-revision receipt with Stage 4, Stage 5,
-and Ruff passing. The hosted dashboard displayed that receipt.
+and Ruff passing.
 
 The expanded bridge shipped in PRs #25 and #26. Main commit
 `206ccdd142ff6b177611a068cfd079dcb739d40f` passed GitHub Actions run

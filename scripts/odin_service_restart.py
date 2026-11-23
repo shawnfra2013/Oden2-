@@ -1,8 +1,6 @@
 """Authenticated, allowlisted restart of Odin's existing runit services.
 
-The private relay queues one exact restart request. This *detached helper*
-restarts configured services (relay LAST) and records a durable outcome.
-The restarted relay publishes the final private reply on its next poll.
+The web app starts a detached helper and reads its durable outcome.
 No arbitrary command, reboot, package change, credential or Git edit.
 """
 import argparse
@@ -17,12 +15,11 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-REQUEST_DIR = ROOT / "state" / "odin-relay" / "restarts"
+REQUEST_DIR = ROOT / "state" / "service-restarts"
 ID_RE = re.compile(r"[0-9a-f]{32}\Z")
 SERVICES = ("odin-git-sync", "odin-task-worker", "odin-github-bridge",
-            "odin-stage5", "odin-private-relay")
-MANDATORY = frozenset({"odin-git-sync", "odin-task-worker",
-                       "odin-private-relay"})
+            "odin-private-mailbox", "odin-stage5")
+MANDATORY = frozenset({"odin-git-sync", "odin-task-worker"})
 COOLDOWN_SECONDS = 600
 STALE_SECONDS = 300
 
@@ -130,7 +127,7 @@ def restart_configured(*, state_dir=REQUEST_DIR, prefix=None, call=svc_call,
                        after_update=False, service=None):
     if service is not None and (service not in SERVICES or after_update):
         raise ValueError("Invalid restart service")
-    targets = SERVICES if service is None else (service,)
+    targets = tuple(name for name in SERVICES if not (after_update and name == "odin-private-mailbox")) if service is None else (service,)
     state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     fd = os.open(state_dir / "execution.lock",
                  os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
@@ -154,7 +151,7 @@ def restart_under_lock(prefix, call, after_update, targets):
         # Runit service entries may legitimately be symlinks to their
         # source definitions; the service name itself remains allowlisted.
         if not service.is_dir() or not (service / "run").is_file():
-            required = name in MANDATORY and not (after_update and name == "odin-private-relay")
+            required = name in MANDATORY
             outcome[name] = "missing" if required or len(targets) == 1 else "not_configured"
             continue
         try:
@@ -209,7 +206,7 @@ def restart_under_lock(prefix, call, after_update, targets):
 
 def run_restarts(message_id, *, root=ROOT, state_dir=REQUEST_DIR,
                  prefix=None, call=svc_call):
-    """Only known, already-configured Odin runit services. Relay last."""
+    """Only known, already-configured Odin runit services. Web app last."""
     path = state_dir / (message_id + ".json")
     data = read_record(path)
     if data["phase"] != "queued":
@@ -224,45 +221,13 @@ def run_restarts(message_id, *, root=ROOT, state_dir=REQUEST_DIR,
     return 0 if healthy else 1
 
 
-def pending_replies(*, state_dir=REQUEST_DIR, clock=now):
-    """Report interrupted operations as failures, not false success."""
-    if not state_dir.exists():
-        return []
-    pending = []
-    for path in sorted(state_dir.glob("*.json")):
-        try:
-            row = read_record(path)
-            if row["phase"] in ("queued", "running") and (
-                clock() - row["created_at"] > STALE_SECONDS
-            ):
-                row["phase"] = "finished"
-                row["completed_at"] = clock()
-                row["reply"] = ("ODIN_SERVICES_RESTART_RESULT verified=false "
-                                "reason=helper_interrupted")
-                save_record(path, row)
-            if row["phase"] == "finished":
-                pending.append((path, row))
-        except (OSError, ValueError, KeyError, TypeError):
-            continue
-    return pending[:10]
-
-
-def publish_pending(token, send, *, state_dir=REQUEST_DIR):
-    """Relay resumes delivery after it restarts; never claim before reply."""
-    count = 0
-    for path, row in pending_replies(state_dir=state_dir):
-        try:
-            send(token, {"type": "reply", "for": row["id"], "text": row["reply"]})
-        except RuntimeError as error:
-            # A prior accepted reply can return a duplicate/409 response;
-            # retryable network failure stays queued for the next poll.
-            if "HTTP 409" not in str(error):
-                continue
-        row["phase"] = "reported"
-        row["reported_at"] = now()
-        save_record(path, row)
-        count += 1
-    return count
+def restart_status(message_id):
+    row = read_record(record_path(message_id))
+    if row["phase"] == "finished":
+        return {"phase": "finished", "reply": row["reply"]}
+    if now() - row["created_at"] > STALE_SECONDS:
+        return {"phase": "finished", "reply": "Restart outcome unavailable"}
+    return {"phase": row["phase"]}
 
 
 def update_active_private_mailbox():

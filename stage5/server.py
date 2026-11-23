@@ -6,7 +6,6 @@ import sqlite3
 import sys
 import threading
 import time
-from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -18,24 +17,6 @@ WORKSPACE = Path.home() / "odin-workspace"
 HOST = "127.0.0.1"
 PORT = 8765
 MAX_INPUT = 4000
-
-def disconnect_status():
-    path = WORKSPACE / "state/odin-relay/relay-journal.sqlite3"
-    if not path.is_file():
-        return {"state": "waiting"}
-    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=2)) as db:
-        if not db.execute("SELECT 1 FROM sqlite_master WHERE name='test_holds'").fetchone():
-            return {"state": "waiting"}
-        row = db.execute("SELECT h.id,h.release_at,j.phase,coalesce(d.attempts,0),"
-                         "(SELECT count(*) FROM failures WHERE request_id=h.id AND phase='publish_result') "
-                         "FROM test_holds h JOIN jobs j ON j.id=h.id LEFT JOIN deliveries d ON d.id=h.id "
-                         "ORDER BY h.rowid DESC LIMIT 1").fetchone()
-    if not row:
-        return {"state": "waiting"}
-    mid, deadline, phase, attempts, failures = row
-    return {"state": phase, "id": mid, "seconds": max(0, deadline - int(time.time())),
-            "attempts": attempts, "failures": failures}
-
 
 def task_counts():
     base = WORKSPACE / "state" / "task-queue"
@@ -107,7 +88,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_body(status, json.dumps(data).encode())
 
     def authorized_host(self):
-        return self.headers.get("Host") == f"{HOST}:{PORT}"
+        host = getattr(self.server, "request_host", f"{HOST}:{PORT}")
+        return (self.client_address[0] == getattr(self.server, "allowed_peer", HOST)
+                and self.headers.get_all("Host") == [host])
 
     def do_GET(self):
         if not self.authorized_host():
@@ -128,12 +111,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_body(200, current())
             except (OSError, ValueError, RuntimeError, TimeoutExpired):
                 self.json_body(503, {"error": "Offline edit store unavailable"})
-        elif path == "/ui-settings.js":
-            self.send_body(200, (ROOT.parent / "mobile/ui-settings.js").read_bytes(), "text/javascript; charset=utf-8")
-        elif path == "/local-tools.js":
-            self.send_body(200, (ROOT.parent / "mobile/local-tools.js").read_bytes(),
-                           "text/javascript; charset=utf-8")
-        elif path in {"/app.js", "/device-controls.js"}:
+        elif path == "/icon.svg":
+            self.send_body(200, (ROOT / "icon.svg").read_bytes(), "image/svg+xml")
+        elif path in {"/app.js", "/device-controls.js", "/ui-settings.js", "/local-tools.js"}:
             self.send_body(
                 200, (ROOT / path[1:]).read_bytes(),
                 "text/javascript; charset=utf-8"
@@ -153,11 +133,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_body(200, notebook(followup=path.endswith("-followup")))
             except (sqlite3.Error, OSError, ValueError):
                 self.json_body(503, {"error": "Practice notebook unavailable"})
-        elif path == "/api/disconnect-test":
+        elif path == "/api/restart":
+            from scripts.odin_service_restart import restart_status
+            request_id = parse_qs(urlsplit(self.path).query).get("id", [""])[0]
             try:
-                self.json_body(200, disconnect_status())
-            except sqlite3.Error:
-                self.json_body(503, {"error": "Local test journal unavailable"})
+                self.json_body(200, restart_status(request_id))
+            except (OSError, ValueError):
+                self.json_body(404, {"error": "Restart receipt unavailable"})
         elif path == "/api/source":
             from source_lookup import lookup
             if os.environ.get("ODIN_STAGE5_PROVIDER") != "local":
@@ -183,8 +165,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self.authorized_host():
             self.json_body(403, {"error": "Invalid host"})
             return
-        origin = self.headers.get("Origin")
-        if origin != f"http://{HOST}:{PORT}":
+        host = getattr(self.server, "request_host", f"{HOST}:{PORT}")
+        if self.headers.get_all("Origin") != [f"http://{host}"]:
             self.json_body(403, {"error": "Invalid origin"})
             return
         if self.headers.get("X-Odin-Request") != "chat":
@@ -201,7 +183,8 @@ class Handler(BaseHTTPRequestHandler):
         if not token or not hmac.compare_digest(supplied, token):
             self.json_body(403, {"error": "Session authentication required"})
             return
-        if urlsplit(self.path).path not in {"/api/chat", "/api/ui-edits"}:
+        path = urlsplit(self.path).path
+        if path not in {"/api/chat", "/api/ui-edits", "/api/restart"}:
             self.json_body(404, {"error": "Not found"})
             return
         if self.headers.get("Content-Type") != "application/json":
@@ -216,7 +199,22 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             data = json.loads(self.rfile.read(length))
-            if urlsplit(self.path).path == "/api/ui-edits":
+            if path == "/api/restart":
+                from scripts.odin_service_restart import ID_RE, start_restart
+                if (not isinstance(data, dict) or set(data) != {"id"}
+                        or not isinstance(data["id"], str) or not ID_RE.fullmatch(data["id"])):
+                    raise ValueError("Invalid restart request")
+                try:
+                    accepted = start_restart(data["id"])
+                except (OSError, RuntimeError):
+                    self.json_body(503, {"error": "Restart unavailable"})
+                    return
+                self.json_body(202 if accepted else 409, {
+                    "accepted": accepted,
+                    "error": "" if accepted else "Restart already requested or cooling down",
+                })
+                return
+            if path == "/api/ui-edits":
                 from scripts.odin_ui_edits import approve
                 if not isinstance(data, dict) or set(data) != {"settings", "version"}:
                     raise ValueError("Invalid edit")
@@ -240,6 +238,10 @@ class Handler(BaseHTTPRequestHandler):
             or any(char not in "0123456789abcdef" for char in conversation_id)
         ):
             self.json_body(400, {"error": "Invalid conversation ID"})
+            return
+        if (getattr(self.server, "allowed_peer", HOST) != HOST
+                and os.environ.get("ODIN_STAGE5_PROVIDER") != "local"):
+            self.json_body(503, {"error": "Phone chat requires Odin's local model"})
             return
         if os.environ.get("ODIN_STAGE5_ENABLE_AI") != "1":
             self.json_body(503, {"error": "AI not enabled yet"})
@@ -314,7 +316,11 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     from offline_profile import activate
+    from phone_access import start
     activate(os.environ)
+    if os.environ.get("ODIN_STAGE5_PROVIDER") != "local":
+        os.environ["ODIN_STAGE5_PROVIDER"] = "local"
+        os.environ["ODIN_STAGE5_ENABLE_AI"] = "0"
     from conversation_store import ConversationStore
 
     db_path = Path(os.environ.get("ODIN_STAGE5_DB", Path(__file__).resolve().parent.parent / "state" / "conversations.db"))
@@ -324,12 +330,14 @@ def main():
     server.daemon_threads = True
     server.chat_lock = threading.BoundedSemaphore(1)
     server.session_token = secrets.token_urlsafe(32)
-    print(f"ODIN STAGE 5.5: http://{HOST}:{PORT}", flush=True)
+    stop_phone = start(server, Handler)
+    print(f"Odin web app: http://{HOST}:{PORT}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        stop_phone.set()
         server.server_close()
 
 if __name__ == "__main__":

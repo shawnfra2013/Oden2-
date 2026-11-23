@@ -200,7 +200,7 @@ def fetch_inbox():
         timeout=90)
 
 
-HEALTH_SERVICES = ("odin-private-mailbox", "odin-git-sync", "odin-task-worker", "odin-github-bridge", "odin-stage5", "odin-private-relay")
+HEALTH_SERVICES = ("odin-private-mailbox", "odin-git-sync", "odin-task-worker", "odin-github-bridge", "odin-stage5", "odin-local-model")
 RUN_STATUS = re.compile(r"^run: .*: \(pid ([0-9]{1,9})\) ([0-9]{1,9})s(?:,|$)")
 SYNC_REASONS = frozenset({
     "already_up_to_date", "source_updated", "source_updated_restart_not_automatic",
@@ -287,7 +287,6 @@ def health_summary():
         "stage5_reachable": status_action("stage5_health")["reachable"],
         "last_rollout": rollout_summary(),
         "worker_heartbeat_age_s": heartbeat_age(ROOT / "state/task-queue/worker-status.json"),
-        "relay_poll_age_s": heartbeat_age(ROOT / "state/odin-relay/relay-status.json"),
         "queue_pending": queue_depth(ROOT / "state/task-queue/pending"),
         "queue_running": queue_depth(ROOT / "state/task-queue/running"),
     }
@@ -441,16 +440,11 @@ def status_action(action, request=None):
         try:
             with urlopen("http://127.0.0.1:8765/api/health", timeout=4) as response:
                 data = json.loads(response.read(4096))
-            try:
-                with urlopen("http://127.0.0.1:8765/api/disconnect-test", timeout=3) as test:
-                    test_ready = json.loads(test.read(4096)).get("state") in {"waiting", "pending", "sent"}
-            except (ValueError, OSError, AttributeError):
-                test_ready = False
             return {
-                "disconnect_test_ready": test_ready,
                 "reachable": True,
                 "ready": data.get("status") == "ready",
                 "ai_enabled": data.get("ai_enabled") is True,
+                "local_provider": data.get("provider") == "local",
             }
         except (OSError, ValueError, URLError):
             return {"reachable": False}
@@ -691,19 +685,12 @@ def main():
     if args.private_mailbox:
         enable_private_mailbox()
     if args.serve:
-        try:
-            from .odin_wake import wait_for_work
-        except ImportError:
-            from odin_wake import wait_for_work
         while True:
             try:
                 process_once()
             except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
                 log("Poll error: " + type(exc).__name__)
-            if private_mailbox:
-                time.sleep(POLL_SECONDS)
-            else:
-                wait_for_work("bridge", POLL_SECONDS)
+            time.sleep(POLL_SECONDS)
     else:
         print("Processed requests:", process_once())
 

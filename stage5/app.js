@@ -78,13 +78,13 @@ async function refreshHealth(){
  try{
   const health=await getJSON("/api/health");
   el("health").textContent="Backend: "+health.status+
-    " | "+(health.provider==="local"?"On-device model · zero OpenAI usage":health.provider)+" | AI: "+(health.ai_enabled?"enabled":"disabled");
+    " | "+(health.provider==="local"?"On-device model · no cloud calls":health.provider)+" | AI: "+(health.ai_enabled?"enabled":"disabled");
   el("localOptions").hidden=health.provider!=="local";
   aiReady=health.ai_enabled===true;
   el("send").disabled=sending||!aiReady;
   if(!sending)el("chatStatus").textContent=health.ai_enabled?
     "AI available. Responses are not independently verified.":
-    "AI disabled during isolated testing.";
+    "Local model is not enabled.";
  }catch(e){
   aiReady=false;
   el("health").textContent="Backend unavailable: "+e.message;
@@ -149,26 +149,87 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshHea
 refreshHealth();
 refreshTasks();
 
-async function watchDisconnectTest(){
- const panel=el("disconnectTest");
- if(!panel.open||panel.dataset.watching)return;
- panel.dataset.watching="1";
- try{
-  while(panel.open){
-   try{
-    const r=await getJSON("/api/disconnect-test");
-    let text="Waiting for /ping-disconnect-test in the private Odin Device Inbox.";
-    if(r.state==="sent")text="Delivered. Attempts: "+r.attempts+". Failed deliveries: "+r.failures+".";
-    else if(r.seconds>0)text="Reply saved. Turn Odin Wi-Fi OFF now. Delivery unlocks in "+r.seconds+" seconds.";
-    else if(r.failures>0)text="Failed delivery recorded. Turn Wi-Fi ON now.";
-    else if(r.id)text="Waiting for the first delivery attempt. Keep Wi-Fi off.";
-    el("disconnectStatus").textContent=text+(r.id?" Request "+r.id.slice(-8):"");
-   }catch{el("disconnectStatus").textContent="Local status unavailable. Keep Wi-Fi on or restore it.";}
-   await new Promise(resolve=>setTimeout(resolve,1000));
-  }
- }finally{delete panel.dataset.watching;}
+const restartKey = "odin-restart-request";
+let restartRequest;
+let restartDeadline = 0;
+let restartTimer;
+try {
+  const saved = sessionStorage.getItem(restartKey);
+  if (/^[0-9a-f]{32}$/.test(saved || "")) restartRequest = saved;
+} catch {}
+if (restartRequest) {
+  restartDeadline = Date.now() + 300000;
+  checkRestart();
 }
-el("disconnectTest").addEventListener("toggle",watchDisconnectTest);
+
+async function checkRestart() {
+  clearTimeout(restartTimer);
+  const button = el("restartServices");
+  button.disabled = true;
+  try {
+    const result = await getJSON("/api/restart?id=" + restartRequest);
+    if (result.phase === "finished") {
+      el("restartStatus").textContent = result.reply;
+      clearRestart();
+      return;
+    }
+    el("restartStatus").textContent = "Restart requested. Waiting for Odin...";
+  } catch {
+    el("restartStatus").textContent = "Waiting for Odin to reconnect...";
+  }
+  if (Date.now() >= restartDeadline) {
+    el("restartStatus").textContent = "Odin did not return a restart receipt. Refresh to check again.";
+    button.disabled = false;
+    return;
+  }
+  restartTimer = setTimeout(checkRestart, 2500);
+}
+
+function clearRestart() {
+  restartRequest = undefined;
+  try { sessionStorage.removeItem(restartKey); } catch {}
+  el("restartServices").disabled = false;
+}
+
+el("restartServices").onclick = async () => {
+  if (restartRequest) {
+    restartDeadline = Date.now() + 300000;
+    checkRestart();
+    return;
+  }
+  if (!window.confirm("Restart Odin's configured services? The app will disconnect briefly.")) return;
+  el("restartServices").disabled = true;
+  restartRequest = Array.from(crypto.getRandomValues(new Uint8Array(16)),
+    byte => byte.toString(16).padStart(2, "0")).join("");
+  restartDeadline = Date.now() + 300000;
+  try { sessionStorage.setItem(restartKey, restartRequest); } catch {}
+  try {
+    const response = await fetch("/api/restart", {
+      method: "POST",
+      headers: {"Content-Type":"application/json", "X-Odin-Request":"chat"},
+      body: JSON.stringify({id: restartRequest})
+    });
+    if (response.status !== 202) {
+      const result = await response.json();
+      el("restartStatus").textContent = result.error || "Restart unavailable.";
+      clearRestart();
+      return;
+    }
+  } catch {
+    // Restart may have disconnected the response after Odin accepted it.
+  }
+  checkRestart();
+};
+
+el("refreshApp").onclick = () => {
+  if (sending) return;
+  if (el("message").value.trim() && !window.confirm("Reload Odin and discard the current draft?")) {
+    refreshHealth();
+    refreshTasks();
+    return;
+  }
+  window.location.reload();
+};
 
 let practiceView = 0;
 async function showPractice() {

@@ -4,7 +4,7 @@ For verified browser and device receipts, supported transports, repair status an
 
 The active device bridge is the private GitHub mailbox in `shawnfra2013/Odin-private-bridge`. Termux polls `odin-bridge-inbox` and publishes matching receipts on `odin-bridge-outbox`. Use the [private mailbox in a browser](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) or submit a request through the authorized GitHub integration. Browser submissions use GitHub sign-in and the workflow’s repository-scoped token.
 
-On November 20, a fresh [private ping receipt](https://github.com/shawnfra2013/Odin-private-bridge/blob/odin-bridge-outbox/bridge/responses/0cd4560ddc8e4b7183f172e2bef883fc.json) confirmed `alive: true` at 17:01:16 UTC. The mailbox accepts `ping`, `stage5_health`, `staging_probe` and `inference_probe`. Only the last check calls the model. Cloud chat and the older Blob-backed message journal are separate features. Restoring Blob storage is outside the mailbox acceptance criteria.
+On November 20, a fresh [private ping receipt](https://github.com/shawnfra2013/Odin-private-bridge/blob/odin-bridge-outbox/bridge/responses/0cd4560ddc8e4b7183f172e2bef883fc.json) confirmed `alive: true` at 17:01:16 UTC. The mailbox accepts `ping`, `stage5_health`, `staging_probe` and `inference_probe`. Only the last check calls the model.
 
 
 On November 20 at 10:29 a.m. Central, the physical Odin completed the private GitHub mailbox → OpenAI → mailbox challenge. The receipt matched the submitted ID and expected answer, reported model `gpt-4.1-mini-2025-04-14`, included a provider response ID, and measured 2,320 ms on the device. The private outbox holds the full receipt.
@@ -201,7 +201,7 @@ subscription does not automatically provide API credits.
 ## Combined device diagnostics
 
 The read-only `odin_health` action returns the current checkout, tracked
-cleanliness, the four fixed Odin services (state and, when running, PID
+cleanliness, the configured Odin services (state and, when running, PID
 and uptime), the last recognized updater reason, and Stage 5 reachability.
 GitHub outbox receipts contain only these structured fields and exclude
 raw logs, paths, environment values, and private conversations. An updater
@@ -212,8 +212,7 @@ The health receipt can include the last recorded automatic rollout's exact
 revision, timestamp, and reload status. The checkout revision still reports
 the current checkout. Older installations may have no saved rollout.
 
-Odin health also reports worker heartbeat age, the age of the last completed
-private relay poll, and queue counts for pending and running tasks. Missing
+Odin health also reports worker heartbeat age and queue counts for pending and running tasks. Missing
 data stays unknown. Long tasks can delay worker heartbeats. Queue counts
 reflect a moment in time and contain no task names or contents.
 
@@ -284,9 +283,5 @@ ID, returned model, exact answer match and device timing. Retain the actual
 receipt in the private repository. Public documentation records the outcome
 only. A request from the handheld to this ChatGPT conversation remains a
 separate capability. Expansion waits for combined-path acceptance.
-
-### Hosted device inference check
-
-Use **Chat → Odin Device Inbox → Verify Odin GPT** in a paired session. The UI sends the fixed `/ai-proof` request over the private relay and refreshes the inbox for the matching device reply. This requires the upgraded relay client, working private storage and the on-device private probe credential. Both device entry points share one attempt journal and budget.
 
 Private ping also measures available bytes on the Termux home filesystem, total and available kernel memory when readable, CPU architecture, and discovery of llama-server, llama-cli and aider on the service PATH. Missing memory fields mean unavailable. These measurements use no model calls. Installed binary detection does not establish that model weights are installed or that inference works offline.

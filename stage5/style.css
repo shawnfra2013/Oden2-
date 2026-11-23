@@ -31,4 +31,4 @@ header nav a {
 
 :root[data-odin-accent="teal"] [data-odin-chat-heading]{color:#72ddc8}
 :root[data-odin-accent="gold"] [data-odin-chat-heading]{color:#ffce70}
-:root[data-odin-size="large"] :is(#answer,#sealedAnswer,#message,#sealedQuestion){font-size:1.25rem;line-height:1.6}
+:root[data-odin-size="large"] :is(#answer,#message){font-size:1.25rem;line-height:1.6}

@@ -26,7 +26,7 @@ The owner observed an offline reply on the handheld. The [installer receipt](htt
 11. Support cancellation of a running job and confirm that its child process exited.
 12. Verify interrupt and replay behavior, including loss of Wi-Fi after local execution.
 13. Deliver terminal-state notifications from existing receipts; avoid model calls for status.
-14. Pair the phone UI and verify a real encrypted answer after reopening the browser.
+14. Verify a real on-device answer through Tailscale after reopening the iPhone web app.
 15. Evaluate an optional Claude provider on the same tasks, only with explicit cloud selection and a budget.
 16. Prototype one user-selected hardware button that opens local chat; verify ordinary controls still work.
 

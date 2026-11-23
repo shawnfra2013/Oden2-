@@ -46,7 +46,7 @@ class Stage55Tests(unittest.TestCase):
 
     def test_interface_updated(self):
         html = (server.ROOT / "index.html").read_text()
-        self.assertIn("Stage 5.5", html)
+        self.assertIn("Odin AI Workstation", html)
         self.assertIn('id="message"', html)
         self.assertIn('id="tasks"', html)
 
