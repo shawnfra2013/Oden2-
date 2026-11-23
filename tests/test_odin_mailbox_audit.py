@@ -111,6 +111,16 @@ class MailboxAuditTests(unittest.TestCase):
         self.assertEqual(report["counts"]["malformed"], 2)
         self.assertIn("malformed_request", [x["code"] for x in report["incidents"]])
 
+    def test_completed_allowlisted_mailbox_audit_is_not_an_incident(self):
+        req = {**self.request, "action": "mailbox_audit"}
+        reply = {**self.response, "action": "mailbox_audit",
+                 "result": {"scope": "private_mailbox_metadata", "matched": 1}}
+        report = self.run_audit(req=req, reply=reply)
+        self.assertEqual(report["counts"]["matched"], 1)
+        self.assertEqual(report["counts"]["malformed"], 0)
+        self.assertEqual(report["incidents"], [])
+        self.assertFalse(report["agent_read_verified"])
+
     def test_unexpected_completed_shell_action_is_not_treated_as_success(self):
         request = {**self.request, "action": "shell"}
         reply = {**self.response, "action": "shell"}
