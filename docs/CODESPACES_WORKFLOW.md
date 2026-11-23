@@ -14,7 +14,7 @@ python -B scripts/odin_codespace.py status
 python -B scripts/odin_codespace.py test
 ```
 
-**Requirements:** Python 3.13+ recommended; Node.js 22 for mobile tests; Ruff available as `ruff` or `.venv/bin/ruff`; and project dependencies already installed (`npm ci --prefix mobile --no-audit --no-fund --ignore-scripts` once when online). The version pinned in GitHub CI is Ruff 0.14.5. An offline run with a missing tool fails explicitly rather than pretending the test passed.
+**Requirements:** Python 3.13+ recommended; Node.js 22 for mobile tests; Ruff available as `ruff` or `.venv/bin/ruff`; and project dependencies already installed (`npm ci --prefix mobile --no-audit --no-fund --ignore-scripts` once when online). The Codespaces dev container automatically prepares a local Python virtual environment with Ruff 0.14.5 and installs the mobile dependencies **after you manually start the Codespace**. This does not start any model or device service. For a Termux checkout, install the tools yourself while connected before offline work. An offline run with a missing tool fails explicitly rather than pretending the test passed.
 
 The source test loop runs active-doc checks, source structure checks, Python tests, local workstation tests, mobile Node tests, Ruff, and source preflight. Its JSON receipt is written under `state/codespace-receipts/`, ignored by Git and never automatically uploaded. It includes the local source SHA, test results, timing, and a unique ID; **it is not a device receipt**.
 
