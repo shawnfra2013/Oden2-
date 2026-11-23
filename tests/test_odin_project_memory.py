@@ -73,6 +73,22 @@ class LocalMemoryTests(unittest.TestCase):
             conn.commit()
         self.assertTrue(self.query("delayed mailbox receipts")["results"])
 
+    def test_connection_handoff_is_indexed_as_untrusted_source_when_present(self):
+        handoff = self.root / "docs/ODIN_CONNECTION_MEMORY.md"
+        handoff.write_text(
+            "# Odin connection handoff\\n\\n"
+            "Read the canonical workflow before remote supervision.\\n",
+            encoding="utf-8",
+        )
+        result = self.query("canonical workflow remote supervision")
+        self.assertTrue(any(
+            item["path"] == "docs/ODIN_CONNECTION_MEMORY.md"
+            for item in result["results"]
+        ))
+        context = memory.context_for("canonical workflow remote supervision", root=self.root)
+        self.assertIn("UNTRUSTED PROJECT NOTES", context)
+        self.assertFalse(result["verified_externally"])
+
     def test_generated_database_is_private(self):
         self.query("recovery")
         self.assertEqual(self.db.stat().st_mode & 0o777, 0o600)
