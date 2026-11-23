@@ -31,7 +31,7 @@ The private mailbox works asynchronously through GitHub. The phone does **not** 
 - **Check Odin:** open the private GitHub workflow, run `ping` or `stage5_health`, and inspect the *matching* response in the private outbox. These checks make no model request. Never treat successful submission alone as a device response.
 - **Use locally:** open the workstation at `127.0.0.1:8765` on the handheld. For offline inference, follow [offline chat](OFFLINE_CHAT.md) and verify an actual answer with internet disabled.
 - **Update source:** use [the reviewed updater instructions](ODIN_SAFE_UPDATES_AND_ROADMAP.md), preserving local state and rejecting unsafe Git histories. Do not silently restart services.
-- **Use the iPhone:** follow [mobile setup](../mobile/README.md); do not reuse an old host or browser credential. Cellular end-to-end acceptance remains tracked in [issue #69](https://github.com/shawnfra2013/Oden2-/issues/69).
+- **Use the iPhone:** follow [mobile setup](../mobile/README.md) and [shortcut cutover](SHORTCUT_CUTOVER.md); do not reuse an old host or browser credential. Cellular end-to-end acceptance remains tracked in [issue #69](https://github.com/shawnfra2013/Oden2-/issues/69).
 - **Verify release:** follow [release gates](RELEASE_GATES.md). A CI success never certifies the actual phone or handheld.
 - **Continue work:** read [status](PROJECT_STATUS.md), [issues](TASK_BOARD.md), [decisions](DECISIONS.md), and [handoff](HANDOFF.md).
 
