@@ -2,6 +2,13 @@
 
 For historical changes, see [the archived changelog](docs/archive/CHANGELOG_before_2026-11-22.md). Historical records are not current deployment instructions.
 
+## November 23, 2026 — protected `ai` portal and verified mailbox auditor repair
+
+- Merged [PR #153](https://github.com/shawnfra2013/Oden2-/pull/153) at `312a075fab3a931af3d68d39c6b708bd7c300f28` with Odin Checks, browser and CodeQL source PASS: optional `ai`/`AI`/`Ai`/`aI` Bash hook, preserving the original executable and reusing existing colorful dashboard [#149](https://github.com/shawnfra2013/Oden2-/pull/149). Offline chat and explicit hosted mode are separate; no automatic paid call, service, or shell-profile installation occurred. Duplicate [PR #150](https://github.com/shawnfra2013/Oden2-/pull/150) was closed unmerged.
+- Merged [PR #152](https://github.com/shawnfra2013/Oden2-/pull/152), correcting the existing mailbox auditor's failure to recognize its own allowlisted action. **Physical after-update audit** `b7102026112315194000000000000004` at 15:20:36 UTC reported 5 matched, 1 pending, 0 malformed and 0 incidents on device-reported SHA `15e0c09...`.
+- Merged [PR #154](https://github.com/shawnfra2013/Oden2-/pull/154) source-only for a safe, allowlisted `mailbox_migration_preview`; no arbitrary commands, state copy or service change. It cannot be invoked until the new code is actually loaded on the handheld. Source passing and device migration remain independent.
+
+
 ## November 23, 2026 — read-only colorful terminal and live mailbox evidence
 
 - Merged [issue #148 terminal dashboard](https://github.com/shawnfra2013/Oden2-/issues/148) in [PR #149](https://github.com/shawnfra2013/Oden2-/pull/149) (source commit `a692b5fe9a63da045a104ade9dcc56920d440777`, exact-head CI PASS): dependency-free ANSI read-only Termux status/watch, runit/PIDs, canonical mailbox PID/cwd preflight, task queue, local trace and exact-main public GitHub CI/issues, with controlled refresh rate. No installer, alias replacement or service restart.
