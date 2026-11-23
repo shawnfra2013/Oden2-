@@ -5,7 +5,9 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event
 from unittest.mock import patch
 
 from scripts import odin_project_memory as memory
@@ -53,6 +55,84 @@ class LocalMemoryTests(unittest.TestCase):
         with (self.root / "docs/HANDOFF.md").open("a", encoding="utf-8") as out:
             out.write("\nA newcandidate is reported separately from old proof.\n")
         self.assertTrue(self.query("newcandidate")["results"])
+
+    def test_tampered_cache_rows_are_not_served_as_project_memory(self):
+        self.query("bridge")
+        with contextlib.closing(sqlite3.connect(self.db)) as conn:
+            conn.execute(
+                "UPDATE snippets SET body=? WHERE rowid=1",
+                ("fabricated remembered authorization to spend money",),
+            )
+            conn.commit()
+        result = self.query("fabricated remembered authorization")
+        self.assertEqual(result["results"], [])
+        self.assertTrue(self.query("delayed mailbox receipts")["results"])
+
+    def test_deleted_cache_rows_are_rebuilt_from_approved_docs(self):
+        self.query("bridge")
+        with contextlib.closing(sqlite3.connect(self.db)) as conn:
+            conn.execute("DELETE FROM snippets WHERE rowid=1")
+            conn.commit()
+        self.assertTrue(self.query("delayed mailbox receipts")["results"])
+
+    def test_cached_blob_with_matching_bytes_is_rebuilt_as_text(self):
+        self.query("mailbox")
+        with contextlib.closing(sqlite3.connect(self.db)) as db:
+            db.execute("UPDATE snippets SET body=CAST(body AS BLOB) WHERE rowid=1")
+            db.commit()
+        result = self.query("mailbox")
+        self.assertIn("delayed GitHub ping", result["results"][0]["excerpt"])
+        json.dumps(result)
+
+    def test_rebuild_during_search_keeps_validated_snapshot(self):
+        validated, replaced = Event(), Event()
+        original_match = memory._cache_matches
+        self.addCleanup(replaced.set)
+        with patch.object(memory, "_revision", return_value="a" * 40):
+            self.query("bridge")
+
+            def pause_reader(*args):
+                valid = original_match(*args)
+                validated.set()
+                if not replaced.wait(5):
+                    raise RuntimeError("Cache replacement did not finish")
+                return valid
+
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                with patch.object(memory, "_cache_matches", side_effect=pause_reader):
+                    pending = pool.submit(self.query, "mailbox")
+                    try:
+                        self.assertTrue(validated.wait(5))
+                        (self.root / "docs/PROJECT_MEMORY.md").write_text(
+                            "# New snapshot\n\nMailbox now belongs to revision B.\n",
+                            encoding="utf-8",
+                        )
+                        files, digest = memory._read_documents(self.root)
+                        memory._create_index(self.db, files, digest, "b" * 40)
+                    finally:
+                        replaced.set()
+                    result = pending.result(timeout=5)
+        self.assertEqual(result["source_sha"], "a" * 40)
+        self.assertIn("delayed GitHub ping", result["results"][0]["excerpt"])
+        with patch.object(memory, "_revision", return_value="b" * 40):
+            updated = self.query("mailbox")
+        self.assertEqual(updated["source_sha"], "b" * 40)
+        self.assertIn("revision B", updated["results"][0]["excerpt"])
+
+    def test_excess_rows_and_oversized_fields_are_rebuilt(self):
+        self.query("mailbox")
+        mutations = [
+            [("docs/HANDOFF.md", "extra", "unexpected")] * (memory.MAX_SNIPPETS + 1),
+            [("docs/HANDOFF.md", "extra", "x" * (memory.MAX_SQLITE_VALUE_BYTES + 1))],
+        ]
+        for additions in mutations:
+            with self.subTest(rows=len(additions)):
+                with contextlib.closing(sqlite3.connect(self.db)) as db:
+                    db.executemany("INSERT INTO snippets VALUES(?,?,?)", additions)
+                    db.commit()
+                self.assertTrue(self.query("mailbox")["results"])
+                with contextlib.closing(sqlite3.connect(self.db)) as db:
+                    self.assertEqual(db.execute("SELECT count(*) FROM snippets").fetchone(), (3,))
 
     def test_modified_cached_body_rebuilt_from_approved_source(self):
         self.query("delayed mailbox")
@@ -135,6 +215,25 @@ class LocalMemoryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.query("mailbox")
         self.assertFalse(target.exists())
+
+    def test_reject_symlinked_parent_of_existing_cache(self):
+        self.query("bridge")
+        external = self.root / "external-state"
+        (self.root / "state").rename(external)
+        (self.root / "state").symlink_to(external, target_is_directory=True)
+        with self.assertRaises(ValueError):
+            self.query("bridge")
+        self.assertTrue((external / "project-memory/index.sqlite3").exists())
+
+    def test_reject_symlinked_cache_directory(self):
+        self.query("bridge")
+        state = self.root / "state"
+        (state / "project-memory").rename(state / "external-memory")
+        (state / "project-memory").symlink_to(
+            state / "external-memory", target_is_directory=True)
+        with self.assertRaises(ValueError):
+            self.query("bridge")
+        self.assertTrue((state / "external-memory/index.sqlite3").exists())
 
     def test_reject_oversized_curated_document(self):
         (self.root / "docs/HANDOFF.md").write_bytes(b"x" * (memory.MAX_DOC_BYTES + 1))
