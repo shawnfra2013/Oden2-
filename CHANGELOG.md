@@ -4,6 +4,8 @@ For historical changes, see [the archived changelog](docs/archive/CHANGELOG_befo
 
 ## November 23, 2026 — live device-to-GitHub testing and supervised source fixes
 
+- Added a best-effort, bounded, append-only **local private bridge trace** for each published request reply, keyed by request ID and source SHA; includes non-sensitive timing and error status only. Existing delivery remains independent of trace logging. Exact-source CI and a future approved physical service reload are separate acceptance gates.
+
 - [PR #104](https://github.com/shawnfra2013/Oden2-/pull/104): terminal-only source test runner for Termux and optional GitHub Codespaces; local structured source receipts, no editor dependency.
 - [PR #109](https://github.com/shawnfra2013/Oden2-/pull/109): offline-to-private GitHub receipt synchronization with durable local preservation, idempotent replay and bounded validation. **Real Odin acceptance:** source receipts `8642f52105aa4508830d906c6cbc472d` and `f0935b4308f74c51a32a014bbec3390b` arrived in the private outbox, one after an offline interval.
 - The physical private bridge also accepted a newly issued read-only `ping` and returned a matching response (request `6bd037ac91e44aa09cb831f1d75e8f02`). These observations prove bounded messaging at their receipt times, not an interactive remote terminal.

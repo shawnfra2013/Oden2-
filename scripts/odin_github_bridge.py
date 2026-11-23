@@ -827,6 +827,27 @@ def publish_local_feedback_tool_receipts(max_per_poll=3):
     return published
 
 
+def record_private_trace(receipt):
+    """Best-effort metadata journal after a private response is published.
+
+    Trace failure never reclassifies an already-published mailbox receipt or
+    retries its underlying task. Existing bridge log remains the fallback.
+    """
+    if not private_mailbox:
+        return False
+    try:
+        if __package__:
+            from .odin_trace_log import append_bridge_reply
+        else:
+            from odin_trace_log import append_bridge_reply
+        return append_bridge_reply(
+            ROOT / "state" / "odin-traces", receipt, git("rev-parse", "HEAD"),
+        )
+    except (OSError, RuntimeError, ValueError, TypeError) as exc:
+        log("Private trace deferred: " + type(exc).__name__)
+        return False
+
+
 def process_once():
     # One writer at a time: avoid two agent instances publishing duplicate
     # receipts or running concurrent check requests on the same checkout.
@@ -914,6 +935,8 @@ def process_locked():
                 "action_ms": round((time.monotonic() - started) * 1000),
             }
         send_response(request_id, receipt)
+        if private_mailbox:
+            record_private_trace(receipt)
         processed += 1
         log("Published " + request_id + " status=" + status)
     if not processed and private_mailbox:

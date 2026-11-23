@@ -26,6 +26,20 @@ When reviewing receipts from ChatGPT or scheduled GitHub checks, distinguish **(
 
 **Operator live test (after approved installation/reload):** In Odin Termux, run the source test command; observe its locally saved ID; confirm the matching private branch receipt arrives; repeat the bridge poll or restart the connection to prove no duplicate; and confirm a new private `ping` returns a matching last-upload ID. To test a genuinely offline period, run a second source test with connectivity disabled, reconnect, and check that exact ID appears once. If offline dependencies are missing, the recorded test outcome is FAIL, not a successful test.
 
+## Structured local private response trace (source-only until updated)
+
+The existing private bridge now makes a **best-effort, append-only structured trace** after publishing a request's private response. It stores only the 32-character request ID, allowlisted action name, receipt status and UTC timestamp, local source SHA and bounded action duration when available. It deliberately excludes request bodies, private Git message contents, model conversations, network tokens and terminal output.
+
+It writes to ignored `state/odin-traces/events.jsonl` with 0600 file permissions and a 2 MiB maximum. Repeated IDs with identical evidence are ignored; conflicting replays are rejected and recorded in the existing bridge log. A logging error never converts an already-published response into a failed action, retries it, or changes the existing delivery mechanism. It does **not** certify a coding-agent read, physical device/phone access, or browser round trip.
+
+After an approved exact-SHA update and verified canonical launcher/cwd migration, inspect the last hour using:
+
+```bash
+python -B scripts/odin_trace_log.py --hours 1
+```
+
+A missing local journal shows `events=0` as **no observed trace records**, not proof no work occurred. At the 2 MiB cap, append is blocked rather than silently deleting history; preserve/archive state through a separately approved process. The existing [mailbox auditor](#private-mailbox-audit-read-only) independently checks GitHub-side request/response correlation and can detect events that never reached local journaling.
+
 ## Private mailbox audit (read-only)
 
 After an approved checkout update, a Termux operator or authorized local agent can run `python -B scripts/odin_mailbox_audit.py --hours 1 --save`. It reads the **local** private inbox ref and outbox Git objects only: no GitHub fetch, credentials, model call or command execution. For each recent request it checks a corresponding response ID/action, timestamp, outcome, unexpected command completion, and overdue or orphaned replies. Reports are stored as immutable private snapshots under `state/mailbox-audits/`. Exit code **0** means no incidents in the requested window; **1** means findings, and **2** means the audit itself could not run. Reports redact message payloads and cannot attest to agent understanding or live ChatGPT notification.
