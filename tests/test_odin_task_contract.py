@@ -122,6 +122,21 @@ class OdinTaskContractTests(unittest.TestCase):
         self.observed["changed_paths"] = []
         self.assertEqual(self.evaluate()["status"], "FAIL")
 
+    def test_invalid_changed_path_types_and_traversal_fail_closed(self):
+        samples = (
+            "scripts/example.py",
+            ["../private"],
+            ["/absolute/path"],
+            ["scripts/example.py", None],
+            [True],
+        )
+        for paths in samples:
+            with self.subTest(paths=paths):
+                self.observed["changed_paths"] = paths
+                result = self.evaluate()
+                self.assertEqual(result["status"], "FAIL")
+                self.assertIn("invalid_changed_paths", result["reasons"])
+
     def test_unexpected_evidence_shapes_fail_closed(self):
         examples = ({"odin_checks": "pass", "ruff": True}, [],
                     {"odin_checks": 1, "ruff": True})
