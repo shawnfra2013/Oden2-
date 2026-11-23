@@ -196,18 +196,19 @@ def _cache_matches(db, documents, fingerprint, revision):
     # Limit by bytes before transferring untrusted fields to Python. One byte
     # of slack makes an overlong value distinguishable from any valid prefix.
     rows = db.execute(
-        "SELECT substr(CAST(path AS BLOB),1,?), substr(CAST(heading AS BLOB),1,?),"
+        "SELECT typeof(path)='text' AND typeof(heading)='text' AND typeof(body)='text',"
+        " substr(CAST(path AS BLOB),1,?), substr(CAST(heading AS BLOB),1,?),"
         " substr(CAST(body AS BLOB),1,?) FROM snippets ORDER BY rowid LIMIT ?",
         (max(len(name.encode()) for name in DOCS) + 1, 4 * 200 + 1,
          4 * MAX_CHUNK_CHARS + 1, MAX_SNIPPETS + 1),
     )
     for name, content in documents:
         for heading, body in _parts(content):
-            if next(rows, None) != (name.encode(), heading.encode(), body.encode()):
+            if next(rows, None) != (1, name.encode(), heading.encode(), body.encode()):
                 return False
     if next(rows, None) is not None:
         return False
-    return db.execute("PRAGMA quick_check(1)").fetchone() == ("ok",)
+    return db.execute("PRAGMA integrity_check(1)").fetchone() == ("ok",)
 
 
 @contextmanager

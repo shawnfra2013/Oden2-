@@ -6,8 +6,8 @@ import sqlite3
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from threading import Event
 from pathlib import Path
+from threading import Event
 from unittest.mock import patch
 
 from scripts import odin_project_memory as memory
@@ -74,6 +74,15 @@ class LocalMemoryTests(unittest.TestCase):
             conn.execute("DELETE FROM snippets WHERE rowid=1")
             conn.commit()
         self.assertTrue(self.query("delayed mailbox receipts")["results"])
+
+    def test_cached_blob_with_matching_bytes_is_rebuilt_as_text(self):
+        self.query("mailbox")
+        with contextlib.closing(sqlite3.connect(self.db)) as db:
+            db.execute("UPDATE snippets SET body=CAST(body AS BLOB) WHERE rowid=1")
+            db.commit()
+        result = self.query("mailbox")
+        self.assertIn("delayed GitHub ping", result["results"][0]["excerpt"])
+        json.dumps(result)
 
     def test_rebuild_during_search_keeps_validated_snapshot(self):
         validated, replaced = Event(), Event()
