@@ -54,6 +54,26 @@ class OdinTaskContractTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.evaluate()
 
+    def test_claimed_code_change_requires_new_revision(self):
+        self.observed["head_sha"] = self.contract["base_sha"]
+        result = self.evaluate()
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("unchanged_head_sha", result["reasons"])
+
+    def test_duplicate_changed_paths_fail_closed(self):
+        self.observed["changed_paths"] = [
+            "scripts/example.py", "scripts/example.py", "tests/test_example.py",
+        ]
+        result = self.evaluate()
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("duplicate_changed_paths", result["reasons"])
+
+    def test_duplicate_out_of_scope_paths_record_both_failures(self):
+        self.observed["changed_paths"] = ["secrets/local.env", "secrets/local.env"]
+        result = self.evaluate()
+        self.assertIn("duplicate_changed_paths", result["reasons"])
+        self.assertIn("out_of_scope_paths", result["reasons"])
+
     def test_wrong_issue_or_revision_fails(self):
         self.observed["issue_number"] = 99
         self.observed["base_sha"] = "c" * 40
