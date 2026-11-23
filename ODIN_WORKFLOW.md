@@ -5,6 +5,7 @@
 ## What is used
 - GitHub `shawnfra2013/Oden2-` main is the reviewed source of code, not evidence of installation on Odin.
 - The **private GitHub mailbox** is the asynchronous request/response path for bounded diagnostic actions. Match request IDs and timestamps. Never confuse inbox branches with chat inboxes or live device access.
+- The **offline source receipt queue** is written only under `~/odin-workspace/state/codespace-receipts/` on the handheld. The existing private mailbox uploader forwards validated source-only results when connected; it does not execute scripts from receipt content or make a cloud shell live.
 - **Tailscale** is the selected private device-to-phone network. The HTTPS route and real iPhone cellular test are **not yet verified**; do not pretend a draft listener or saved shortcut is live.
 - The **Odin Local Workstation** runs in the historical `stage5/` implementation directory; the internal service name is a compatibility identifier.
 - On-device inference is the free-first default. A paid/online provider is used only when explicitly chosen, configured, and covered by a known cost guard. No silent fallback or startup model calls.
