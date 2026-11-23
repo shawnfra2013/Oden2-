@@ -9,6 +9,12 @@
 - **ChatGPT reviewer:** on demand or on the enabled hourly check, review connected evidence and supply bounded corrections with exact issue, PR, head SHA and prior receipt ID. A GitHub push triggers CI, NOT an immediate ChatGPT conversation. Do not claim the agent read feedback without proof.
 - **Operator:** approves task scope, paid/cloud spending settings, security-sensitive work, source merges as gated, physical installation and real phone testing. Routine safe source tests and in-scope revisions need no repeated approval.
 
+## First coding module — exclusive source-task leases (issue #97)
+
+The portable, offline-safe `scripts/odin_task_lease.py` module is a **local source coordination primitive**, not a running coding agent. It serializes claims through SQLite `BEGIN IMMEDIATE` under `state/task-leases/`. It records a permanent unique lease ID, owner, Git branch, issue, expected base SHA, exact allowed paths and a bounded UTC expiry (60–3600 seconds). Claims for the same issue, same branch, or overlapping file paths are rejected. Expired and released records remain for audit; stale base-SHA claims fail before creating state.
+
+The caller must independently authenticate the observed GitHub SHA, approved task scope, and identity. A lease does not itself grant shell or network privileges, prove the requester is authorized, or automatically create a PR. No Codespace or Android service is started. This is source-only groundwork toward a supervised coding agent. Run the offline test suite for concurrency, replay, expiry, owner mismatch and path traversal cases. To inspect local counts without changing any lease, use `python -B scripts/odin_task_lease.py status`. Real cross-machine lease enforcement still requires an authorized shared coordinator with conditional writes, which is not introduced here.
+
 ## Build → review → revise → verify
 
 1. **Assign:** name one GitHub issue, expected base SHA, owner, allowed paths, required tests, acceptance criteria and maximum two review-driven revision rounds. The structured validator is scripts/odin_task_contract.py. It validates submitted facts, not their independent authenticity.
