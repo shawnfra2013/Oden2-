@@ -36,8 +36,8 @@ requires its own reachable HTTPS address and browser approval for that origin.
    a device response at its recorded time.
 4. Complete a browser or CLI turn with Wi-Fi disabled using
    [offline model setup](OFFLINE_CHAT.md).
-5. For the phone dashboard, verify Refresh and reopen its Home Screen shortcut
-   on the new origin. Signed-in browser approvals are scoped to the origin.
+5. Confirm the HTTPS route reaches the standalone mobile listener (default `127.0.0.1:8780` on its host). The workstation on `8765` is a different app. With Wi-Fi off and the private network connected, open the approved HTTPS origin from the iPhone Home Screen. Refresh, close, and reopen it. Confirm automatic sign-in or unlock the saved vault with its password. Send an encrypted device chat and verify the matching reply. Keep the previous shortcut until the replacement passes.
+6. Record the deployed Git SHA, test time, device receipt ID, and which phone checks passed. CI tests the documented listener, capabilities response, and browser flow on a runner. Only the handset and iPhone can confirm the installed route.
 
 Existing local relay records can be inspected with
 `python -B scripts/odin_relay_client.py --status` or `--investigations`.
