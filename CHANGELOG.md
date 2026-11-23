@@ -2,7 +2,13 @@
 
 For the complete earlier changelog, see [the archived changelog](docs/archive/CHANGELOG_before_2026-11-22.md). Entries there are historical observations, not current instructions.
 
-## November 22, 2026 — operating-system and documentation reset
+## November 22, 2026 — operating-system and documentation reset## November 23, 2026 — terminal-only source loop and offline source receipts
+
+- Source CLI and local tests added for Termux and manually opened GitHub Codespaces (PR #104), with local JSON source-only receipts.
+- Private mailbox source-receipt synchronizer proposed on a reviewed branch: bounded validation, durable journal, idempotent private outbox uploads, offline retry, security tests and operator acceptance steps.
+- Live device installation and new receipt correlation will be recorded separately; no hosting change, editor dependency, arbitrary command bridge, or phone endpoint was introduced.
+
+
 
 - Establish [the canonical runtime guide](docs/ODIN_RUNTIME.md), [decisions](docs/DECISIONS.md), [issue-based task board](docs/TASK_BOARD.md), [release gates](docs/RELEASE_GATES.md), [time-stamped status](docs/PROJECT_STATUS.md), and [handoff](docs/HANDOFF.md).
 - Archive previous stages, old hosted-service notes, and dated progress snapshots without deleting audit evidence.
