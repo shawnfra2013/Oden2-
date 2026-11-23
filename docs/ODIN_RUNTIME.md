@@ -8,6 +8,7 @@
 | --- | --- | --- |
 | Source of truth | [GitHub `shawnfra2013/Oden2-`, main](https://github.com/shawnfra2013/Oden2-) | Exact commit SHA and exact-SHA CI |
 | Device communication | [Private GitHub mailbox](https://github.com/shawnfra2013/Odin-private-bridge/actions/workflows/odin-private-mailbox.yml) | Matched request ID, completed receipt, and timestamp |
+| Offline terminal source results | Canonical `~/odin-workspace/state/codespace-receipts/` → private mailbox `bridge/local-source-receipts/` | Receipt ID + exact SHA + UTC upload marker; source-only, not device acceptance |
 | Handheld workstation | `http://127.0.0.1:8765/` on Odin | Local Termux HTTP health and real user turn |
 | Local chat | On-device model server, usually `127.0.0.1:18080`, if installed and enabled | Real local reply with network disconnected |
 | Supervised services | Termux runit, including `odin-private-mailbox`, `odin-git-sync`, and task worker as configured | Read-only service and process checks on Odin |
@@ -27,6 +28,10 @@ The agreed work process is defined in [ODIN_WORKFLOW.md](../ODIN_WORKFLOW.md). T
 The private mailbox works asynchronously through GitHub. The phone does **not** have a direct secure remote terminal by virtue of having GitHub access. Browser login, device mailbox pairing, and encrypted-chat pairing are separate credentials and must never be conflated.
 
 **Private networking:** Tailscale access is a planned verification target in [issue #70](https://github.com/shawnfra2013/Oden2-/issues/70), not a proved active route. Keep loopback ports bound locally and do not expose them to the public internet. An approved HTTPS origin must be verified before adding a new Home Screen shortcut.
+
+## Offline receipt continuity
+
+The handheld's existing private GitHub mailbox service also carries validated source-test receipts, without a new provider. Termux stores them durably while offline; when connectivity returns, the service replays them to its private outbox branch and retries interrupted pushes. The original local files remain available. GitHub Actions and ChatGPT's scheduled receipt watcher can review source-check outcomes after upload; neither is a continuously connected terminal or a substitute for separate matched device-action receipts. Codespaces runs cloud source tests and does not receive the handheld mailbox SSH key. See [the terminal guide](CODESPACES_WORKFLOW.md) and [the private mailbox runbook](ODIN_GITHUB_BRIDGE.md).
 
 ## How to operate safely
 
