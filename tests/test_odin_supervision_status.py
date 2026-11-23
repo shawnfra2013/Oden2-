@@ -1,5 +1,6 @@
 """Source-only supervision health summary regression tests."""
 import unittest
+from datetime import UTC, datetime
 
 from scripts.odin_supervision_status import summarize
 
@@ -14,7 +15,7 @@ def data(**changes):
 
 class StatusTests(unittest.TestCase):
     def test_all_evidence_passes(self):
-        self.assertEqual(summarize(data())["status"], "PASS")
+        self.assertEqual(summarize(data(), now=datetime(2026, 11, 23, 10, 1, tzinfo=UTC))["status"], "PASS")
 
     def test_unknown_device_is_not_green(self):
         self.assertEqual(summarize(data(device_install="UNVERIFIED"))["status"], "UNVERIFIED")
@@ -27,6 +28,19 @@ class StatusTests(unittest.TestCase):
 
     def test_missing_receipt_unverified(self):
         self.assertEqual(summarize(data(last_receipt_utc=None))["status"], "UNVERIFIED")
+
+    def test_stale_receipt_is_unverified(self):
+        result = summarize(data(), now=datetime(2026, 11, 23, 11, 0, tzinfo=UTC))
+        self.assertEqual(result["status"], "UNVERIFIED")
+        self.assertFalse(result["receipt_fresh"])
+
+    def test_future_receipt_cannot_pass(self):
+        result = summarize(data(), now=datetime(2026, 11, 23, 9, 59, tzinfo=UTC))
+        self.assertEqual(result["status"], "UNVERIFIED")
+
+    def test_invalid_calendar_date_rejected(self):
+        with self.assertRaises(ValueError):
+            summarize(data(last_receipt_utc="2026-02-31T10:00:00Z"))
 
     def test_injected_fields_rejected(self):
         with self.assertRaises(ValueError):
