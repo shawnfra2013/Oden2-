@@ -28,6 +28,7 @@ This is the sanitized, durable evidence ledger for the supervised ChatGPT ↔ Gi
 | B-012 | Auditable failures | Existing text log recorded request IDs/status, but there was no bounded read-only correlator identifying missing, late, orphaned or inconsistent responses | SOURCE FIX in this trial: `scripts/odin_mailbox_audit.py` + regression tests |
 | B-013 | Separate live Codespaces terminal | No active interactive Codespaces session attached to the conversation; cloud workspace not launched | GAP: GitHub source/API and Actions work; interactive shell requires a separately authorized session |
 | B-014 | Viewer / private network acceptance | Direct iPhone cellular refresh through the approved private HTTPS route has not been run in this trial | OPERATOR-OWNED STEP; not a prerequisite for source CI |
+| B-015 | First auditor PR CI lint | Run [45132518927](https://github.com/shawnfra2013/Oden2-/actions/runs/45132518927) failed Ruff F401 for unused `tempfile` in the auditor and `timedelta` in its tests; Python and browser tests passed. Both unused imports were removed in follow-up commits on PR #114. | SOURCE FIX PUSHED; exact newest-head CI required |
 
 ## New diagnostic tool
 
