@@ -33,6 +33,19 @@ class RepairGateTests(unittest.TestCase):
         self.assertIn("feedback_read_without_verified_action",
                       decide(state(feedback_read=True))["reasons"])
 
+    def test_agent_action_requires_independent_feedback_read(self):
+        result = decide(state(agent_action=True))
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertEqual(result["next_action"], "await_evidence")
+        self.assertIn("agent_action_without_verified_feedback_read", result["reasons"])
+        self.assertFalse(result["automatic_merge_authorized"])
+
+    def test_consistent_read_and_action_do_not_claim_device_install(self):
+        result = decide(state(feedback_read=True, agent_action=True))
+        self.assertEqual(result["status"], "PASS")
+        self.assertFalse(result["device_verified"])
+        self.assertFalse(result["automatic_merge_authorized"])
+
     def test_unreviewed_device_claim_is_blocked(self):
         self.assertIn("device_claim_without_source_acceptance",
                       decide(state(review="fail", device_verified=True))["reasons"])
