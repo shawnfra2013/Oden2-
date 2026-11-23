@@ -111,6 +111,17 @@ class OdinHourEventReceiptTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 receipt.read_event(event)
 
+    def test_workflow_loads_capture_code_from_current_trusted_main(self):
+        # A long-lived PR's immutable event base SHA can predate this script.
+        workflow = (
+            Path(__file__).resolve().parents[1]
+            / ".github/workflows/odin-hour-event-evidence.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("ref: main", workflow)
+        self.assertNotIn("ref: ${{ github.event.pull_request.base.sha }}", workflow)
+        self.assertIn("persist-credentials: false", workflow)
+        self.assertIn("contents: read", workflow)
+
     def test_read_and_capture_stays_local(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "github-event.json"
