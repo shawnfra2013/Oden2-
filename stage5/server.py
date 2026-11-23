@@ -69,9 +69,9 @@ def task_counts():
                 counts["other"] += 1
     return counts
 
-def ask_ai(question, history=None):
+def ask_ai(question, history=None, *, expected_provider=None):
     from chat_provider import ask_model
-    return ask_model(question, history)
+    return ask_model(question, history, expected_provider=expected_provider)
 
 
 
@@ -238,6 +238,22 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, UnicodeDecodeError):
             self.json_body(400, {"error": "Invalid JSON or message"})
             return
+        expected_provider = data.get("expected_provider")
+        if expected_provider is not None and (
+            not isinstance(expected_provider, str)
+            or expected_provider not in {"local", "openai", "groq"}
+        ):
+            self.json_body(400, {"error": "Invalid expected provider"})
+            return
+        from chat_provider import provider_name
+        try:
+            actual_provider = provider_name()
+        except RuntimeError:
+            self.json_body(503, {"error": "Unsupported configured provider"})
+            return
+        if expected_provider is not None and expected_provider != actual_provider:
+            self.json_body(409, {"error": "Model selection changed. Refresh before sending."})
+            return
         conversation_id = data.get("conversation_id")
         if conversation_id is not None and (
             not isinstance(conversation_id, str)
@@ -251,7 +267,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         options = data.get("local_options")
         if "local_options" in data:
-            if os.environ.get("ODIN_STAGE5_PROVIDER") != "local":
+            if actual_provider != "local":
                 self.json_body(409, {"error": "Local provider required"})
                 return
             if (not isinstance(options, dict) or set(options) != {"reference", "quick"}
@@ -268,6 +284,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             try:
+                if provider_name() != actual_provider:
+                    self.json_body(409, {"error": "Model selection changed. Refresh before sending."})
+                    return
                 store = getattr(self.server, "conversations", None)
                 if conversation_id is not None and (store is None or not store.exists(conversation_id)):
                     self.json_body(404, {"error": "Conversation not found"})
@@ -278,7 +297,7 @@ class Handler(BaseHTTPRequestHandler):
                     from local_adapter import ask_local
                     answer = ask_local(question, history, **options)
                 else:
-                    answer = ask_ai(question) if history is None else ask_ai(question, history)
+                    answer = ask_ai(question, history, expected_provider=actual_provider)
                 elapsed_ms = round((time.monotonic() - started) * 1000)
                 if not isinstance(answer, str) or not answer.strip():
                     raise ValueError("Empty or invalid model response")
@@ -306,6 +325,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.json_body(200, {
                 "answer": answer,
+                "provider": actual_provider,
                 "elapsed_ms": elapsed_ms,
                 "verification": "unverified",
                 "persisted": store is not None,
