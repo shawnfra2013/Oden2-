@@ -8,7 +8,6 @@ network disconnection, or iPhone acceptance.
 """
 from __future__ import annotations
 
-import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
