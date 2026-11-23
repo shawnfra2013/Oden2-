@@ -92,8 +92,9 @@ def validate_bytes(raw: bytes, expected_id: str) -> dict:
     return data
 
 
-def local_candidates(directory: Path = RECEIPT_DIR):
+def local_candidates(directory: Path | None = None):
     """Skip unsafe filenames and symlinks; malformed items do not block the queue."""
+    directory = RECEIPT_DIR if directory is None else directory
     if directory.is_symlink() or not directory.is_dir():
         return []
     return [
