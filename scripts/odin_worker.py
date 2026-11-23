@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ai" / "agent"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import pipeline
 
 ROOT = Path.home() / "odin-workspace"
@@ -295,7 +296,18 @@ def verify_proposal(name, task, invocation_id, task_id):
     checked, current = pipeline.receipt(ROOT, name, task, task_id, invocation_id)
     if checked != source or current != receipt:
         raise ValueError("Proposal changed during independent verification")
-    return {**receipt, "verified": True, "fresh": "invocation-bound"}
+
+    # Critique only receipt-validated candidate text. The static critic does
+    # not execute generated source, call inference or train/promote weights.
+    from scripts import odin_coder_coach
+    review = odin_coder_coach.review_proposal(ROOT, name, task, task_id, invocation_id)
+    if review["status"] != "candidate_needs_verified_tests":
+        raise ValueError("Model coding critique requires a reviewed revision")
+    return {
+        **receipt, "verified": True, "fresh": "invocation-bound",
+        "static_critique": {"status": review["status"], "codes": review["codes"]},
+        "functional_tests_verified": False, "model_weights_updated": False,
+    }
 
 def execute(path):
     raw = pipeline.read(ROOT, path.relative_to(ROOT).parts, 262144)

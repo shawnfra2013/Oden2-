@@ -243,6 +243,35 @@ class Stage4Tests(unittest.TestCase):
         self.assertEqual(done["verification"]["task_id"], "012345abcdef")
         self.assertFalse((self.root / "ai/example.py").exists())
 
+    def test_model_noop_proposal_requires_revision_not_ready(self):
+        target = self.root / "ai/example.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("value = 1\\n".replace("\\n", "\n"))
+        self.ask.side_effect = None
+        self.ask.return_value = "value = 1\\n".replace("\\n", "\n")
+        self.run.side_effect = self.successful_runner
+        self.record("012345abcdef", 'PROPOSE ai/example.py "example"')
+        worker.cycle()
+        result = self.done("012345abcdef")
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["failure"]["kind"], "execution_error")
+        self.assertTrue(result["failure"]["manual_review_required"])
+        self.assertEqual(target.read_text(), "value = 1\\n".replace("\\n", "\n"))
+        reviews = list((self.root / "state/proposals/invocations").rglob("critique.json"))
+        self.assertEqual(len(reviews), 1)
+        self.assertIn("no_semantic_change", json.loads(reviews[0].read_text())["codes"])
+
+    def test_model_critique_preserves_verified_source_only_status(self):
+        receipt = self.build()
+        checked = worker.verify_proposal("ai/example.py", "example", "1" * 32,
+                                         "012345abcdef")
+        self.assertTrue(checked["verified"])
+        self.assertFalse(checked["functional_tests_verified"])
+        self.assertFalse(checked["model_weights_updated"])
+        self.assertEqual(checked["static_critique"]["status"],
+                         "candidate_needs_verified_tests")
+        self.assertTrue(Path(receipt["artifact"]).is_file())
+
     def test_distinct_invocations_preserve_same_target(self):
         first = self.build()
         second = self.build(invocation="2" * 32, source="value = 2\n")

@@ -4,6 +4,8 @@ For historical changes, see [the archived changelog](docs/archive/CHANGELOG_befo
 
 ## November 23, 2026 — live device-to-GitHub testing and supervised source fixes
 
+- Added evidence-bound coding critique for isolated model proposals (no-op changes, broken public APIs, changed signatures, newly introduced risky APIs). The task worker now records the immutable, metadata-only critique and blocks routine `proposal_ready` for flagged work; it makes no inference call or model-weight update. The existing reviewed `train_adapter.py` can create a **candidate** LoRA adapter but cannot prove better coding without unseen functional tests and separate approval. See [coding/training gates](docs/ODIN_CODER_TRAINING.md).
+
 - Added an operator-controlled private mailbox state and launcher migration utility with dry-run gates, exclusive migration lock, full state preservation, and service-only rollback behavior; device execution requires a separate explicit command and acceptance.
 - [PR #128](https://github.com/shawnfra2013/Oden2-/pull/128) merged: fix the physical SQLite test connection warning and improve retrieved incident relevance, preserving code-fence and word boundaries; physical retest pending.
 - [PR #123](https://github.com/shawnfra2013/Oden2-/pull/123): SQLite FTS5 search of approved Git project-memory notes plus automatic, bounded **untrusted background context** in the existing orchestrator. No extra model request; real Android recall not yet checked.
