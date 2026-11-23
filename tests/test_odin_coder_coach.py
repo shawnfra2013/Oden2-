@@ -119,14 +119,23 @@ class ReceiptReviewTests(unittest.TestCase):
         self.assertEqual((self.root / self.name).read_text(), self.original)
 
     def test_no_overwrite_or_duplicate_training_record(self):
-        coach.review_proposal(self.root, self.name, self.task,
-                              self.owner, self.invocation)
-        before = (self.root.joinpath(*self.parts) / "critique.json").read_bytes()
-        with self.assertRaises(FileExistsError):
+        first = coach.review_proposal(self.root, self.name, self.task,
+                                      self.owner, self.invocation)
+        location = self.root.joinpath(*self.parts) / "critique.json"
+        before = location.read_bytes()
+        second = coach.review_proposal(self.root, self.name, self.task,
+                                       self.owner, self.invocation)
+        self.assertEqual(first, second)
+        self.assertEqual(location.read_bytes(), before)
+        self.assertEqual(len(list(location.parent.glob("critique.json"))), 1)
+
+    def test_conflicting_existing_critique_is_not_overwritten(self):
+        location = self.root.joinpath(*self.parts) / "critique.json"
+        location.write_bytes(b'{"unexpected":true}\n')
+        with self.assertRaises(ValueError):
             coach.review_proposal(self.root, self.name, self.task,
                                   self.owner, self.invocation)
-        self.assertEqual((self.root.joinpath(*self.parts) / "critique.json").read_bytes(),
-                         before)
+        self.assertEqual(location.read_bytes(), b'{"unexpected":true}\n')
 
     def test_baseline_move_blocks_review_and_preserves_original(self):
         (self.root / self.name).write_text("def total(items):\n    return 123\n")
