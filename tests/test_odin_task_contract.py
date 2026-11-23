@@ -113,6 +113,15 @@ class OdinTaskContractTests(unittest.TestCase):
         self.observed["changed_paths"] = ["scripts/example.py"] * 51
         self.assertIn("invalid_changed_paths", self.evaluate()["reasons"])
 
+    def test_unapproved_or_unbounded_test_evidence_fails_closed(self):
+        self.observed["tests"]["unapproved_inference_call"] = True
+        self.assertIn("invalid_test_evidence", self.evaluate()["reasons"])
+        self.observed["tests"] = {
+            **self.observed["tests"],
+            **{f"arbitrary_{i}": True for i in range(20)},
+        }
+        self.assertIn("invalid_test_evidence", self.evaluate()["reasons"])
+
     def test_unknown_evidence_field_is_rejected(self):
         self.observed["device_verified"] = True
         with self.assertRaises(ValueError):
