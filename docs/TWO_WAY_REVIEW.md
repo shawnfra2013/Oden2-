@@ -1,6 +1,6 @@
 # Odin two-way review feedback (private mailbox)
 
-**Status:** Source implementation proposed in PR; not yet installed or proved on the physical Odin. The private GitHub mailbox is a separate repository and is **not** the public issue tracker. [Tracking issue #94](https://github.com/shawnfra2013/Oden2-/issues/94).
+**Status:** Source implementation merged in PR #95; not yet installed or proved on the physical Odin. The private GitHub mailbox is a separate repository and is **not** the public issue tracker. [Tracking issue #94](https://github.com/shawnfra2013/Oden2-/issues/94).
 
 ## Event-driven review, not two hourly clocks
 

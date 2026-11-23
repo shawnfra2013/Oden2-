@@ -1,0 +1,45 @@
+name: Odin Manual Source Release Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact 40-character reviewed main commit SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify:
+    name: Verify reviewed source revision only
+    if: github.repository == 'shawnfra2013/Oden2-' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read-only checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Verify exact main SHA and completed source checks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          python -B scripts/odin_release_guard.py \
+            --expected-sha "$EXPECTED_SHA" \
+            --json-path "$RUNNER_TEMP/odin-release-readiness.json"
+      - name: Preserve fail-closed release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: odin-reviewed-source-readiness
+          path: ${{ runner.temp }}/odin-release-readiness.json
+          if-no-files-found: warn
+          retention-days: 14

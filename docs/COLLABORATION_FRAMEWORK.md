@@ -1,0 +1,34 @@
+# Odin supervised collaboration and proof contract
+
+**Status:** Source-level framework; NOT a claim that Odin can yet independently operate in Codespaces or that this version is installed on the handheld.
+
+## Responsibilities
+
+- **GitHub:** issues, PRs, source CI, read-only diagnostics, security scan, immutable receipts and exact-SHA evidence. Actions can detect a failure but do not reason or repair by themselves.
+- **Odin coding agent:** under an approved task and session, inspect, branch, propose scoped changes, test, and publish a receipt. No self-started Codespaces, paid models, arbitrary shell, permissions escalation, secret exposure, merge or device deployment.
+- **ChatGPT reviewer:** on demand or on the enabled hourly check, review connected evidence and supply bounded corrections with exact issue, PR, head SHA and prior receipt ID. A GitHub push triggers CI, NOT an immediate ChatGPT conversation. Do not claim the agent read feedback without proof.
+- **Operator:** approves task scope, paid/cloud spending settings, security-sensitive work, source merges as gated, physical installation and real phone testing. Routine safe source tests and in-scope revisions need no repeated approval.
+
+## Build → review → revise → verify
+
+1. **Assign:** name one GitHub issue, expected base SHA, owner, allowed paths, required tests, acceptance criteria and maximum two review-driven revision rounds. The structured validator is scripts/odin_task_contract.py. It validates submitted facts, not their independent authenticity.
+2. **Build:** an authorized agent creates a small branch/PR, records issue, PR, exact head SHA, changed files, tests and timestamp. GitHub runs source CI for the exact SHA.
+3. **Inspect:** reviewer checks current PR head, evidence, failed steps and scope. Decision is hold, revise or review_ready. Missing, stale or contradictory evidence yields FAIL or UNVERIFIED, never implicit success.
+4. **Feedback:** authorized private feedback can be sent through the private manual GitHub workflow. The receiver stores the bounded note and sends a matching receipt with recorded=true. That does NOT prove the coding agent read, understood, or applied it.
+5. **Improve:** if still within approved scope and budget, agent proposes a targeted revision, new SHA and fresh CI results; new ideas outside scope become a separate proposed GitHub issue. The independent stage validator scripts/odin_feedback_progress.py enforces order submitted → device_received → agent_tool_read → action_proposed → code_changed → source_verified. Its checks do not authenticate external evidence.
+6. **Stop:** two review-driven revision rounds maximum; block on wrong task/SHA/receipt, scope drift, no progress, unavailable tests, exhausted budget or missing approvals. Do not loop or silently expand the task.
+7. **Release:** reviewed source merges and manual exact-main-SHA checks precede any physical installation. Device and iPhone testing are separate, explicit approval gates.
+
+## Timing, availability and cost
+
+GitHub checks respond on pushes without a running Codespace. Odin's private mailbox checks approximately once per minute ONLY if the device service is running. ChatGPT's receipt watch checks hourly; it is not a live webhook or guaranteed immediate reply. No unattended model-to-model loop is yet verified.
+
+Prefer no Codespace for GitHub-only work. For authorized coding sessions use a manually started two-core workspace when needed, a target idle timeout of 15 minutes, at most one workspace and up to 60 minutes per session. A 30 two-core-hour monthly planning target is NOT a billing cap; verify GitHub account limits directly before consuming resources. Never silently enable paid APIs.
+
+## Proof and quality gates
+
+For each task keep the approved scope, request ID, issue, PR, head SHA, timestamp, exact test run and outcome, reviewer decision, revision round, and an evidence link. Keep private messages, SSH keys, tokens and personal data out of public GitHub.
+
+Sources currently implemented: private receiver and manual submission workflow (PR #95). Physical two-way acceptance is still unverified until exact reviewed code is installed and a real inbound request, matching device receipt, local coding-agent read, authorized correction and new independently verified PR are observed. Pure offline tests can validate format and reject fabricated states but cannot prove device connectivity.
+
+Check source with: python -B -m unittest discover -s tests -p 'test*.py' -v; python -B scripts/odin_preflight.py --mode source. Passing GitHub checks never proves live handheld or iPhone acceptance.
