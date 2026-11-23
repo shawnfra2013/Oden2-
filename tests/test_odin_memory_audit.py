@@ -57,6 +57,15 @@ class MemoryAuditTests(unittest.TestCase):
         self.assertIn("unapproved_source_path", result["findings"])
         self.assertNotIn("do not expose", str(result))
 
+    def test_symlinked_state_directory_is_rejected_without_reading_target(self):
+        memory.ensure_index(self.root)
+        other = self.root / "external-state"
+        (self.root / "state").rename(other)
+        (self.root / "state").symlink_to(other, target_is_directory=True)
+        result = self.check()
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("unsafe_index_path", result["findings"])
+
     def test_corrupt_index_fails_closed(self):
         memory.ensure_index(self.root)
         self.db.write_bytes(b"not a sqlite database")
