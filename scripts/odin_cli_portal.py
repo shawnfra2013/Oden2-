@@ -19,6 +19,7 @@ MODEL_CHAT = ROOT / "scripts/odin_chat.py"
 TERMINAL = ROOT / "bin/odin"
 SERVICES = ("odin-git-sync", "odin-task-worker", "odin-local-model",
             "odin-stage5", "odin-private-mailbox")
+STARTABLE = frozenset(SERVICES) - {"odin-private-mailbox"}
 
 
 def legacy(argv: list[str], *, binary: Path = LEGACY_AI) -> int:
@@ -62,9 +63,8 @@ def model_chat(provider: str, *, consent: bool = False) -> int:
 def service_up(name: str, *, confirm: str, prefix: Path | None = None) -> int:
     """Explicit, local-only and allowlisted; never an automatic boot hook."""
     from scripts.odin_terminal import local
-    from scripts.odin_preflight import private_mailbox_launch_path
 
-    if name not in SERVICES or confirm != "START-ODIN-SERVICE":
+    if name not in STARTABLE or confirm != "START-ODIN-SERVICE":
         print("Refused: select a known service with --confirm START-ODIN-SERVICE.",
               file=sys.stderr)
         return 2
@@ -85,12 +85,7 @@ def service_up(name: str, *, confirm: str, prefix: Path | None = None) -> int:
     if state["state"] != "DOWN":
         print("Service status is not confirmed down; no change.", file=sys.stderr)
         return 2
-    if name == "odin-private-mailbox":
-        ready = private_mailbox_launch_path(prefix=prefix, home=Path.home())
-        if ready["status"] != "PASS":
-            print("Issue #71: private mailbox cwd has not passed; start blocked.",
-                  file=sys.stderr)
-            return 2
+    # Private mailbox migration/restart stays under the separate issue #71 gate.
     try:
         result = subprocess.run(["sv", "-w", "15", "up", str(prefix / "var/service" / name)],
                                 text=True, capture_output=True, timeout=25, check=False)
