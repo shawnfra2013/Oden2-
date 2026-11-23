@@ -70,6 +70,13 @@ class ProgressDashboardTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             dashboard(data)
 
+    def test_rejects_replayed_milestone_evidence(self):
+        data = task()
+        data["events"] = [event("submitted"), event("device_received")]
+        data["events"][1]["evidence_ref"] = data["events"][0]["evidence_ref"]
+        with self.assertRaisesRegex(ValueError, "Replayed evidence reference"):
+            dashboard(data)
+
     def test_rejects_injected_private_data(self):
         data = task()
         data["raw_chat"] = "private"
