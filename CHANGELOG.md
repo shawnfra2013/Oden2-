@@ -4,6 +4,8 @@ For historical changes, see [the archived changelog](docs/archive/CHANGELOG_befo
 
 ## November 23, 2026 — live device-to-GitHub testing and supervised source fixes
 
+- Coding critic lessons now produce fixed-category, target-bound advisory feedback, loaded on the next authorized proposal with no additional inference request. The immutable full review stays separate; the lesson cache is local and not weight fine-tuning.
+
 - Added evidence-bound coding critique for isolated model proposals (no-op changes, broken public APIs, changed signatures, newly introduced risky APIs). The task worker now records the immutable, metadata-only critique and blocks routine `proposal_ready` for flagged work; it makes no inference call or model-weight update. The existing reviewed `train_adapter.py` can create a **candidate** LoRA adapter but cannot prove better coding without unseen functional tests and separate approval. See [coding/training gates](docs/ODIN_CODER_TRAINING.md).
 
 - Added an operator-controlled private mailbox state and launcher migration utility with dry-run gates, exclusive migration lock, full state preservation, and service-only rollback behavior; device execution requires a separate explicit command and acceptance.
