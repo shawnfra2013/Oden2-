@@ -354,7 +354,6 @@ async function refresh() {
     $("refreshBtn").disabled=false;
     renderAll();
     renderSecureState();
-    if (privateState.connected && document.visibilityState === "visible") refreshRelay();
   }
 }
 
