@@ -41,6 +41,40 @@ class FeedbackToolReceiptTests(unittest.TestCase):
     def receipt(self):
         return self.output / (self.ID + ".json")
 
+    def test_maximum_unicode_note_reaches_both_readers(self):
+        note_id = "f" * 32
+        note = "\U0001f30d" * review.MAX_NOTE_LENGTH
+        payload = {**self.note, "id": note_id, "feedback_note": note}
+        self.assertTrue(review.record_feedback(payload, inbox=self.inbox)["recorded"])
+        self.assertGreater((self.inbox / (note_id + ".json")).stat().st_size, 2048)
+        listed = {item["id"]: item for item in review.list_feedback(inbox=self.inbox)}
+        with self.subTest(reader="list"):
+            self.assertIn(note_id, listed)
+            self.assertEqual(listed[note_id]["feedback_note"], note)
+        with self.subTest(reader="inspect"):
+            result = tool.inspect_feedback(note_id, inbox=self.inbox, receipt_dir=self.output)
+            self.assertEqual(result["untrusted_feedback"]["feedback_note"], note)
+            record = json.loads(tool.load_candidate(self.output / (note_id + ".json")))
+            self.assertEqual(record["note_sha256"], hashlib.sha256(note.encode()).hexdigest())
+            self.assertNotIn("feedback_note", record)
+
+    def test_oversized_stored_note_skipped_without_receipt(self):
+        path = self.inbox / (self.ID + ".json")
+        path.write_bytes(path.read_bytes().ljust(review.MAX_STORED_FEEDBACK_BYTES + 1, b" "))
+        self.assertEqual(review.list_feedback(inbox=self.inbox), [])
+        with self.assertRaises(ValueError):
+            self.inspect()
+        self.assertFalse(self.output.exists())
+
+    def test_unpaired_surrogate_rejected_before_storage(self):
+        for note_id, escaped in (("d" * 32, r'"\ud800"'), ("e" * 32, r'"\udfff"')):
+            with self.subTest(escaped=escaped):
+                payload = {**self.note, "id": note_id, "feedback_note": json.loads(escaped)}
+                with self.assertRaisesRegex(ValueError, "Invalid feedback note"):
+                    review.record_feedback(payload, inbox=self.inbox)
+                self.assertFalse((self.inbox / (note_id + ".json")).exists())
+        self.assertFalse(self.output.exists())
+
     def test_explicit_inspection_presents_note_and_creates_nonexecuting_receipt(self):
         result = self.inspect()
         self.assertIn("deterministic guard", result["untrusted_feedback"]["feedback_note"])
