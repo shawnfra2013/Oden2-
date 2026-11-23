@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts import odin_mailbox_audit as audit
 
@@ -171,6 +172,17 @@ class MailboxAuditTests(unittest.TestCase):
             (location / "alias").symlink_to(location / "destination")
             with self.assertRaises(ValueError):
                 audit.save_report(self.run_audit(), location / "alias")
+
+    def test_git_scan_counts_short_request_id_without_reading_its_blob(self):
+        name = "a" * 31 + ".json"
+        prefix = "bridge/requests/"
+        with patch.object(audit, "_git", return_value=prefix + name) as git:
+            records = audit.git_records(Path("/tmp"), "origin/odin-bridge-inbox", prefix)
+        self.assertEqual(git.call_count, 1)
+        report = audit.audit_messages(records, {}, now=self.now)
+        self.assertEqual(report["counts"]["malformed"], 1)
+        self.assertEqual(report["counts"]["stalled"], 0)
+        self.assertNotIn(name, str(report))
 
     def test_git_reader_rejects_wrong_refs_and_paths(self):
         with self.assertRaises(ValueError):
