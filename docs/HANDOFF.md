@@ -6,7 +6,7 @@
 
 The private Full Sweep selector merged. Two manual dispatches received matching replies at 19:52:57Z and 19:53:01Z. At 19:53:01Z Odin reported revision `6653819d6582bf087b5e69bed16d99f85538725a`, liveness and all four services PASS, an idle queue, mailbox PASS and overall UNVERIFIED.
 
-Two later workflow runs reached their polling limits at 19:56:34Z and 19:57:42Z. At the 20:09 UTC follow-up, both requests had expired and both matching receipts were still absent. Device execution and the cause of the missed replies remain UNVERIFIED. Preserve the original request IDs for reconciliation. [Issue #148](https://github.com/shawnfra2013/Oden2-/issues/148)
+Two later workflow runs reached their polling limits at 19:56:34Z and 19:57:42Z. The owner confirmed Odin was powered off and disconnected during those requests. After reconnection, both original IDs returned expired receipts at 20:12:09Z and 20:12:13Z. A separate ping completed at 20:12:11Z with alive=true. A fresh Full Sweep at 20:13:21Z reported the same revision, all four services PASS and zero pending or running tasks. Its mailbox audit counted the two expected expirations and returned overall FAIL. The latest sweep completed successfully as a request. The audit preserves the disconnected interval. [Issue #148](https://github.com/shawnfra2013/Oden2-/issues/148)
 
 ## November 23 — Full Sweep physical round trip verified; expired request retained
 
