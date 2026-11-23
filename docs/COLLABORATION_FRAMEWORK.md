@@ -31,6 +31,10 @@ The caller must independently authenticate the observed GitHub SHA, approved tas
 
 The local review-feedback CLI supports an explicit `--inspect ID` action, separate from the no-side-effect `--list` query. A successful inspection saves a metadata-only receipt for asynchronous private GitHub outbox delivery. It records exactly `local_feedback_tool_presented`, not an authenticated AI identity, a source update, or model comprehension. In the proof sequence, this event is only evidence that a local tool presented the note; it must **not** automatically be promoted to `agent_tool_read` or `action_proposed`. Actual agent identity, an independently observable tool read and a new scoped PR require later independent proof.
 
+## Source-only progress timeline and benchmark dashboard
+
+`python -B -m scripts.odin_progress_dashboard --metadata /private/approved-metadata.json --format markdown` renders a bounded task-stage timeline and held-out benchmark counts using the existing feedback-stage validator and benchmark comparator. Input must be an operator-approved local metadata record; do not upload private receipts or chat to public Git. Every displayed stage is explicitly **claimed**, not independently authenticated: a green CI check, stored note or self-reported grade never establishes Odin agent action, physical installation or improved weights. This is a source-level presentation adapter, not a live phone view, persistent subscription, remote shell or automatic model promotion.
+
 ## Timing, availability and cost
 
 GitHub checks respond on pushes without a running Codespace. Odin's private mailbox checks approximately once per minute ONLY if the device service is running. The regular ChatGPT receipt watch checks hourly; a separate configured **Work PR event task** has demonstrated an actual PR-open run but is not a general push-to-chat webhook. [ODIN-HOUR event evidence](ODIN_HOUR_EVENT_EVIDENCE.md) captures immutable PR-event head SHA using GitHub Actions and recommends 4–8 meaningful reviewer activations per hour, not the maximum 30. No unattended model-to-model loop is yet verified.

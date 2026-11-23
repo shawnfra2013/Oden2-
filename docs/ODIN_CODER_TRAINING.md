@@ -54,6 +54,10 @@ The full immutable `critique.json` stays in the old proposal invocation for audi
 
 The source-only `scripts/odin_coding_benchmark.py` accepts a bounded, metadata-only held-out report. It **does not** run model inference, train an adapter, authenticate self-reported grader flags, or authorize activation. In [PR #137](https://github.com/shawnfra2013/Oden2-/pull/137) its proposed decision rule rejects identical baseline/candidate revision SHAs; a candidate with **more** independently claimed passing cases receives a comparison `PASS`, fewer is `FAIL`, and a tie is `BLOCKED` with `no_measured_gain`. It explicitly sets `promotion_authorized=false` and `grader_claims_authenticated=false` in every comparison outcome. A report cannot be considered proof of real weight improvement without separately authenticated holdout grading, compatible local training and a reviewed reversible promotion gate. Check its exact PR SHA/CI before treating this branch-only behavior as integrated in main.
 
+## Inspecting claimed coding progression
+
+The source-only `scripts/odin_progress_dashboard.py` CLI can show a supervised task's ordered claim stages and the before/after pass counts from `odin_coding_benchmark.compare`. It labels the output UNVERIFIED until an independently authenticated grader, actual functional tests, exact-head CI and operator acceptance are present. The CLI does not create held-out examples, train a model or alter live weights. Compare evidence over time in reviewed issue attachments, not a self-reported chart that silently turns claims green.
+
 ## Acceptance matrix
 
 | Gate | Evidence required | Meaning |
