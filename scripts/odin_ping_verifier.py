@@ -11,7 +11,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-ID = re.compile(r"[0-9a-f]{32}\\Z")
+ID = re.compile(r"[0-9a-f]{32}\Z")
 REQUEST_FIELDS = {"version", "id", "action", "created_at", "expires_at"}
 RECEIPT_FIELDS = {"version", "id", "action", "status", "checked_at", "result"}
 FRESH_FOR = timedelta(minutes=5)
