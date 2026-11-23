@@ -18,4 +18,10 @@ When reviewing receipts from ChatGPT or scheduled GitHub checks, distinguish **(
 
 **Operator live test (after approved installation/reload):** In Odin Termux, run the source test command; observe its locally saved ID; confirm the matching private branch receipt arrives; repeat the bridge poll or restart the connection to prove no duplicate; and confirm a new private `ping` returns a matching last-upload ID. To test a genuinely offline period, run a second source test with connectivity disabled, reconnect, and check that exact ID appears once. If offline dependencies are missing, the recorded test outcome is FAIL, not a successful test.
 
+## Private mailbox audit (read-only)
+
+After an approved checkout update, a Termux operator or authorized local agent can run `python -B scripts/odin_mailbox_audit.py --hours 1 --save`. It reads the **local** private inbox ref and outbox Git objects only: no GitHub fetch, credentials, model call or command execution. For each recent request it checks a corresponding response ID/action, timestamp, outcome, unexpected command completion, and overdue or orphaned replies. Reports are stored as immutable private snapshots under `state/mailbox-audits/`. Exit code **0** means no incidents in the requested window; **1** means findings, and **2** means the audit itself could not run. Reports redact message payloads and cannot attest to agent understanding or live ChatGPT notification.
+
+GitHub receives device receipts as they are pushed. ChatGPT's existing receipt watcher is **hourly**, not event-pushed. Do not claim that GitHub immediately wakes this ChatGPT conversation. See [the dated collaboration trial](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md) for measured eight-message queue behavior and outstanding wake-up limitations.
+
 For a fresh rollout use [release gates](RELEASE_GATES.md). For encrypted phone-model messages use [offline chat](OFFLINE_CHAT.md). Do not publish private responses, secrets, pairing codes, SSH keys, or full private messages in a public issue. The legacy public diagnostic branches remain distinct from the **active private** device mailbox.
