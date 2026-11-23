@@ -35,6 +35,14 @@ def _safe_paths(paths: object) -> list[str]:
     return sorted(paths)
 
 
+def _paths_conflict(existing: set[str], requested: set[str]) -> bool:
+    """A directory scope conflicts with its descendants as well as exact files."""
+    return any(
+        left == right or left.startswith(right + "/") or right.startswith(left + "/")
+        for left in existing for right in requested
+    )
+
+
 def _utc_now(now: datetime | None = None) -> datetime:
     instant = datetime.now(UTC) if now is None else now
     if instant.tzinfo is None or instant.utcoffset() != timedelta(0):
@@ -111,7 +119,7 @@ def acquire(
             conflicts = [
                 row[0] for row in rows
                 if row[1] == issue or row[2] == branch
-                or set(json.loads(row[3])) & set(selected)
+                or _paths_conflict(set(json.loads(row[3])), set(selected))
             ]
             if conflicts:
                 db.execute("ROLLBACK")
