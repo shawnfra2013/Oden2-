@@ -1,6 +1,6 @@
 # Odin 2 — CURRENT runtime truth
 
-**Authority:** This document describes the supported architecture as of November 22, 2026. Verify actual reachability from a new receipt before claiming an installed or running device is current. [Earlier observations are archived](archive/README.md). The repository and CI are separate from the physical handheld.
+**Authority:** This document describes the supported architecture as of November 23, 2026. Verify actual reachability from a new receipt before claiming an installed or running device is current. [Earlier observations are archived](archive/README.md). The repository and CI are separate from the physical handheld.
 
 ## What Odin uses
 
