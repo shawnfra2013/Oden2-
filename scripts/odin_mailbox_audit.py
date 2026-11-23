@@ -28,7 +28,7 @@ ACTIONS_SAFE = frozenset({
     "stage5_source_check", "stage5_coding_review", "practice_next",
     "practice_followup", "regression_details", "review_feedback",
     "inference_probe", "encrypted_chat", "install_offline_model",
-    "mailbox_audit", "mailbox_migration_preview",
+    "mailbox_audit", "mailbox_migration_preview", "full_sweep",
 })
 TERMINAL = frozenset({"complete", "expired", "rejected_or_failed", "unverified"})
 
