@@ -2,7 +2,7 @@
 
 Not a device shell, private-mailbox receiver, deployment agent or model call.
 Works inside Codespaces or directly in Termux with previously installed tools.
-Run inside an authenticated Codespace using VS Code Tasks or its terminal.
+Run from the Termux terminal or an authenticated Codespaces terminal.
 """
 from __future__ import annotations
 
