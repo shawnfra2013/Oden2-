@@ -7,7 +7,7 @@ SHA = "a" * 40
 
 
 def state(**changes):
-    result = {"base_sha": SHA, "head_sha": SHA, "revision_round": 0,
+    result = {"base_sha": SHA, "head_sha": "b" * 40, "revision_round": 0,
               "tests": "pass", "review": "pass", "feedback_read": False,
               "agent_action": False, "device_verified": False}
     result.update(changes)
@@ -18,6 +18,12 @@ class RepairGateTests(unittest.TestCase):
     def test_pass_never_authorizes_merge(self):
         result = decide(state())
         self.assertEqual(result["next_action"], "review_for_merge")
+        self.assertFalse(result["automatic_merge_authorized"])
+
+    def test_unchanged_source_cannot_pass(self):
+        result = decide(state(head_sha=SHA))
+        self.assertIn("source_revision_unchanged", result["reasons"])
+        self.assertEqual(result["status"], "BLOCKED")
         self.assertFalse(result["automatic_merge_authorized"])
 
     def test_failure_allows_one_bounded_revision(self):

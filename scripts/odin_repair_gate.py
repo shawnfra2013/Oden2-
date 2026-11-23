@@ -28,6 +28,8 @@ def decide(task: dict) -> dict:
            ("feedback_read", "agent_action", "device_verified")):
         raise ValueError("Invalid receipt evidence")
     reasons = []
+    if task["base_sha"] == task["head_sha"]:
+        reasons.append("source_revision_unchanged")
     if task["tests"] != "pass":
         reasons.append("tests_not_passed")
     if task["review"] != "pass":
