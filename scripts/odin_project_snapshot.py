@@ -82,7 +82,7 @@ def render_status(state: dict) -> str:
     lines = [
         "# Odin public project status — time-stamped snapshot", "",
         f"Observed (UTC): **{state['observed_at']}**", "",
-        f"- GitHub main SHA: " + chr(96) + sha + chr(96),
+        "- GitHub main SHA: " + chr(96) + sha + chr(96),
         f"- Source CI: **{state['source_ci']}**",
         f"- Physical Odin: **{state['device']}**",
         f"- iPhone viewer: **{state['phone']}**",
