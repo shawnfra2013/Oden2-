@@ -7,6 +7,7 @@ Private state is COPIED, not moved; the old checkout remains for rollback.
 from __future__ import annotations
 
 import argparse
+import fcntl
 import json
 import os
 import re
@@ -160,6 +161,8 @@ def check(home: Path, prefix: Path, expected_sha: str, *,
     dest_state = canonical / "state/github-bridge-private"
     if dest_state.exists() or dest_state.is_symlink():
         raise MigrationBlocked("Canonical private state already exists; manual reconciliation required")
+    if any(p.name.startswith(".private-mailbox-copy-") for p in dest_state.parent.iterdir()):
+        raise MigrationBlocked("Previous incomplete private state copy needs inspection")
     _private_state(source_state)
     return {
         "status": "READY", "sha": expected_sha, "source": str(source),
@@ -202,8 +205,8 @@ def _verify_started(service: Path, canonical: Path,
     raise MigrationBlocked("Restarted service did not reach canonical checkout")
 
 
-def apply(home: Path, prefix: Path, expected_sha: str, confirmation: str, *,
-          proc_root: Path = Path("/proc")) -> dict:
+def _apply_locked(home: Path, prefix: Path, expected_sha: str, confirmation: str, *,
+                  proc_root: Path = Path("/proc")) -> dict:
     if confirmation != CONFIRM:
         raise MigrationBlocked("Explicit migration approval phrase required")
     plan = check(home, prefix, expected_sha, proc_root=proc_root)
@@ -270,6 +273,31 @@ def apply(home: Path, prefix: Path, expected_sha: str, confirmation: str, *,
             except (OSError, MigrationBlocked):
                 pass
         raise
+
+
+
+def apply(home: Path, prefix: Path, expected_sha: str, confirmation: str, *,
+          proc_root: Path = Path("/proc")) -> dict:
+    """One migration attempt at a time; a second invocation fails closed."""
+    if confirmation != CONFIRM:
+        raise MigrationBlocked("Explicit migration approval phrase required")
+    directory = home / ".odin-preservation"
+    if directory.is_symlink():
+        raise MigrationBlocked("Unsafe migration lock directory")
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    lock = directory / "odin-mailbox-migrate.lock"
+    descriptor = os.open(lock, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise MigrationBlocked("Unsafe migration lock")
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise MigrationBlocked("Another mailbox migration is active") from exc
+        return _apply_locked(home, prefix, expected_sha, confirmation,
+                             proc_root=proc_root)
+    finally:
+        os.close(descriptor)
 
 
 def main() -> int:
