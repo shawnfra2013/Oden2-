@@ -1,7 +1,7 @@
 """Read-only mailbox incident auditor and private evidence journal regressions."""
 import tempfile
 import unittest
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 from scripts import odin_mailbox_audit as audit
