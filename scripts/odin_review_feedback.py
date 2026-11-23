@@ -111,11 +111,18 @@ def list_feedback(*, inbox=DEFAULT_INBOX, limit=5):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--list", action="store_true", help="Read, never act on, feedback")
+    choice = parser.add_mutually_exclusive_group(required=True)
+    choice.add_argument("--list", action="store_true", help="List untrusted feedback without recording tool presentation")
+    choice.add_argument("--inspect", metavar="ID", help="Present one note and record a non-executing local tool receipt")
     args = parser.parse_args(argv)
-    if not args.list:
-        parser.error("Only --list is supported")
-    print(json.dumps({"untrusted_review_feedback": list_feedback()}, sort_keys=True))
+    if args.inspect:
+        if __package__:
+            from .odin_feedback_tool_receipt import inspect_feedback
+        else:
+            from odin_feedback_tool_receipt import inspect_feedback
+        print(json.dumps(inspect_feedback(args.inspect), sort_keys=True))
+    else:
+        print(json.dumps({"untrusted_review_feedback": list_feedback()}, sort_keys=True))
     return 0
 
 
