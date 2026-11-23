@@ -33,10 +33,11 @@ def fetch_json(url, token=None):
 
 
 def _utc(value):
-    if not isinstance(value, str) or not value.endswith("Z"):
+    if not isinstance(value, str):
         return None
     try:
-        return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo is not None and parsed.utcoffset() == dt.timedelta(0) else None
     except ValueError:
         return None
 
@@ -93,14 +94,17 @@ def check_private_source_receipts(sha, token, fetch=fetch_json):
         except (HTTPError, URLError, ValueError, OSError):
             invalid = True
             continue
-        if not isinstance(receipt, dict) or receipt.get("id", "").lower() != rid:
+        if not isinstance(receipt, dict) or not isinstance(receipt.get("id"), str) or receipt["id"].lower() != rid:
             conflicting = True
             continue
         if not SHA.fullmatch(str(receipt.get("source_sha", ""))):
             invalid = True
             continue
-        if not _utc(receipt.get("completed_at")):
+        when = _utc(receipt.get("completed_at"))
+        if not when:
             invalid = True
+            continue
+        if (dt.datetime.now(UTC) - when).total_seconds() not in range(0, 86401):
             continue
         if receipt.get("source_sha") == sha and receipt.get("status") in ("complete", "completed", "PASS", "success"):
             matched += 1
