@@ -35,6 +35,7 @@ def correlate(events: list[dict], runs: list[dict]) -> dict:
         deliveries.add(delivery)
         observed[delivery] = (pr, sha)
     matched = set()
+    run_ids = set()
     for run in runs:
         if not isinstance(run, dict) or set(run) != {"run_id", "delivery_id", "pr", "head_sha"}:
             raise ValueError("Invalid run metadata")
@@ -43,6 +44,9 @@ def correlate(events: list[dict], runs: list[dict]) -> dict:
             raise ValueError("Invalid run ID")
         if not isinstance(delivery, str) or not ID.fullmatch(delivery):
             raise ValueError("Invalid run delivery ID")
+        if run_id in run_ids:
+            findings.append({"delivery_id": delivery, "reason": "reused_run_id"})
+        run_ids.add(run_id)
         if type(pr) is not int or pr < 1 or not isinstance(sha, str) or not SHA.fullmatch(sha):
             raise ValueError("Invalid run PR/head SHA")
         if delivery not in observed:
