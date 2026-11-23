@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Checkout trusted base SHA (never execute PR branch code)
+      - name: Checkout trusted current main (never execute PR branch code)
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: main
           persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v5
