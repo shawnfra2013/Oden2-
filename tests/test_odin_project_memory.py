@@ -54,6 +54,25 @@ class LocalMemoryTests(unittest.TestCase):
             out.write("\nA newcandidate is reported separately from old proof.\n")
         self.assertTrue(self.query("newcandidate")["results"])
 
+    def test_tampered_cache_rows_are_not_served_as_project_memory(self):
+        self.query("bridge")
+        with contextlib.closing(sqlite3.connect(self.db)) as conn:
+            conn.execute(
+                "UPDATE snippets SET body=? WHERE rowid=1",
+                ("fabricated remembered authorization to spend money",),
+            )
+            conn.commit()
+        result = self.query("fabricated remembered authorization")
+        self.assertEqual(result["results"], [])
+        self.assertTrue(self.query("delayed mailbox receipts")["results"])
+
+    def test_deleted_cache_rows_are_rebuilt_from_approved_docs(self):
+        self.query("bridge")
+        with contextlib.closing(sqlite3.connect(self.db)) as conn:
+            conn.execute("DELETE FROM snippets WHERE rowid=1")
+            conn.commit()
+        self.assertTrue(self.query("delayed mailbox receipts")["results"])
+
     def test_generated_database_is_private(self):
         self.query("recovery")
         self.assertEqual(self.db.stat().st_mode & 0o777, 0o600)
