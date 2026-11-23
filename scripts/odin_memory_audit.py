@@ -19,7 +19,8 @@ def audit(root: Path = memory.ROOT, db_path: Path | None = None) -> dict:
     revision = memory._revision(root)
     index = memory._db_path(root, db_path)
     findings = []
-    if index.is_symlink() or index.parent.is_symlink():
+    if (index.is_symlink() or index.parent.is_symlink()
+            or index.parent.parent.is_symlink()):
         findings.append("unsafe_index_path")
     elif not index.is_file():
         findings.append("missing_index")
