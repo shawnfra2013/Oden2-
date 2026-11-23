@@ -18,7 +18,7 @@ Read [Working with Odin](WORK_WITH_ODIN.md) for responsibilities, private reques
 
 **Retained privately:** the physical device's ignored `state/` files, local queue/model records, audit snapshots, and authenticated private mailbox receipts. They are **not** part of the public Git commit history and do not constitute a Git backup.
 
-**New source implementation (device unverified):** `scripts/odin_project_memory.py` builds a local, ignored SQLite FTS5 index using only the six allowlisted current Git documents. The orchestrator now automatically adds at most two bounded, read-only matching excerpts to a **new** question as untrusted background data; this makes no additional model call. It does not retrieve private mail, run commands from documents, train the underlying model, or independently verify the current device state. The physical Termux FTS5 build and actual offline recall must still be tested after an approved source update.
+**New source implementation (device unverified):** `scripts/odin_project_memory.py` builds a local, ignored SQLite FTS5 index using only the allowlisted current Git documents. The orchestrator now automatically adds at most two bounded, read-only matching excerpts to a **new** question as untrusted background data; this makes no additional model call. It does not retrieve private mail, run commands from documents, train the underlying model, or independently verify the current device state. The physical Termux FTS5 build and actual offline recall must still be tested after an approved source update.
 
 Try locally (from an approved checkout):
 
