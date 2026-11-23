@@ -12,6 +12,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 LEGACY_AI = Path.home() / ".local/bin/ai"
 MODEL_CHAT = ROOT / "scripts/odin_chat.py"
 MONITOR = ROOT / "scripts/odin_cli_dashboard.py"
@@ -66,8 +68,14 @@ def service_up(name: str, *, confirm: str, prefix: Path | None = None) -> int:
         print("Refused: select a known service with --confirm START-ODIN-SERVICE.",
               file=sys.stderr)
         return 2
-    prefix = Path(os.environ.get("PREFIX", "")) if prefix is None else prefix
-    if not str(prefix) or not (prefix / "var/service" / name / "run").is_file():
+    if prefix is None:
+        configured = os.environ.get("PREFIX")
+        if not configured:
+            print("No Termux PREFIX; service start blocked.", file=sys.stderr)
+            return 2
+        prefix = Path(configured)
+    if (not prefix.is_absolute() or
+            not (prefix / "var/service" / name / "run").is_file()):
         print("Service launcher not installed; refusing start.", file=sys.stderr)
         return 2
     state = service_state(name, prefix=prefix)
@@ -83,8 +91,12 @@ def service_up(name: str, *, confirm: str, prefix: Path | None = None) -> int:
             print("Issue #71: private mailbox cwd has not passed; start blocked.",
                   file=sys.stderr)
             return 2
-    result = subprocess.run(["sv", "-w", "15", "up", str(prefix / "var/service" / name)],
-                            text=True, capture_output=True, timeout=25, check=False)
+    try:
+        result = subprocess.run(["sv", "-w", "15", "up", str(prefix / "var/service" / name)],
+                                text=True, capture_output=True, timeout=25, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        print("Runit command unavailable or timed out.", file=sys.stderr)
+        return 1
     if result.returncode:
         print("Runit service did not start; inspect local service.", file=sys.stderr)
         return 1
