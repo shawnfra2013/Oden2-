@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = (
     "docs/PROJECT_MEMORY.md",
+    "docs/ODIN_CONNECTION_MEMORY.md",
     "docs/HANDOFF.md",
     "docs/TASK_BOARD.md",
     "docs/ODIN_RUNTIME.md",
