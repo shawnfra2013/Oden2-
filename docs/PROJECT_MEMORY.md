@@ -14,6 +14,10 @@ Read [Working with Odin](WORK_WITH_ODIN.md) for responsibilities, private reques
 4. [Dated incident and trial log](audits/ODIN_COLLABORATION_TRIAL_2026-11-23.md): test history, failures, remedies and proof limitations.
 5. [Current runtime](ODIN_RUNTIME.md): supported environment and boundary between GitHub source, physical Odin and phone.
 
+## New source-backed capabilities — five-upgrade checkpoint (November 23)
+
+Reviewed source PRs merged: [#143 ping receipt proof](https://github.com/shawnfra2013/Oden2-/pull/143), [#144 scoped coding-agent handoff](https://github.com/shawnfra2013/Oden2-/pull/144), [#135 event correlation](https://github.com/shawnfra2013/Oden2-/pull/135), [#138 fail-closed supervision summary](https://github.com/shawnfra2013/Oden2-/pull/138), [#146 claimed proof timeline](https://github.com/shawnfra2013/Oden2-/pull/146), [#136 bounded repair gate](https://github.com/shawnfra2013/Oden2-/pull/136), [#137 held-out coding comparison](https://github.com/shawnfra2013/Oden2-/pull/137) and [#145 encrypted phone pending-request recovery](https://github.com/shawnfra2013/Oden2-/pull/145). These implementations support auditing and future agentic work; they do not start a Codespace, retrieve private device state from CI, promote model weights or prove phone connectivity. See [current handoff](HANDOFF.md) for issue-by-issue physical acceptance and fresh receipt limits.
+
 ## What is and is not retained
 
 **Retained in Git:** reviewed code commits; sanitized decisions, change history, issue comments, test/result links, dated memory checkpoints. Git stores versions for retrieval, not autonomous semantic learning.
