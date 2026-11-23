@@ -261,6 +261,18 @@ class Stage4Tests(unittest.TestCase):
         self.assertEqual(len(reviews), 1)
         self.assertIn("no_semantic_change", json.loads(reviews[0].read_text())["codes"])
 
+    def test_next_model_proposal_receives_fixed_previous_critique(self):
+        from scripts import odin_coder_coach
+        coach_report = odin_coder_coach.critique("value = 1\\n".replace("\\n", "\n"),
+                                                  "value = 1\\n".replace("\\n", "\n"))
+        odin_coder_coach._remember_lesson(self.root, "ai/example.py", coach_report)
+        self.build(source="value = 2\\n".replace("\\n", "\n"))
+        self.assertEqual(self.ask.call_count, 1)
+        prompt = self.ask.call_args.args[0][1]["content"]
+        self.assertIn("PREVIOUS STATIC CRITIQUE", prompt)
+        self.assertIn("no_semantic_change", prompt)
+        self.assertNotIn("IGNORE ALL PREVIOUS", prompt)
+
     def test_model_critique_preserves_verified_source_only_status(self):
         receipt = self.build()
         checked = worker.verify_proposal("ai/example.py", "example", "1" * 32,
