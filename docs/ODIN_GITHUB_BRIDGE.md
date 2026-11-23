@@ -8,6 +8,14 @@ The device bridge uses the **private** repository `shawnfra2013/Odin-private-bri
 
 A successful request submission, previous receipt, or passing source-code tests cannot establish current connectivity. A `stage5_health` receipt proves the local HTTP service was reachable **at that receipt time**, not that a particular source revision or iPhone route was installed.
 
+## Canonical Termux launcher and state migration
+
+A runit `odin-private-mailbox` process may be **running** while executing an obsolete temporary checkout. Check both the launcher `$PREFIX/var/service/odin-private-mailbox/run` and the running process's `/proc/<pid>/cwd` against `~/odin-workspace`. The device preflight now labels a mismatched launcher or live process **FAIL**, never PASS because `sv status` is green. A fresh `ping` reports the repository SHA seen by the running process but is not, alone, evidence of its filesystem location.
+
+**Observed November 23 incident:** the supervised launcher pointed to `~/odin-pr45-test.iwGRYw`; the canonical checkout was current, but the live state, outbox Git clone and logs were stored under the temporary checkout. An initial read-only migration check found both source revisions equal, no tracked modifications, no pending receipt journals, zero unpushed outbox commits and a clean private outbox. Do **not** delete old checkouts or overwrite an existing canonical state directory.
+
+**Approved migration sequence (operator action, not automatic):** First inspect source/destination private state and service launcher, preserve a copy of the launcher, gracefully stop only `odin-private-mailbox`, recheck pending receipt journals, outbox divergence and uncommitted changes, copy the private bridge state to the canonical checkout without replacing existing files, replace only the launcher `cd` target, start only that service, then verify live process cwd, a fresh matching private `ping` and `mailbox_audit` receipt. Keep the original private state and launcher backup available for rollback. If any path, state collision or pending/unpushed evidence differs, **stop and inspect** rather than resetting or deleting it. The private SSH key stays in Termux's existing `~/.ssh` location and is never copied into GitHub.
+
 ## Offline development source receipts
 
 A portable test run (`python -B scripts/odin_codespace.py test`) saves a source-only receipt under the canonical Odin checkout at `~/odin-workspace/state/codespace-receipts/<id>.json`. The **existing** supervised private mailbox polls about once per minute when connected and, on this version of the bridge, uploads up to three valid receipts per cycle to the **private** `odin-bridge-outbox` branch at `bridge/local-source-receipts/<id>.json`. No tokens, code, chat transcripts, terminal stdout/stderr, or passwords are copied into the receipts. Uploading is part of the already-authorized private transport; it neither executes a command nor edits source.
