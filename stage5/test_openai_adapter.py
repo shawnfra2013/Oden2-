@@ -61,6 +61,15 @@ class OpenAIAdapterTests(unittest.TestCase):
             self.assertEqual(chat_provider.ask_model("hello"), "GROQ")
             fn.assert_called_once_with("hello", None)
 
+    def test_status_and_dispatch_use_one_provider_selector(self):
+        with patch.dict(os.environ, self.SETTINGS):
+            self.assertEqual(chat_provider.provider_name(),
+                             chat_provider.provider_status(os.environ)["provider"])
+            with patch("openai_adapter.ask_openai", side_effect=AssertionError("called")) as fn:
+                with self.assertRaises(RuntimeError):
+                    chat_provider.ask_model("Do not send", expected_provider="local")
+                fn.assert_not_called()
+
     def test_reject_missing_key_without_request(self):
         env = dict(self.SETTINGS)
         env["OPENAI_API_KEY"] = ""

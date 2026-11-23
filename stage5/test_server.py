@@ -254,6 +254,79 @@ class Stage55Tests(unittest.TestCase):
             )
         self.assertEqual(status, 502)
 
+    def test_stale_provider_never_calls_model(self):
+        from unittest.mock import patch
+
+        headers = {
+            "Origin": "http://127.0.0.1:8765",
+            "Content-Type": "application/json",
+            "X-Odin-Request": "chat",
+        }
+        with (
+            patch.dict("os.environ", {
+                "ODIN_STAGE5_ENABLE_AI": "1",
+                "ODIN_STAGE5_PROVIDER": "openai",
+            }),
+            patch.object(server, "ask_ai", side_effect=AssertionError("model called")) as ai,
+        ):
+            status, payload = self.request(
+                "POST", "/api/chat",
+                body=json.dumps({"message": "Test", "expected_provider": "local"}),
+                headers=headers,
+            )
+            self.assertEqual(status, 409)
+            self.assertIn(b"Model selection changed", payload)
+            ai.assert_not_called()
+
+    def test_non_string_provider_rejected_without_server_error(self):
+        headers = {
+            "Origin": "http://127.0.0.1:8765",
+            "Content-Type": "application/json",
+            "X-Odin-Request": "chat",
+        }
+        for provider in ([], {}, 42, True):
+            status, _ = self.request(
+                "POST", "/api/chat",
+                body=json.dumps({"message": "Test", "expected_provider": provider}),
+                headers=headers,
+            )
+            self.assertEqual(status, 400)
+
+    def test_invalid_expected_provider_rejected(self):
+        headers = {
+            "Origin": "http://127.0.0.1:8765",
+            "Content-Type": "application/json",
+            "X-Odin-Request": "chat",
+        }
+        status, _ = self.request(
+            "POST", "/api/chat",
+            body=json.dumps({"message": "Test", "expected_provider": "automatic"}),
+            headers=headers,
+        )
+        self.assertEqual(status, 400)
+
+    def test_chat_reports_actual_backend_provider(self):
+        from unittest.mock import patch
+
+        headers = {
+            "Origin": "http://127.0.0.1:8765",
+            "Content-Type": "application/json",
+            "X-Odin-Request": "chat",
+        }
+        with (
+            patch.dict("os.environ", {
+                "ODIN_STAGE5_ENABLE_AI": "1", "ODIN_STAGE5_PROVIDER": "local"
+            }),
+            patch.object(server, "ask_ai", return_value="ON_DEVICE"),
+        ):
+            status, payload = self.request(
+                "POST", "/api/chat",
+                body=json.dumps({"message": "Hi", "expected_provider": "local"}),
+                headers=headers,
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(payload)["provider"], "local")
+
     def test_real_server_uses_threading(self):
         self.assertIn(
             "ThreadingHTTPServer((HOST, PORT), Handler)",

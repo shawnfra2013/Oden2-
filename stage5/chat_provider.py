@@ -4,15 +4,19 @@ import os
 from inference_adapter import ask_bounded
 
 
-def provider_name():
-    name = os.environ.get("ODIN_STAGE5_PROVIDER", "groq").strip().lower()
+def provider_name(environ=None):
+    """Select the one backend from the process, never from browser claims."""
+    env = os.environ if environ is None else environ
+    name = str(env.get("ODIN_STAGE5_PROVIDER", "groq")).strip().lower()
     if name not in {"groq", "openai", "local"}:
         raise RuntimeError("Unknown Odin AI provider")
     return name
 
 
-def ask_model(question, history=None):
+def ask_model(question, history=None, *, expected_provider=None):
     provider = provider_name()
+    if expected_provider is not None and provider != expected_provider:
+        raise RuntimeError("Configured provider changed; model request blocked")
     if provider == "local":
         from local_adapter import ask_local
         return ask_local(question, history)
@@ -33,7 +37,10 @@ def provider_status(environ=None):
         from offline_profile import activate
         env = dict(env)
         activate(env)
-    name = str(env.get("ODIN_STAGE5_PROVIDER", "groq")).strip().lower()
+    try:
+        name = provider_name(env)
+    except RuntimeError:
+        name = "invalid"
     enabled = env.get("ODIN_STAGE5_ENABLE_AI") == "1"
     if name == "local":
         from local_adapter import local_settings

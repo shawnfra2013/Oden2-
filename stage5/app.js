@@ -70,6 +70,7 @@ async function getJSON(path){
 let checking=false;
 let sending=false;
 let aiReady=false;
+let activeProvider=null;
 let retry;
 async function refreshHealth(){
  if(checking)return;
@@ -79,8 +80,9 @@ async function refreshHealth(){
   const health=await getJSON("/api/health");
   el("health").textContent="Backend: "+health.status+
     " | "+(health.provider==="local"?"On-device model · zero OpenAI usage":health.provider)+" | AI: "+(health.ai_enabled?"enabled":"disabled");
+  activeProvider=["local","groq","openai"].includes(health.provider)?health.provider:null;
   el("localOptions").hidden=health.provider!=="local";
-  aiReady=health.ai_configured===true;
+  aiReady=health.ai_configured===true && activeProvider!==null;
   el("send").disabled=sending||!aiReady;
   if(!sending)el("chatStatus").textContent=({
     configured_not_tested:"Model configured. Send a message to check inference.",
@@ -91,6 +93,7 @@ async function refreshHealth(){
   }[health.ai_reason] || "Model status unavailable.");
  }catch(e){
   aiReady=false;
+  activeProvider=null;
   el("health").textContent="Backend unavailable: "+e.message;
   el("send").disabled=true;
   if(!sending)el("chatStatus").textContent="Connection lost. Retrying in 5 seconds.";
@@ -101,13 +104,13 @@ async function refreshHealth(){
 }
 el("send").addEventListener("click",async()=>{
  const message=el("message").value.trim();
- if(!message||sending||!aiReady)return;
+ if(!message||sending||!aiReady||!activeProvider)return;
  sending=true;
  el("send").disabled=true;
  el("newChat").disabled=true;
  el("chatStatus").textContent="Waiting for AI response...";
  try{
-  const body={message,conversation_id:conversationId};
+  const body={message,conversation_id:conversationId,expected_provider:activeProvider};
   if(!el("localOptions").hidden){
    const reference=el("useNote").checked?el("note").value:"";
    if(noteSize(reference)>1600)throw Error("Shorten the project excerpt.");
@@ -120,6 +123,10 @@ el("send").addEventListener("click",async()=>{
   });
   const result=await response.json();
   if(!response.ok){
+   if(response.status===409){
+    aiReady=false;
+    refreshHealth();
+   }
    if(response.status===404&&conversationId){
     selectConversation(undefined);
     throw Error("Conversation expired. Send again to start a new chat.");
