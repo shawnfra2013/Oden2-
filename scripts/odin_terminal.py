@@ -163,7 +163,7 @@ def render(device, remote=None, width=76, theme="neon", color=False, issue=None)
 
     def section(name):
         item = " " + name + " "
-        return "├" + "─" + item + "─" * (width - len(item) - 2) + "┤"
+        return "├" + "─" + item + "─" * (width - len(item) - 3) + "┤"
 
     local_sha = device.get("local_sha")
     remote_sha = remote.get("main_sha") if remote else None
