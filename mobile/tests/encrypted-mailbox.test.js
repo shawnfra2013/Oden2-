@@ -33,4 +33,8 @@ test("private mailbox rejects unauthorized and plaintext input; retry reuses the
   assert.deepEqual((await post({id})).data,{pending:true});
   receipt=Buffer.from(JSON.stringify({id,action:"encrypted_chat",status:"complete",result:{sealed}})).toString("base64");
   assert.deepEqual((await post({id})).data,{sealed});
+  receipt=Buffer.from(JSON.stringify({id,action:"encrypted_chat",status:"expired",result:{sealed:"private-do-not-copy"}})).toString("base64");
+  assert.deepEqual((await post({id})).data,{pending:false,failed:true,state:"expired"});
+  receipt=Buffer.from(JSON.stringify({id,action:"encrypted_chat",status:"rejected_or_failed",result:{error:"private"}})).toString("base64");
+  assert.deepEqual((await post({id})).data,{pending:false,failed:true,state:"rejected_or_failed"});
 });
