@@ -93,6 +93,26 @@ class OdinTaskContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.evaluate()
 
+    def test_schema_boolean_cannot_masquerade_as_schema_one(self):
+        self.contract["schema"] = True
+        with self.assertRaises(ValueError):
+            self.evaluate()
+
+    def test_unhashable_required_test_is_safe_validation_error(self):
+        self.contract["required_tests"] = [["odin_checks"]]
+        with self.assertRaises(ValueError):
+            self.evaluate()
+
+    def test_control_character_paths_are_rejected(self):
+        for invalid in ("scripts/hello\\n.py", "scripts/hello\\x00.py", "scripts/test\\t.py"):
+            with self.subTest(invalid=invalid):
+                self.observed["changed_paths"] = [invalid]
+                self.assertIn("invalid_changed_paths", self.evaluate()["reasons"])
+
+    def test_unbounded_changed_paths_fail_closed(self):
+        self.observed["changed_paths"] = ["scripts/example.py"] * 51
+        self.assertIn("invalid_changed_paths", self.evaluate()["reasons"])
+
     def test_unknown_evidence_field_is_rejected(self):
         self.observed["device_verified"] = True
         with self.assertRaises(ValueError):
