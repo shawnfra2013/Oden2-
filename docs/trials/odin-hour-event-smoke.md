@@ -13,3 +13,7 @@ This text changes documentation only. It does not authorize device updates, exec
 Request ID `ODIN-HOUR-EVIDENCE-20261123-D` requests one additional harmless `synchronize` event after the trusted GitHub-side evidence workflow merged. Its acceptance is a GitHub Actions artifact recording the **original** `pull_request.head.sha` for this exact commit, independently of a later-fetched mutable PR head. Verify the artifact's run ID and SHA. Review notifications, if any, must remain deduplicated and must not be mistaken for a device action.
 
 This remains documentation-only. It does not authorize device commands, deployment, new Work automation, or paid inference.
+
+## Fourth event: trusted-source event artifact repair acceptance
+
+Request ID `ODIN-HOUR-EVIDENCE-20261123-E` is the single retest after the previous Actions capture job failed on an old base checkout. On this `synchronize` event, the trusted `main` capture script must produce a redacted artifact with the original GitHub event `pull_request.head.sha`, PR #119 and the Actions run ID. A passing Actions job is necessary but the artifact content must also match; neither proves Odin changed code or Work received the SHA.
