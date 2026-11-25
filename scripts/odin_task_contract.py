@@ -29,7 +29,8 @@ def _safe_path(value):
     """Require exact relative tracked-style file paths, no wildcards or traversal."""
     if not isinstance(value, str) or not 1 <= len(value) <= 180:
         return False
-    if "\\" in value or "*" in value or "?" in value or value.startswith("/"):
+    if ("\\" in value or "*" in value or "?" in value
+            or value.startswith("/") or any(ord(ch) < 32 or ord(ch) == 127 for ch in value)):
         return False
     parts = PurePosixPath(value).parts
     return bool(parts) and all(part not in ("", ".", "..") for part in parts) and "/".join(parts) == value
@@ -38,7 +39,7 @@ def _safe_path(value):
 def validate_contract(contract):
     if not isinstance(contract, dict) or set(contract) != CONTRACT_KEYS:
         raise ValueError("Unknown or missing task contract fields")
-    if contract["schema"] != 1 or type(contract["issue_number"]) is not int or contract["issue_number"] < 1:
+    if type(contract["schema"]) is not int or contract["schema"] != 1 or type(contract["issue_number"]) is not int or contract["issue_number"] < 1:
         raise ValueError("Invalid contract schema or issue")
     if not isinstance(contract["base_sha"], str) or not HEX_SHA.fullmatch(contract["base_sha"]):
         raise ValueError("Invalid approved base SHA")
@@ -46,7 +47,7 @@ def validate_contract(contract):
     if not isinstance(paths, list) or not 1 <= len(paths) <= 50 or any(not _safe_path(x) for x in paths) or len(paths) != len(set(paths)):
         raise ValueError("Invalid allowed file paths")
     tests = contract["required_tests"]
-    if not isinstance(tests, list) or not 1 <= len(tests) <= len(ALLOWED_TESTS) or any(x not in ALLOWED_TESTS for x in tests) or len(tests) != len(set(tests)):
+    if not isinstance(tests, list) or not 1 <= len(tests) <= len(ALLOWED_TESTS) or any(not isinstance(x, str) or x not in ALLOWED_TESTS for x in tests) or len(tests) != len(set(tests)):
         raise ValueError("Invalid required source tests")
     criteria = contract["acceptance_criteria"]
     if not isinstance(criteria, list) or not 1 <= len(criteria) <= 12 or any(not isinstance(x, str) or not 8 <= len(x) <= 300 for x in criteria):
@@ -72,15 +73,22 @@ def evaluate_contract(contract, observed):
         reasons.append("base_sha_mismatch")
     if not isinstance(observed["head_sha"], str) or not HEX_SHA.fullmatch(observed["head_sha"]):
         reasons.append("invalid_head_sha")
+    elif observed["head_sha"] == contract["base_sha"]:
+        reasons.append("unchanged_head_sha")
     paths = observed["changed_paths"]
-    if not isinstance(paths, list) or not paths or any(not _safe_path(x) for x in paths):
+    if not isinstance(paths, list) or not 1 <= len(paths) <= 50 or any(not _safe_path(x) for x in paths):
         reasons.append("invalid_changed_paths")
-    elif set(paths) - set(contract["allowed_paths"]):
-        reasons.append("out_of_scope_paths")
+    else:
+        if len(paths) != len(set(paths)):
+            reasons.append("duplicate_changed_paths")
+        if set(paths) - set(contract["allowed_paths"]):
+            reasons.append("out_of_scope_paths")
     if type(observed["review_round"]) is not int or observed["review_round"] > contract["max_review_rounds"] or observed["review_round"] < 0:
         reasons.append("review_budget_exceeded")
     tests = observed["tests"]
-    if not isinstance(tests, dict) or any(type(k) is not str or type(v) is not bool for k, v in tests.items()):
+    if (not isinstance(tests, dict) or len(tests) > len(ALLOWED_TESTS)
+            or any(type(k) is not str or k not in ALLOWED_TESTS or type(v) is not bool
+                   for k, v in tests.items())):
         reasons.append("invalid_test_evidence")
     else:
         for name in contract["required_tests"]:
